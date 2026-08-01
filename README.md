@@ -45,15 +45,31 @@ getoond en netjes overgeslagen.
 <img src="docs/screenshots/scankaarten.png" width="49%"> <img src="docs/screenshots/designer.png" width="49%">
 </p>
 
+Het **Portaal** koppel je eenmalig; daarna log je automatisch op de achtergrond in en gebruik je
+pluslokaal.nl binnen de app (je wachtwoord wordt versleuteld bewaard).
+
+![Portaal](docs/screenshots/portaal.png)
+
 ### Beheer (superadmin)
 
-- **Gebruikers** — medewerkers/ondernemers per winkel; uitnodigen (welkomstmail), rol wijzigen, wachtwoord resetten.
+- **Gebruikers** — medewerkers/ondernemers per winkel; uitnodigen (welkomstmail met tijdelijk wachtwoord),
+  rol wijzigen, wachtwoord resetten.
 
   ![Gebruikers](docs/screenshots/beheer-gebruikers.png)
 
-- **Filialen** — winkels + **winkelprinters** (IPP, per formaat de juiste lade).
+  Per gebruiker een detailscherm: alle velden bewerken, welkomst-/reset-mail sturen, en **verwijderen met
+  overdracht** van diens kaarten naar een andere gebruiker.
+
+  ![Gebruiker bewerken](docs/screenshots/beheer-gebruiker-detail.png)
+
+- **Filialen** — winkels aanmaken (winkelnummer + naam).
 
   ![Filialen](docs/screenshots/beheer-filialen.png)
+
+  Per winkel de **winkelprinter** instellen (IPP): documentprinter, poort en per formaat de juiste **lade**,
+  plus optioneel IP-beperkingen.
+
+  ![Winkelprinter instellen](docs/screenshots/beheer-filiaal-printer.png)
 
 - **Winkelpakket-accounts** — de pluslokaal.nl-accounts (max. **6**) voor W2P-downloads; **meer accounts = sneller**
   (parallel). Plus per superadmin: **mail bij een mislukte sync/download** aan/uit.
@@ -68,7 +84,29 @@ getoond en netjes overgeslagen.
 
   ![Opslag](docs/screenshots/beheer-opslag.png)
 
-- Verder: **Mailinstellingen** (SMTP + testmail), **Demo-account** (aan/uit), **Logs**, **Feedback** en **Kennisbank**.
+- **Mailinstellingen** — SMTP (bv. Resend) voor uitnodigingen/reset-mails, met een testmail-knop.
+
+  ![Mailinstellingen](docs/screenshots/beheer-mail.png)
+
+- **Logboek** — audit-log: wie deed wat, wanneer en vanaf welk IP (inloggen, printen, gebruikers, feedback).
+
+  ![Logboek](docs/screenshots/beheer-logs.png)
+
+- **Kennisbank** — beheer de help-artikelen die gebruikers in de app zien.
+
+  ![Kennisbank](docs/screenshots/beheer-kennisbank.png)
+
+- **Feedback** — inbox voor meldingen/ideeën van gebruikers (met reageren en statussen).
+
+  ![Feedback](docs/screenshots/beheer-feedback.png)
+
+- **Demo-account** — het `demo`-account (gesimuleerd printen) aan- of uitzetten.
+
+  ![Demo-account](docs/screenshots/beheer-demo.png)
+
+> **Winkelkiezer** (rechtsboven): een superadmin werkt in álle winkels en kiest bovenin welke winkel
+> actief is (bepaalt o.a. de winkelprinter). Onder **Profiel** stelt elke gebruiker z'n eigen gegevens,
+> profielfoto en eventueel IP-toegangsbeperking in.
 
 ### Inloggen & beveiliging
 
