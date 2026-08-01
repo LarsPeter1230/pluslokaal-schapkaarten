@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inloggen | PLUS</title>
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static',filename='img/favicon.svg') }}">
+<link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static',filename='img/favicon-32.png') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static',filename='img/favicon-180.png') }}">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ─── PLUS login – 1-op-1 reproductie van het PLUS Design ─────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --dark-green:#115013;   /* koppen, links, focus */
+  --action-green:#80bd1d; /* header-balk + primaire CTA */
+  --action-green-h:#77b01a;
+  --text:#333333;
+  --muted:#6c6c6c;
+  --placeholder:#999999;
+  --border:#999999;
+  --error:#dd350d;
+}
+html,body{min-height:100%;}
+body{
+  font-family:'Open Sans',Gotham,sans-serif;
+  background:#ffffff;color:var(--text);
+  display:flex;flex-direction:column;min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── Header-balk (Action Green, wit PLUS-woordmerk) ──────────────────────── */
+header.plus-header{
+  background:var(--action-green);
+  box-shadow:2px 1px 6px 0 rgba(51,51,51,.2);
+  height:64px;display:flex;align-items:center;padding:0 20px;flex-shrink:0;
+}
+.plus-header .logo{height:34px;display:flex;align-items:center;}
+.plus-header .logo img{height:34px;width:auto;object-fit:contain;}
+.plus-header .brand-sub{color:#fff;font-weight:700;font-size:14px;letter-spacing:.2px;opacity:.95;
+  padding-left:12px;margin-left:12px;border-left:1px solid rgba(255,255,255,.4);}
+
+/* ── Content ─────────────────────────────────────────────────────────────── */
+.content-wrapper{flex:1;display:flex;justify-content:center;padding:32px 16px 48px;}
+.content{width:100%;max-width:570px;}
+
+.login-title{
+  color:var(--dark-green);font-size:24px;font-weight:700;line-height:30px;
+  margin-bottom:6px;
+}
+.login-description{color:var(--muted);font-size:16px;line-height:24px;margin-bottom:24px;}
+
+/* ── Formuliervelden – zwevend label, 56px, 8px radius ───────────────────── */
+form{margin:0;}
+.field{position:relative;margin-top:16px;margin-bottom:8px;}
+.field input{
+  width:100%;height:56px;padding:24px 16px 8px;
+  font-family:inherit;font-size:16px;color:var(--text);
+  background:#fff;border:1px solid var(--border);border-radius:8px;
+  outline:none;transition:border-color .2s,border-width .2s;
+}
+.field input:hover{border:2px solid rgba(0,0,0,.87);}
+.field input:focus{border:1px solid #333333;}
+.field.has-error input{border-color:#f44336;}
+
+.field label{
+  position:absolute;left:16px;top:16px;
+  font-size:16px;line-height:24px;color:var(--placeholder);
+  pointer-events:none;transform-origin:top left;
+  transition:transform .2s cubic-bezier(0,0,.2,1),color .2s cubic-bezier(0,0,.2,1);
+}
+.field label .req{color:inherit;}
+.field input:focus + label,
+.field input:not(:placeholder-shown) + label{
+  transform:translateY(-9px) scale(.75);
+  color:var(--dark-green);
+}
+/* houd het label gedempt wanneer het veld gevuld maar niet gefocust is */
+.field input:not(:placeholder-shown):not(:focus) + label{color:var(--placeholder);}
+
+/* Toon/Verberg wachtwoord */
+.field .toggle-pw{
+  position:absolute;right:14px;top:0;height:56px;
+  background:none;border:none;cursor:pointer;padding:0;
+  font-family:inherit;font-size:14px;line-height:22px;color:var(--placeholder);
+}
+
+/* ── Primaire knop – speech-bubble radius 24/24/24/4 ─────────────────────── */
+.btn-login{
+  width:100%;height:48px;margin-top:16px;
+  background:var(--action-green);color:#fff;
+  font-family:inherit;font-size:16px;font-weight:400;line-height:20px;
+  border:none;border-radius:24px 24px 24px 4px;cursor:pointer;
+  box-shadow:none;
+  transition:opacity 250ms cubic-bezier(.4,0,.2,1),box-shadow 250ms cubic-bezier(.4,0,.2,1);
+}
+.btn-login:hover{background:var(--action-green);opacity:1;}
+.btn-login:active{box-shadow:0 5px 5px -3px rgba(0,0,0,.2),0 8px 10px 1px rgba(0,0,0,.14),0 3px 14px 2px rgba(0,0,0,.12);}
+
+/* ── Meldingen ───────────────────────────────────────────────────────────── */
+.form-error{
+  color:var(--error);font-size:14px;line-height:22px;margin-top:4px;margin-bottom:4px;
+}
+.login-hint{display:flex;gap:10px;align-items:flex-start;background:#eef6e1;border:1px solid #cfe6a8;
+  border-left:4px solid #82bb22;border-radius:8px;padding:12px 14px;margin:4px 0 16px;
+  color:#333;font-size:14px;line-height:20px;}
+.login-hint__ic{flex:0 0 auto;width:20px;height:20px;border-radius:50%;background:#82bb22;color:#fff;
+  font-weight:800;font-style:italic;font-size:13px;display:flex;align-items:center;justify-content:center;margin-top:1px;}
+.form-ok{
+  color:var(--dark-green);background:#eef6e1;border-radius:8px;padding:12px 14px;
+  font-size:14px;line-height:20px;margin-bottom:16px;
+}
+
+/* ── Footer onder het formulier ──────────────────────────────────────────── */
+.form-footer{margin-top:24px;}
+.form-footer p{font-size:14px;line-height:22px;color:var(--text);margin-bottom:4px;}
+.form-footer a{color:var(--dark-green);text-decoration:none;}
+.form-footer a:hover{text-decoration:underline;}
+.form-footer .secure{color:var(--muted);font-size:12px;margin-top:16px;}
+
+/* ── Pagina-footer ───────────────────────────────────────────────────────── */
+footer.page-footer{
+  border-top:1px solid #d8d8d8;padding:20px 16px;text-align:center;
+  color:var(--muted);font-size:12px;line-height:20px;flex-shrink:0;
+}
+footer.page-footer a{color:var(--muted);text-decoration:none;}
+footer.page-footer a:hover{text-decoration:underline;}
+footer.page-footer .sep{margin:0 6px;}
+</style>
+{% include '_csrf.html' %}
+</head>
+<body spellcheck="false">
+<header class="plus-header">
+  <div class="logo">
+    <img src="{{ url_for('static',filename='img/plus-logo.svg') }}" alt="PLUS logo"
+         onerror="this.parentElement.innerHTML='<span style=\'color:#fff;font-weight:800;font-size:1.3rem;letter-spacing:1px;\'>PLUS</span>'">
+    <span class="brand-sub">Lokaal</span>
+  </div>
+</header>
+
+<div class="content-wrapper">
+  <div class="content">
+    <h1 class="login-title">Inloggen</h1>
+    <p class="login-description">Inloggen met je PLUSLokaal account.</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <p class="{{ 'form-ok' if cat=='success' else 'form-error' }}">{{ msg }}</p>
+      {% endfor %}
+    {% endwith %}
+
+    {% if store_hint %}
+    <div class="login-hint"><span class="login-hint__ic">i</span><span>{{ store_hint }}</span></div>
+    {% endif %}
+
+    <form method="post" novalidate>
+      <div class="field">
+        <input type="text" id="username" name="username" placeholder=" " required autofocus
+               autocomplete="username" autocorrect="off" autocapitalize="none">
+        <label for="username">E-mailadres <span class="req">*</span></label>
+      </div>
+
+      <div class="field">
+        <input type="password" id="password" name="password" placeholder=" " required
+               autocomplete="current-password" autocorrect="off" autocapitalize="none">
+        <label for="password">Wachtwoord <span class="req">*</span></label>
+        <button type="button" class="toggle-pw" id="togglePw" aria-label="Wachtwoord laten zien">Toon</button>
+      </div>
+
+      <label style="display:flex;align-items:center;gap:9px;margin:2px 0 16px;font-size:14px;color:#444;cursor:pointer;">
+        <input type="checkbox" name="remember" value="1" checked style="width:16px;height:16px;">
+        Aangemeld blijven op dit apparaat
+      </label>
+
+      <button type="submit" class="btn-login">Inloggen</button>
+    </form>
+
+    <div class="form-footer">
+      <p><a href="{{ url_for('forgot') }}">Wachtwoord vergeten?</a></p>
+      <p>Nog geen account? <a href="{{ url_for('signup') }}"><strong>Account aanmaken</strong></a></p>
+      <p class="secure">Je bevindt je binnen een beveiligde omgeving.</p>
+    </div>
+  </div>
+</div>
+
+<footer class="page-footer">
+  <div>© {{ 2026 }} PLUS &bull; PLUSLokaal Schapkaarten</div>
+</footer>
+
+<script>
+(function(){
+  var pw = document.getElementById('password');
+  var btn = document.getElementById('togglePw');
+  if(pw && btn){
+    btn.addEventListener('click', function(){
+      var show = pw.type === 'password';
+      pw.type = show ? 'text' : 'password';
+      btn.textContent = show ? 'Verberg' : 'Toon';
+      btn.setAttribute('aria-label', show ? 'Wachtwoord verbergen' : 'Wachtwoord laten zien');
+      pw.focus();
+    });
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}{{ fb.title }} – Feedback{% endblock %}
+{% block content %}
+{% set tmeta = FEEDBACK_TYPES.get(fb.ftype, ('?','fa-circle')) %}
+{% set smeta = FEEDBACK_STATUS.get(fb.status, (fb.status,'#666','#eee')) %}
+
+<div class="page-head">
+  <div>
+    <a href="{{ url_for('feedback_list') }}" class="backlink"><i class="fa fa-arrow-left"></i> Terug naar feedback</a>
+    <h1 class="page-title" style="margin-top:6px;">{{ fb.title }}</h1>
+    <p class="page-sub">
+      <span class="fb-typetag"><i class="fa {{ tmeta[1] }}"></i> {{ tmeta[0] }}</span>
+      · <span class="fb-status" style="color:{{ smeta[1] }};background:{{ smeta[2] }};">{{ smeta[0] }}</span>
+      · melding #{{ fb.id }}
+    </p>
+  </div>
+</div>
+
+<div class="flex" style="align-items:flex-start;">
+  {# Linkerkolom: gesprek + screenshot #}
+  <div style="flex:1;min-width:320px;">
+    <div class="panel">
+      <div class="panel__head"><i class="fa fa-comments"></i><h3>Gesprek</h3></div>
+      <div class="panel__body">
+        <div class="fb-thread" id="fbThread" data-fid="{{ fb.id }}">
+          {% for m in thread %}
+          <div class="fb-msg {{ 'is-admin' if m.is_admin else 'is-user' }}" data-mid="{{ m.id }}">
+            <div class="fb-msg__who">{{ m.author }}{% if m.is_admin %} <span class="fb-msg__tag">beheer</span>{% endif %}</div>
+            <div class="fb-msg__body">{{ m.body }}</div>
+            <div class="fb-msg__at">{{ m.at }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        <form id="fbReplyForm" class="fb-reply" action="{{ url_for('feedback_admin_reply', fid=fb.id) }}" method="post">
+          <textarea name="body" id="fbReplyBody" rows="2" placeholder="Reageer naar de melder…" required></textarea>
+          <button type="submit" class="btn btn-primary"><i class="fa fa-paper-plane"></i> Verstuur reactie</button>
+        </form>
+      </div>
+    </div>
+
+    {% if fb.screenshot %}
+    <div class="panel" style="margin-top:16px;">
+      <div class="panel__head"><i class="fa fa-image"></i><h3>Schermafbeelding</h3>
+        <a href="{{ fb.screenshot }}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="margin-left:auto;"><i class="fa fa-up-right-from-square"></i> Op ware grootte</a>
+      </div>
+      <div class="panel__body">
+        <a href="{{ fb.screenshot }}" target="_blank" rel="noopener">
+          <img src="{{ fb.screenshot }}" alt="Schermafbeelding" style="max-width:100%;border:1px solid var(--border);border-radius:8px;display:block;">
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+    {# Logboek #}
+    <div class="panel" style="margin-top:16px;">
+      <div class="panel__head"><i class="fa fa-clock-rotate-left"></i><h3>Logboek</h3></div>
+      <div class="panel__body">
+        <ul class="fb-log">
+          {% for ev in fb.log_json|fb_log|reverse %}
+          <li><span class="fb-log__dot"></span>
+            <div><div class="fb-log__t">{{ ev.text }}</div>
+              <div class="fb-log__m">{{ ev.at }} · {{ ev.who }}</div></div>
+          </li>
+          {% else %}
+          <li class="muted">Nog geen gebeurtenissen.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  {# Rechterkolom: acties + details #}
+  <div style="flex:0 0 320px;min-width:280px;">
+    <div class="panel">
+      <div class="panel__head"><i class="fa fa-sliders"></i><h3>Afhandelen</h3></div>
+      <div class="panel__body">
+        <form method="post" action="{{ url_for('feedback_set_status', fid=fb.id) }}">
+          <div class="field">
+            <label>Status</label>
+            <select name="status">
+              {% for key,meta in FEEDBACK_STATUS.items() %}
+              <option value="{{ key }}" {{ 'selected' if fb.status==key }}>{{ meta[0] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label>Notitie <span class="muted small">(optioneel, komt in het logboek)</span></label>
+            <textarea name="note" rows="3" placeholder="Bijv. 'Doorgestuurd naar ontwikkelaar'"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block"><i class="fa fa-check"></i> Opslaan</button>
+        </form>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <form method="post" action="{{ url_for('feedback_toggle_read', fid=fb.id) }}" style="flex:1;">
+            <button type="submit" class="btn btn-ghost btn-block btn-sm">
+              <i class="fa {{ 'fa-envelope' if fb.is_read else 'fa-envelope-open' }}"></i>
+              Markeer {{ 'ongelezen' if fb.is_read else 'gelezen' }}
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('feedback_delete', fid=fb.id) }}" style="flex:0 0 auto;"
+                onsubmit="return confirm('Deze melding definitief verwijderen?')">
+            <button type="submit" class="btn btn-danger btn-sm" title="Verwijderen"><i class="fa fa-trash"></i></button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px;">
+      <div class="panel__head"><i class="fa fa-circle-info"></i><h3>Details</h3></div>
+      <div class="panel__body">
+        <dl class="fb-meta">
+          <dt>Ingediend door</dt><dd>{{ fb.username or '—' }}{% if fb.user_role %} <span class="muted">({{ fb.user_role }})</span>{% endif %}</dd>
+          <dt>E-mail</dt><dd>{{ fb.user_email or '—' }}</dd>
+          <dt>Winkel</dt><dd>{{ fb.filiaal_naam or '—' }}{% if fb.filiaal %} <span class="muted">({{ fb.filiaal }})</span>{% endif %}</dd>
+          <dt>Datum &amp; tijd</dt><dd>{{ fb.created_at.strftime('%d-%m-%Y %H:%M') }}</dd>
+          <dt>Pagina</dt><dd style="word-break:break-all;">{% if fb.page_url %}<code>{{ fb.page_url }}</code>{% else %}—{% endif %}</dd>
+          <dt>IP-adres</dt><dd><code>{{ fb.ip or '—' }}</code></dd>
+          <dt>Browser</dt><dd class="muted small" style="word-break:break-word;">{{ fb.user_agent or '—' }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var thread=document.getElementById('fbThread'); if(!thread) return;
+  var fid=thread.getAttribute('data-fid');
+  var form=document.getElementById('fbReplyForm'), body=document.getElementById('fbReplyBody');
+  function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+  function render(msgs){
+    var seen={}; [].forEach.call(thread.querySelectorAll('[data-mid]'),function(el){seen[el.getAttribute('data-mid')]=el;});
+    msgs.forEach(function(m){
+      if(seen[String(m.id)]) return;
+      if(m.id===0 && thread.querySelector('[data-mid="0"]')) return;
+      var d=document.createElement('div');
+      d.className='fb-msg '+(m.is_admin?'is-admin':'is-user'); d.setAttribute('data-mid',m.id);
+      d.innerHTML='<div class="fb-msg__who">'+esc(m.author)+(m.is_admin?' <span class="fb-msg__tag">beheer</span>':'')+
+        '</div><div class="fb-msg__body">'+esc(m.body)+'</div><div class="fb-msg__at">'+esc(m.at)+'</div>';
+      thread.appendChild(d);
+    });
+  }
+  function scrollDown(){ thread.scrollTop=thread.scrollHeight; }
+  function poll(){
+    fetch('{{ url_for("feedback_thread_json", fid=fb.id) }}',{headers:{'X-Requested-With':'fetch'}})
+      .then(function(r){return r.json();}).then(function(j){ if(j&&j.ok){ render(j.messages); } }).catch(function(){});
+  }
+  scrollDown();
+  form.addEventListener('submit',function(e){
+    e.preventDefault();
+    if(!body.value.trim())return;
+    var btn=form.querySelector('button'); btn.disabled=true;
+    var fd=new FormData(form);
+    fetch(form.action,{method:'POST',body:fd,headers:{'X-Requested-With':'fetch'}})
+      .then(function(r){return r.json();}).then(function(j){
+        btn.disabled=false;
+        if(j&&j.ok){ render([j.message]); body.value=''; scrollDown();
+          var b=document.getElementById('statusBadgeLive'); }
+      }).catch(function(){ btn.disabled=false; });
+  });
+  setInterval(poll, 6000);
+})();
+</script>
+{% endblock %}

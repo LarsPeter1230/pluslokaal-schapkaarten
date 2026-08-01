@@ -1,0 +1,28 @@
+# ── Geheimen — NOOIT committen (worden bij eerste start automatisch aangemaakt) ──
+.secret_key
+.portaal_secret
+.mail_secret
+
+# ── Data & gebruikersgegevens (per installatie) ──
+instance/
+*.db
+*.db-wal
+*.db-shm
+*.db.bak-*
+
+# ── Gegenereerde / gecachte bestanden (groot, horen niet in git) ──
+static/export/
+static/w2p_pdfs/
+static/w2p_thumbs/
+
+# ── Python ──
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+
+# ── Overig ──
+.gunicorn/
+*.log

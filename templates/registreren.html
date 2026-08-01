@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Account aanmaken | PLUS</title>
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static',filename='img/favicon.svg') }}">
+<link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static',filename='img/favicon-32.png') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static',filename='img/favicon-180.png') }}">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --dark-green:#115013; --action-green:#80bd1d; --text:#333333; --muted:#6c6c6c;
+  --placeholder:#999999; --border:#999999; --error:#dd350d;
+}
+html,body{min-height:100%;}
+body{font-family:'Open Sans',Gotham,sans-serif;background:#ffffff;color:var(--text);
+  display:flex;flex-direction:column;min-height:100vh;-webkit-font-smoothing:antialiased;}
+header.plus-header{background:var(--action-green);box-shadow:2px 1px 6px 0 rgba(51,51,51,.2);
+  height:64px;display:flex;align-items:center;padding:0 20px;flex-shrink:0;}
+.plus-header .logo{height:34px;display:flex;align-items:center;}
+.plus-header .logo img{height:34px;width:auto;object-fit:contain;}
+.plus-header .brand-sub{color:#fff;font-weight:700;font-size:14px;letter-spacing:.2px;opacity:.95;
+  padding-left:12px;margin-left:12px;border-left:1px solid rgba(255,255,255,.4);}
+.content-wrapper{flex:1;display:flex;justify-content:center;padding:32px 16px 48px;}
+.content{width:100%;max-width:570px;}
+.login-title{color:var(--dark-green);font-size:24px;font-weight:700;line-height:30px;margin-bottom:6px;}
+.login-description{color:var(--muted);font-size:16px;line-height:24px;margin-bottom:24px;}
+form{margin:0;}
+.field{position:relative;margin-top:16px;margin-bottom:8px;}
+.field input,.field select{width:100%;height:56px;padding:24px 16px 8px;font-family:inherit;font-size:16px;
+  color:var(--text);background:#fff;border:1px solid var(--border);border-radius:8px;outline:none;
+  transition:border-color .2s,border-width .2s;}
+.field select{padding:16px 16px 8px;appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 16px center;}
+.field input:hover,.field select:hover{border:2px solid rgba(0,0,0,.87);}
+.field input:focus,.field select:focus{border:1px solid #333333;}
+.field label{position:absolute;left:16px;top:16px;font-size:16px;line-height:24px;color:var(--placeholder);
+  pointer-events:none;transform-origin:top left;transition:transform .2s cubic-bezier(0,0,.2,1),color .2s;}
+.field input:focus + label,.field input:not(:placeholder-shown) + label,
+.field.filled label{transform:translateY(-9px) scale(.75);color:var(--dark-green);}
+.field .hint{font-size:12px;line-height:18px;color:var(--muted);margin:4px 2px 0;}
+/* Zoekbare winkel-selector */
+.wsel{position:relative;}
+.wsel-input{width:100%;height:56px;padding:24px 16px 8px;font-family:inherit;font-size:16px;color:var(--text);
+  background:#fff;border:1px solid var(--border);border-radius:8px;outline:none;transition:border-color .2s,border-width .2s;}
+.wsel-input:hover{border:2px solid rgba(0,0,0,.87);}
+.wsel-input:focus{border:1px solid #333333;}
+.wsel-list{position:absolute;left:0;right:0;top:60px;z-index:30;background:#fff;border:1px solid var(--border);
+  border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.14);max-height:260px;overflow:auto;}
+.wsel-list[hidden]{display:none;}
+.wsel-opt{padding:11px 16px;font-size:15px;line-height:1.3;color:var(--text);cursor:pointer;}
+.wsel-opt:hover,.wsel-opt.active{background:#eef6e1;color:var(--dark-green);}
+.wsel-opt[hidden]{display:none;}
+.wsel-num{color:var(--muted);font-size:13px;}
+.wsel-opt:hover .wsel-num,.wsel-opt.active .wsel-num{color:var(--dark-green);}
+.wsel-empty{padding:11px 16px;color:var(--muted);font-size:14px;}
+.wsel-empty[hidden]{display:none;}
+.field .toggle-pw{position:absolute;right:14px;top:0;height:56px;background:none;border:none;cursor:pointer;
+  padding:0;font-family:inherit;font-size:14px;line-height:22px;color:var(--placeholder);}
+.btn-login{width:100%;height:48px;margin-top:16px;background:var(--action-green);color:#fff;
+  font-family:inherit;font-size:16px;font-weight:400;line-height:20px;border:none;
+  border-radius:24px 24px 24px 4px;cursor:pointer;transition:opacity .25s;}
+.btn-login:active{box-shadow:0 5px 5px -3px rgba(0,0,0,.2),0 8px 10px 1px rgba(0,0,0,.14);}
+.form-error{color:var(--error);font-size:14px;line-height:22px;margin:4px 0;}
+.form-ok{color:var(--dark-green);background:#eef6e1;border-radius:8px;padding:12px 14px;font-size:14px;
+  line-height:20px;margin-bottom:16px;}
+.form-footer{margin-top:24px;}
+.form-footer p{font-size:14px;line-height:22px;color:var(--text);margin-bottom:4px;}
+.form-footer a{color:var(--dark-green);text-decoration:none;}
+.form-footer a:hover{text-decoration:underline;}
+footer.page-footer{border-top:1px solid #d8d8d8;padding:20px 16px;text-align:center;color:var(--muted);
+  font-size:12px;line-height:20px;flex-shrink:0;}
+</style>
+{% include '_csrf.html' %}
+</head>
+<body spellcheck="false">
+<header class="plus-header">
+  <div class="logo">
+    <img src="{{ url_for('static',filename='img/plus-logo.svg') }}" alt="PLUS logo"
+         onerror="this.parentElement.innerHTML='<span style=\'color:#fff;font-weight:800;font-size:1.3rem;letter-spacing:1px;\'>PLUS</span>'">
+    <span class="brand-sub">Lokaal</span>
+  </div>
+</header>
+
+<div class="content-wrapper">
+  <div class="content">
+    <h1 class="login-title">Account aanmaken</h1>
+    <p class="login-description">Registreer met je zakelijke e-mailadres. Je winkelondernemer keurt je aanvraag goed.</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <p class="{{ 'form-ok' if cat=='success' else 'form-error' }}">{{ msg }}</p>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="post" novalidate>
+      <div class="field {{ 'filled' if form.username }}">
+        <input type="text" id="username" name="username" placeholder=" " required autofocus
+               autocomplete="name" value="{{ form.username or '' }}">
+        <label for="username">Naam <span class="req">*</span></label>
+      </div>
+
+      <div class="field {{ 'filled' if form.email }}">
+        <input type="email" id="email" name="email" placeholder=" " required
+               autocomplete="email" autocapitalize="none" value="{{ form.email or '' }}">
+        <label for="email">E-mailadres <span class="req">*</span></label>
+      </div>
+      <p class="hint" style="margin:-4px 2px 0;">Alleen @plus.nl of @plusretail.nl adressen (bijv. naam@plus.nl).</p>
+
+      <div class="field filled wsel" id="wsel">
+        <input type="text" id="winkelSearch" class="wsel-input" autocomplete="off"
+               placeholder="Zoek op naam of winkelnummer…" role="combobox" aria-expanded="false" aria-autocomplete="list">
+        <label for="winkelSearch">Winkel <span class="req">*</span></label>
+        <input type="hidden" name="filiaal" id="filiaalVal" value="{{ form.filiaal or '' }}">
+        <div class="wsel-list" id="wselList" hidden>
+          {% for f in filialen %}
+          <div class="wsel-opt" data-nummer="{{ f.nummer }}"
+               data-search="{{ (f.naam or '')|lower }} {{ f.nummer }}">PLUS {{ f.naam or f.nummer }} <span class="wsel-num">({{ f.nummer }})</span></div>
+          {% endfor %}
+          <div class="wsel-empty" id="wselEmpty" hidden>Geen winkel gevonden.</div>
+        </div>
+      </div>
+
+      <div class="field {{ 'filled' if form.password }}">
+        <input type="password" id="password" name="password" placeholder=" " required autocomplete="new-password">
+        <label for="password">Wachtwoord <span class="req">*</span></label>
+        <button type="button" class="toggle-pw" id="togglePw" aria-label="Wachtwoord laten zien">Toon</button>
+      </div>
+      <p class="hint">Minimaal 10 tekens, met een hoofdletter, een cijfer en een leesteken.</p>
+
+      <button type="submit" class="btn-login">Account aanvragen</button>
+    </form>
+
+    <div class="form-footer">
+      <p><a href="{{ url_for('login') }}">Terug naar inloggen</a></p>
+    </div>
+  </div>
+</div>
+
+<footer class="page-footer">
+  <div>© 2026 PLUS &bull; PLUSLokaal Schapkaarten</div>
+</footer>
+
+<script>
+(function(){
+  var pw = document.getElementById('password'), btn = document.getElementById('togglePw');
+  if(pw && btn){ btn.addEventListener('click', function(){
+    var show = pw.type === 'password'; pw.type = show ? 'text':'password';
+    btn.textContent = show ? 'Verberg':'Toon'; pw.focus(); }); }
+})();
+
+// Zoekbare winkel-selector (zoekt op naam én winkelnummer)
+(function(){
+  var wrap=document.getElementById('wsel');
+  if(!wrap) return;
+  var input=document.getElementById('winkelSearch'),
+      list=document.getElementById('wselList'),
+      hidden=document.getElementById('filiaalVal'),
+      empty=document.getElementById('wselEmpty'),
+      opts=[].slice.call(list.querySelectorAll('.wsel-opt'));
+
+  function open(){ list.hidden=false; input.setAttribute('aria-expanded','true'); }
+  function close(){ list.hidden=true; input.setAttribute('aria-expanded','false'); clearActive(); }
+  function label(o){ return o.textContent.trim().replace(/\s+/g,' '); }
+  function clearActive(){ opts.forEach(function(o){ o.classList.remove('active'); }); }
+  function visible(){ return opts.filter(function(o){ return !o.hidden; }); }
+
+  function filter(){
+    var q=input.value.toLowerCase().trim(), shown=0;
+    opts.forEach(function(o){
+      var hit = !q || o.getAttribute('data-search').indexOf(q) > -1;
+      o.hidden=!hit; if(hit) shown++;
+    });
+    if(empty) empty.hidden = shown>0;
+    clearActive();
+  }
+  function select(o){
+    hidden.value=o.getAttribute('data-nummer');
+    input.value=label(o);
+    close();
+  }
+
+  input.addEventListener('focus', function(){ open(); });
+  input.addEventListener('input', function(){ hidden.value=''; open(); filter(); });
+  input.addEventListener('keydown', function(e){
+    if(list.hidden && (e.key==='ArrowDown'||e.key==='ArrowUp')){ open(); filter(); }
+    var vis=visible();
+    var idx=vis.findIndex(function(o){ return o.classList.contains('active'); });
+    if(e.key==='ArrowDown'){ e.preventDefault(); if(vis.length){ if(idx>=0)vis[idx].classList.remove('active');
+      var n=vis[(idx+1)%vis.length]; n.classList.add('active'); n.scrollIntoView({block:'nearest'}); } }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); if(vis.length){ if(idx>=0)vis[idx].classList.remove('active');
+      var pI=(idx<=0?vis.length-1:idx-1); vis[pI].classList.add('active'); vis[pI].scrollIntoView({block:'nearest'}); } }
+    else if(e.key==='Enter'){ if(!list.hidden && idx>=0){ e.preventDefault(); select(vis[idx]); } }
+    else if(e.key==='Escape'){ close(); }
+  });
+  opts.forEach(function(o){
+    o.addEventListener('mousedown', function(e){ e.preventDefault(); select(o); });
+  });
+  document.addEventListener('click', function(e){ if(!wrap.contains(e.target)) close(); });
+
+  // Herstel selectie na een validatiefout (hidden heeft dan al een waarde)
+  if(hidden.value){
+    var cur=opts.filter(function(o){ return o.getAttribute('data-nummer')===hidden.value; })[0];
+    if(cur) input.value=label(cur);
+  }
+})();
+</script>
+</body>
+</html>

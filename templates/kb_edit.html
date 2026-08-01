@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Artikel bewerken' if art else 'Nieuw artikel' }} – Kennisbank{% endblock %}
+{% block content %}
+{% set d = form or art %}
+<div class="page-head">
+  <div>
+    <a href="{{ url_for('kb_manage') }}" class="backlink"><i class="fa fa-arrow-left"></i> Terug naar kennisbank</a>
+    <h1 class="page-title" style="margin-top:6px;">{{ 'Artikel bewerken' if art else 'Nieuw artikel' }}</h1>
+  </div>
+</div>
+
+<form method="post" class="flex" style="align-items:flex-start;">
+  <div class="panel" style="flex:1;min-width:340px;">
+    <div class="panel__head"><i class="fa fa-file-lines"></i><h3>Inhoud</h3></div>
+    <div class="panel__body">
+      <div class="field">
+        <label>Titel *</label>
+        <input type="text" name="title" required maxlength="200"
+               value="{{ (d.title if d else '') or '' }}" placeholder="Bijv. Schapkaarten maken">
+      </div>
+      <div class="field">
+        <label>Korte samenvatting <span class="muted small">(één zin, op de overzichtspagina)</span></label>
+        <input type="text" name="summary" maxlength="400"
+               value="{{ (d.summary if d else '') or '' }}" placeholder="Waar gaat dit artikel over?">
+      </div>
+      <div class="field">
+        <label>Inhoud <span class="muted small">(Markdown — zie hulp rechts)</span></label>
+        <textarea name="body" id="kbBody" rows="22" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.86rem;line-height:1.5;"
+          placeholder="# Kop&#10;&#10;Tekst met **vet** en *cursief*.&#10;&#10;- opsomming&#10;&#10;> tip">{{ (d.body if d else '') or '' }}</textarea>
+      </div>
+      <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Opslaan</button>
+      <a href="{{ url_for('kb_manage') }}" class="btn btn-ghost">Annuleren</a>
+    </div>
+  </div>
+
+  <div style="flex:0 0 300px;min-width:260px;">
+    <div class="panel">
+      <div class="panel__head"><i class="fa fa-gear"></i><h3>Instellingen</h3></div>
+      <div class="panel__body">
+        <div class="field">
+          <label>Categorie</label>
+          <input type="text" name="category" list="kbCats" maxlength="120"
+                 value="{{ (d.category if d else '') or '' }}" placeholder="Bijv. Modules">
+          <datalist id="kbCats">
+            <option value="Aan de slag"><option value="Modules"><option value="Printen">
+            <option value="Beheer"><option value="Beveiliging"><option value="Overig">
+          </datalist>
+        </div>
+        <div class="field">
+          <label>Icoon <span class="muted small">(FontAwesome-klasse)</span></label>
+          <input type="text" name="icon" maxlength="40"
+                 value="{{ (d.icon if d else '') or 'fa-book' }}" placeholder="fa-tags">
+          <div class="muted small" style="margin-top:4px;">Bijv. <code>fa-tags</code>, <code>fa-print</code>, <code>fa-users</code></div>
+        </div>
+        <div class="field">
+          <label>Sorteervolgorde <span class="muted small">(lager = hoger in lijst)</span></label>
+          <input type="number" name="sort_index" value="{{ (d.sort_index if d else 0) or 0 }}">
+        </div>
+        {% if art %}
+        <div class="field">
+          <label>Slug (URL) <span class="muted small">(leeg = automatisch)</span></label>
+          <input type="text" name="slug" maxlength="140" value="{{ art.slug }}">
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px;">
+      <div class="panel__head"><i class="fa fa-circle-info"></i><h3>Markdown-hulp</h3></div>
+      <div class="panel__body muted small" style="line-height:1.7;">
+        <code># Kop</code> · <code>## Subkop</code><br>
+        <code>**vet**</code> · <code>*cursief*</code><br>
+        <code>- opsomming</code> · <code>1. genummerd</code><br>
+        <code>&gt; tip/opmerking</code><br>
+        <code>[link](url)</code><br>
+        <code>![alt](afbeelding-url)</code><br>
+        <code>```</code> codeblok <code>```</code>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

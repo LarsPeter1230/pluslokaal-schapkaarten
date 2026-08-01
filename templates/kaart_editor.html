@@ -1,0 +1,807 @@
+{% extends "base.html" %}
+{% block title %}{% if edit_card %}Kaart bewerken{% else %}Nieuwe kaart{% endif %} – PLUSLokaal{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-ghost btn-sm"><i class="fa fa-arrow-left"></i> Terug</a>
+    <div>
+      <h1 class="page-title">{% if edit_card %}Kaart bewerken{% else %}Nieuwe schapkaart{% endif %}</h1>
+      <p class="page-sub">{% if edit_card %}{{ edit_card.title }}{% else %}De preview is exact wat er wordt gedrukt (PDF).{% endif %}</p>
+    </div>
+  </div>
+</div>
+
+<form id="kaartForm" method="post" action="{{ url_for('kaart_editor') }}" style="display:none;">
+  <input type="hidden" name="formaat" id="h-formaat">
+  <input type="hidden" name="kaart_count" id="h-count" value="1">
+  <input type="hidden" name="edit_id" value="{{ edit_card.id if edit_card else '' }}">
+  {% for i in range(4) %}{% for f in ['merk','koptekst','subtekst','vbtekst','aanv','verpakking','inhoud','vp1','vp2','actietype','av','av2','kilo','land','max','kem','alcohol','mix','code','kaarttype','layout','scans','overlay'] %}
+  <input type="hidden" name="k{{ i }}_{{ f }}" id="h-{{ i }}-{{ f }}">
+  {% endfor %}{% endfor %}
+</form>
+
+<div class="editor">
+  <!-- ══ FORMULIER ══ -->
+  <div class="editor__form">
+
+    <div class="sec">
+      <div class="sec__h"><i class="fa fa-layer-group"></i> Kaarttype</div>
+      <div class="frow" style="padding:10px 14px;flex-direction:column;gap:8px;align-items:stretch;">
+        <div class="seg">
+          <button type="button" class="seg__btn active" id="kt-actie" onclick="setType('actie',this)">Actiekaart</button>
+          <button type="button" class="seg__btn" id="kt-tip" onclick="setType('tip',this)">Tip-kaart</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;justify-content:space-between;">
+          <span class="k" style="flex:0 0 auto;">Kaartformaat</span>
+          <select id="f-formaat" onchange="onFmt()" style="flex:1 1 auto;">
+            <option value="sk_mini">SK Mini — 75 × 88 mm</option>
+            <option value="sk_middel">SK Middel — 270 × 70 mm</option>
+            <option value="sk_maxi">SK Maxi — 4 kaarten (A4)</option>
+            <option value="a5_staand">A5 staand — 148 × 210 mm</option>
+            <option value="a4_staand">A4 staand — 210 × 297 mm</option>
+            <option value="a3_staand">A3 staand — 297 × 420 mm</option>
+            <option value="a3_liggend" selected>A3 liggend — 420 × 297 mm</option>
+          </select>
+        </div>
+        <div id="actie-type-row" style="display:flex;align-items:center;gap:10px;justify-content:space-between;">
+          <span class="k" style="flex:0 0 auto;">Type actie</span>
+          <select id="f-actietype" onchange="onActie()" style="flex:1 1 auto;">
+            <option value="">— Kies —</option>
+            <option value="prijs">Prijs</option>
+            <option value="halveprijs">2e Halve prijs</option>
+            <option value="xpctkorting">X% Korting</option>
+            <option value="xeurokorting">€ Korting</option>
+            <option value="xplusygratis">X + Y Gratis</option>
+            <option value="xisy">X = Y (alcohol)</option>
+            <option value="xhalenybetalen">X Halen Y Betalen</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="ktabs" id="ktabs">
+      <button class="ktab active" type="button" onclick="switchK(0,this)">Kaart 1</button>
+      <button class="ktab" type="button" onclick="switchK(1,this)">Kaart 2</button>
+      <button class="ktab" type="button" onclick="switchK(2,this)">Kaart 3</button>
+      <button class="ktab" type="button" onclick="switchK(3,this)">Kaart 4</button>
+    </div>
+
+    <div class="sec">
+      <div class="sec__h"><i class="fa fa-magnifying-glass"></i> Zoek op plus.nl <small style="font-weight:400;color:var(--muted);">artikelinfo overnemen</small>
+        <span class="info-tip" tabindex="0" aria-label="Uitleg" style="margin-left:auto;"><i class="fa fa-circle-info"></i>
+          <span class="info-tip__bubble">
+            <b>Tip: sleep foto's op de kaart</b><br>
+            Sleep een productfoto uit de zoekresultaten naar de preview om 'm op de kaart te zetten.
+            Je kunt de foto daarna <b>verplaatsen</b> (slepen) en <b>schalen</b> (groene hoek), en
+            <b>meerdere foto's</b> toevoegen — ook van verschillende producten. Verwijderen doe je met het rode ×.
+          </span>
+        </span>
+      </div>
+      <div class="frow"><span class="k">Product</span>
+        <span style="display:flex;gap:6px;flex:1;min-width:0;">
+          <input type="text" id="pz-q" placeholder="bijv. Senseo Gold" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();pzSearch();}" style="flex:1;min-width:0;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="pzSearch()"><i class="fa fa-search"></i></button>
+        </span></div>
+      <div id="pz-status" class="muted small" style="padding:2px 14px;"></div>
+      <div id="pz-results" style="max-height:280px;overflow:auto;padding:0 6px;"></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec__h"><i class="fa fa-tag"></i> Productinformatie</div>
+      <div class="frow"><span class="k">Merk<small>optioneel</small></span><input type="text" id="f-merk" oninput="sb('merk',this.value)"></div>
+      <div class="frow"><span class="k">Koptekst<small>bijv. Druiven</small></span><input type="text" id="f-koptekst" oninput="sb('koptekst',this.value)"></div>
+      <div class="frow"><span class="k">Subtekst<small>bijv. Rode of witte</small></span><input type="text" id="f-subtekst" oninput="sb('subtekst',this.value)"></div>
+      <div class="frow actie-field"><span class="k">Kies &amp; Mix</span><select id="f-kem" onchange="onKem()"><option value="nee">Nee</option><option value="ja">Ja</option></select></div>
+      <div class="frow hide" id="row-mix"><span class="k">Mix-producten<small>1 per regel</small></span><textarea id="f-mix" rows="3" oninput="sb('mix',this.value)"></textarea></div>
+      <div class="frow actie-field"><span class="k">Voorbeeldtekst<small>Prijsvoorbeeld…</small></span><textarea id="f-vbtekst" rows="2" oninput="sb('vbtekst',this.value)"></textarea></div>
+      <div class="frow"><span class="k">Aanvullend<small>optioneel</small></span><input type="text" id="f-aanv" oninput="sb('aanv',this.value)"></div>
+      <div class="frow"><span class="k">Kaartcode<small>bijv. Week 29</small></span><input type="text" id="f-code" oninput="sb('code',this.value)"></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec__h" id="sec-price-h"><i class="fa fa-euro-sign"></i> <span id="sec-price-lbl">Actiemechanisme</span></div>
+      <div id="actie-block">
+      <div class="frow hide" id="ae-prijs"><span class="k">Prijs<small>bijv. 2.99</small></span><input type="text" id="f-prijs" placeholder="1.79" oninput="setAv(this.value)"></div>
+      <div class="frow hide" id="ae-xpg"><span class="k">X + Y Gratis</span><input type="text" id="f-xpg" placeholder="1+1" oninput="setAv(this.value)"></div>
+      <div class="frow hide" id="ae-xisy"><span class="k">X = Y</span><input type="text" id="f-xisy" placeholder="2=1" oninput="setAv(this.value)"></div>
+      <div class="frow hide" id="ae-xpct"><span class="k">Kortingspercentage</span><input type="text" id="f-xpct" placeholder="25%" oninput="setAv(this.value)"></div>
+      <div class="frow hide" id="ae-xeur"><span class="k">Kortingsbedrag</span><input type="text" id="f-xeur" placeholder="5.-" oninput="setAv(this.value)"></div>
+      <div class="frow hide" id="ae-xhal"><span class="k">X Halen</span><input type="text" id="f-xhal" placeholder="2" oninput="setAv(this.value)"></div>
+      <div class="frow hide" id="ae-ybet"><span class="k">Y Betalen</span><input type="text" id="f-ybet" placeholder="1" oninput="sb('av2',this.value)"></div>
+      <div class="frow"><span class="k">Vanprijs<small>doorgestreept</small></span><input type="text" id="f-vp1" placeholder="3.99" oninput="sb('vp1',this.value)"></div>
+      <div class="frow"><span class="k">Vanprijs t/m<small>optioneel</small></span><input type="text" id="f-vp2" placeholder="4.78" oninput="sb('vp2',this.value)"></div>
+      </div>
+      <div class="frow hide" id="row-tipprijs"><span class="k">Prijs<small>bijv. 1.99</small></span><input type="text" id="f-tipprijs" placeholder="1.99" oninput="setTipPrice(this.value)"></div>
+      <div class="frow"><span class="k">Verpakking<small>bijv. Bak</small></span><input type="text" id="f-verpakking" oninput="sb('verpakking',this.value)"></div>
+      <div class="frow"><span class="k">Inhoud<small>bijv. 500 gram</small></span><input type="text" id="f-inhoud" oninput="sb('inhoud',this.value)"></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec__h"><i class="fa fa-circle-info"></i> Overig</div>
+      <div class="frow"><span class="k">Kiloprijs<small>bijv. kilo 7.68</small></span><input type="text" id="f-kilo" oninput="sb('kilo',this.value)"></div>
+      <div class="frow"><span class="k">Land van herkomst<small>AGF</small></span><input type="text" id="f-land" oninput="sb('land',this.value)"></div>
+      <div class="frow" style="align-items:center;">
+        <span class="k">Alcohol (NIX18)</span>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:.85rem;cursor:pointer;margin:0;color:var(--text);">
+          <input type="checkbox" id="f-alcohol" style="width:18px;height:18px;accent-color:var(--green);" onchange="sb('alcohol',this.checked?'ja':'nee')">
+          NIX18-logo tonen
+        </label>
+      </div>
+      <div class="frow"><span class="k">Max. per klant</span><input type="number" id="f-max" placeholder="leeg = niet tonen" oninput="sb('max',this.value)"></div>
+    </div>
+
+    <div class="sec" id="sec-scans">
+      <div class="sec__h"><i class="fa fa-barcode"></i> Scan-barcodes <small style="font-weight:400;color:var(--muted);">optioneel</small></div>
+      <div id="scan-list"></div>
+      <button type="button" class="btn btn-outline btn-sm btn-block" onclick="addScan()" style="margin-top:6px;"><i class="fa fa-plus"></i> Barcode toevoegen</button>
+    </div>
+
+    <button type="button" class="btn btn-primary btn-block" onclick="saveCard()" style="padding:13px;">
+      <i class="fa fa-floppy-disk"></i> {% if edit_card %}Kaart bijwerken{% else %}Kaart opslaan{% endif %}
+    </button>
+  </div>
+
+  <!-- ══ PREVIEW ══ -->
+  <div class="editor__preview">
+    <div class="prev-bar">
+      <span class="prev-bar__lbl" id="prevLbl">Live preview</span>
+      <span class="prev-hint"><i class="fa fa-pen"></i> Klik in de preview om te typen</span>
+    </div>
+    <div class="kp" id="kp"></div>
+  </div>
+</div>
+<style>
+.pz-card{border:1px solid var(--border,#e4e7e2);border-radius:8px;padding:8px;margin-bottom:8px;}
+.pz-info{display:flex;gap:10px;align-items:center;}
+.pz-info img{width:40px;height:40px;object-fit:contain;border-radius:4px;background:#fff;flex:0 0 40px;}
+.pz-nm{font-weight:700;font-size:.85rem;line-height:1.15;}
+.pz-opts{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-top:8px;}
+.pz-ck{display:flex;align-items:center;gap:5px;font-size:.78rem;color:var(--text);cursor:pointer;}
+.pz-ck input{width:15px;height:15px;accent-color:var(--green);}
+.pz-opts .btn{margin-left:auto;}
+.pv-overlay{position:absolute;z-index:30;cursor:move;touch-action:none;outline:1px dashed rgba(0,0,0,.28);}
+.pv-overlay img{width:100%;height:auto;display:block;pointer-events:auto;-webkit-user-drag:none;user-select:none;}
+.pv-overlay .ov-rs{position:absolute;right:-7px;bottom:-7px;width:16px;height:16px;background:var(--green,#82bb22);border:2px solid #fff;border-radius:50%;cursor:nwse-resize;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+.pv-overlay .ov-del{position:absolute;left:-9px;top:-9px;width:20px;height:20px;background:#e3000a;color:#fff;border-radius:50%;font-size:14px;line-height:17px;text-align:center;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+/* PLUS-blaadjes laadspinner op de plek van de foto tot die geladen is */
+.pv-overlay .ov-spin{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.pv-overlay .ov-spin svg{width:44%;max-width:64px;height:auto;}
+.pv-leaf{fill:#82bb22;animation:pvLeaf 1.2s ease-in-out infinite;}
+.pv-leaf--1{animation-delay:0s;} .pv-leaf--4{animation-delay:.3s;}
+.pv-leaf--3{animation-delay:.6s;} .pv-leaf--2{animation-delay:.9s;}
+@keyframes pvLeaf{0%,75%,100%{opacity:.22;}25%{opacity:1;}}
+/* Info-tooltip bij de plus.nl-zoekkop (uitleg over foto's slepen) */
+.info-tip{position:relative;display:inline-flex;align-items:center;color:var(--green,#82bb22);cursor:help;font-size:.95rem;outline:none;}
+.info-tip__bubble{position:fixed;z-index:9999;width:290px;max-width:80vw;
+  background:#fff;border:1px solid var(--border,#e0e0e0);border-radius:10px;box-shadow:0 8px 26px rgba(0,0,0,.18);
+  padding:12px 14px;font-size:12.5px;line-height:1.55;color:var(--text,#333);font-weight:400;
+  text-transform:none;letter-spacing:normal;white-space:normal;
+  opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity .15s ease,transform .15s ease;}
+.info-tip__bubble b{color:var(--green-d,#115013);}
+.info-tip:hover .info-tip__bubble,.info-tip:focus .info-tip__bubble,.info-tip:focus-within .info-tip__bubble{opacity:1;visibility:visible;transform:none;}
+</style>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const NIX_SVG="{{ url_for('static',filename='img/nix18-logo.svg') }}";
+const FIELDS=['merk','koptekst','subtekst','vbtekst','aanv','verpakking','inhoud','vp1','vp2','actietype','av','av2','kilo','land','max','kem','alcohol','mix','code','kaarttype','layout','scans','overlay'];
+const SCANNER_SVG="{{ url_for('static',filename='img/scanner-icon.svg') }}";
+// formaat: [breedte,hoogte] mm
+const FMT={sk_mini:[75,88],sk_middel:[270,70],sk_maxi:[297,210],a5_staand:[148,210],a4_staand:[210,297],a3_staand:[297,420],a3_liggend:[420,297]};
+const FMT_LBL={sk_mini:'SK Mini',sk_middel:'SK Middel',sk_maxi:'SK Maxi (4×)',a5_staand:'A5 staand',a4_staand:'A4 staand',a3_staand:'A3 staand',a3_liggend:'A3 liggend'};
+// Tip-kaart geometrie per formaat — 1:1 gespiegeld van _NEWTIP_CFG in app.py (de PDF-renderer).
+// k=top → groene band bovenaan; k=left → groen linkerpaneel. band/panel = hoogte/breedte-fractie;
+// tx/ty = titel links/top; mk/vk = titel/subtitel-grootte (fractie H); tr = rechterrand titel;
+// pb = prijsblok [x0,y0,x1,y1] (fracties); land = y van 'Land van herkomst'.
+const NEWTIP_CFG={
+  a3_liggend:{k:'top', band:0.267, tx:0.030, ty:0.31,  mk:0.049, vk:0.036, tr:0.56, pb:[0.583,0.551,0.970,0.916], land:0.905},
+  a5_staand: {k:'top', band:0.199, tx:0.050, ty:0.205, mk:0.044, vk:0.032, tr:0.95, pb:[0.189,0.631,0.811,0.923], land:0.940},
+  a4_staand: {k:'top', band:0.201, tx:0.048, ty:0.205, mk:0.054, vk:0.036, tr:0.95, pb:[0.208,0.650,0.792,0.926], land:0.941},
+  a3_staand: {k:'top', band:0.202, tx:0.067, ty:0.215, mk:0.046, vk:0.034, tr:0.95, pb:[0.190,0.634,0.810,0.926], land:0.939},
+  sk_maxi:   {k:'left',panel:0.27, tx:0.30,  ty:0.04,  mk:0.077, vk:0.048, tr:0.99, pb:[0.60,0.50,0.95,0.87],     land:0.89},
+  sk_mini:   {k:'left',panel:0.367,tx:0.40,  ty:0.045, mk:0.048, vk:0.036, tr:0.99, pb:[0.52,0.62,0.99,0.88],     land:0.90},
+  sk_middel: {k:'left',panel:0.10, tx:0.13,  ty:0.06,  mk:0.19,  vk:0.13,  tr:0.99, pb:[0.62,0.22,0.98,0.90],     land:0.93},
+};
+function newtipCfg(f){ return NEWTIP_CFG[f] || (isPort(f)?NEWTIP_CFG.a4_staand:NEWTIP_CFG.a3_liggend); }
+// Zet de tip-preview-geometrie per formaat op de DOM (inline styles winnen van de CSS-defaults),
+// zodat het live voorbeeld exact de PDF-renderer volgt op ELK formaat.
+function applyNewtip(cel,fmt){
+  if(!cel) return; const c=newtipCfg(fmt);
+  const q=s=>cel.querySelector(s);
+  const cqh=f=>(f*100)+'cqh', cqw=f=>(f*100)+'cqw', pct=f=>(f*100)+'%';
+  const band=q('.nt-band'), title=q('.nt-title'), price=q('.nt-price'),
+        merk=q('.pv-merk'), kop=q('.pv-koptekst'), sub=q('.pv-subtekst'),
+        inh=q('.nt-inhoud'), amt=q('.nt-amt'), eur=q('.nt-eur'), cent=q('.nt-cent'),
+        land=q('.nt-land'), aanv=q('.nt-aanv'), nix=q('.nt-nix');
+  // band / paneel
+  if(band){ Object.assign(band.style,{left:'0',top:'0'});
+    if(c.k==='left'){ band.style.right='auto'; band.style.bottom='0'; band.style.width=cqw(c.panel); band.style.height='auto'; }
+    else { band.style.right='0'; band.style.bottom='auto'; band.style.width='auto'; band.style.height=cqh(c.band); } }
+  // titel
+  if(title){ title.style.left=cqw(c.tx); title.style.top=cqh(c.ty); title.style.right=cqw(1-c.tr); }
+  if(merk) merk.style.fontSize=cqh(c.mk);
+  if(kop)  kop.style.fontSize=cqh(c.mk);
+  if(sub)  sub.style.fontSize=cqh(c.vk);
+  // prijsblok
+  const [x0,y0,x1,y1]=c.pb, bw=x1-x0, bh=y1-y0;
+  if(price){ Object.assign(price.style,{left:cqw(x0),top:cqh(y0),right:'auto',bottom:'auto',width:cqw(bw),height:cqh(bh)}); }
+  // prijs-teksten schalen op de BLOKHOOGTE (net als de renderer): label 0.165·bh, euro 0.80·bh, centen 0.58·euro
+  if(inh)  inh.style.fontSize=cqh(0.165*bh);
+  if(eur)  eur.style.fontSize=cqh(0.80*bh);
+  if(cent) cent.style.fontSize=cqh(0.80*0.58*bh);
+  // amt + inhoud shrink-to-content maken en centreren, zodat scrollWidth de ECHTE tekstbreedte is
+  // (bij left:0/right:0 gaf scrollWidth de blokbreedte → foutieve krimp).
+  if(amt){ Object.assign(amt.style,{left:'50%',right:'auto',transform:'translateX(-50%)',width:'max-content',whiteSpace:'nowrap',textAlign:'center'}); }
+  if(inh){ Object.assign(inh.style,{width:'max-content',maxWidth:'96%',margin:'0 auto',whiteSpace:'nowrap'}); }
+  // net als de renderer: label + prijs op ÉÉN regel houden en alleen terugschalen als ze NIET in het vak passen.
+  const pbw=(price&&price.clientWidth)||0;
+  if(inh&&inh.textContent&&pbw){ let f=0.165*bh, avail=0.86*pbw;
+    for(let n=0;n<24 && inh.scrollWidth>avail && f>0.02;n++){ f*=0.94; inh.style.fontSize=cqh(f); } }
+  if(amt&&amt.textContent&&pbw){ let f=0.80*bh, avail=0.90*pbw;
+    for(let n=0;n<24 && amt.scrollWidth>avail && f>0.05;n++){ f*=0.94; eur.style.fontSize=cqh(f); if(cent)cent.style.fontSize=cqh(f*0.58); } }
+  // land + aanvullende tekst onderin (positie per formaat, net als de renderer)
+  if(land){ land.style.top=cqh(c.land); land.style.bottom='auto'; }
+  if(aanv){ aanv.style.top=cqh(c.land+0.028); aanv.style.bottom='auto'; }
+  // NIX18 (alcohol): paneel → op het groene paneel (wit); topband → net boven de land-regel
+  if(nix){ if(c.k==='left'){ nix.style.left=cqw(c.panel*0.08); nix.style.top='auto'; nix.style.bottom=cqh(1-c.land+0.02); nix.style.width=cqw(c.panel*0.84); }
+           else { nix.style.left=cqw(c.tx); nix.style.top='auto'; nix.style.bottom=cqh(1-c.land+0.05); nix.style.width=cqw(0.34); } }
+}
+
+const KD=Array.from({length:4},()=>({merk:'',koptekst:'',subtekst:'',vbtekst:'',aanv:'',verpakking:'',inhoud:'',vp1:'',vp2:'',actietype:'',av:'',av2:'',kilo:'',land:'',max:'',kem:'nee',alcohol:'nee',mix:'',code:'',kaarttype:'actie',layout:'nieuw',scans:'',overlay:''}));
+let AK=0, AF='a3_liggend', KT='actie', LY='nieuw';
+
+{% if edit_data and edit_data.kaarten %}
+(()=>{ const ed={{ edit_data|tojson }}; if(ed.formaat)AF=ed.formaat; (ed.kaarten||[]).forEach((d,i)=>{if(i<4){Object.assign(KD[i],d); KD[i].layout='nieuw';}}); if(KD[0].kaarttype==='tip')KT='tip'; })();
+{% endif %}
+
+// Zet alleen de UI (toggle + zichtbare velden) op een type — zonder de kaartdata te wijzigen.
+function applyTypeUI(t){
+  KT=t;
+  fi('kt-actie').classList.toggle('active',t==='actie'); fi('kt-tip').classList.toggle('active',t==='tip');
+  const tip = t==='tip';
+  document.querySelectorAll('.actie-field').forEach(e=>e.classList.toggle('hide',tip));
+  fi('actie-block').classList.toggle('hide',tip);
+  fi('actie-type-row').style.display = tip ? 'none' : 'flex';
+  fi('sec-scans').style.display = tip ? 'none' : 'block';
+  fi('row-tipprijs').classList.toggle('hide',!tip);
+  fi('sec-price-lbl').textContent=tip?'Prijs':'Actiemechanisme';
+}
+// Kaarttype geldt PER kaart (per ¼-kaart op SK Maxi kun je zo actie/tip mixen op één vel).
+function setType(t,btn){
+  applyTypeUI(t);
+  KD[AK].kaarttype=t;      // alleen de kaart die je nu bewerkt
+  render();
+}
+function setLayout(l){ LY='nieuw'; for(let i=0;i<4;i++)KD[i].layout='nieuw'; }  /* oude layout is verwijderd */
+function setTipPrice(v){ KD[AK].av=v; const cel=curCel(); if(cel)updateStatic(AK,cel); refreshBlank(); }
+
+const fi=id=>document.getElementById(id);
+const fv=id=>{const e=fi(id);return e?e.value||'':'';};
+const isPort=f=>{const s=FMT[f]||[1,1];return s[1]>s[0];};
+
+function onFmt(){
+  AF=fv('f-formaat');
+  const kp=fi('kp');
+  const [w,h]=FMT[AF]||[420,297];
+  kp.style.aspectRatio=w+'/'+h;
+  kp.classList.toggle('port',isPort(AF));
+  kp.style.maxWidth=isPort(AF)?'360px':(AF==='sk_middel'?'none':'none');
+  kp.style.marginInline=isPort(AF)?'auto':'0';
+  fi('prevLbl').textContent='Live preview — '+(FMT_LBL[AF]||AF);
+  fi('ktabs').classList.toggle('show',AF==='sk_maxi');
+  render();
+}
+function onKem(){ KD[AK].kem=fv('f-kem'); fi('row-mix').classList.toggle('hide',fv('f-kem')!=='ja'); sb('kem',fv('f-kem')); }
+function onActie(){
+  ['ae-prijs','ae-xpg','ae-xisy','ae-xpct','ae-xeur','ae-xhal','ae-ybet'].forEach(id=>fi(id).classList.add('hide'));
+  const t=fv('f-actietype');
+  const show=(...ids)=>ids.forEach(id=>fi(id).classList.remove('hide'));
+  if(t==='prijs')show('ae-prijs'); if(t==='xplusygratis')show('ae-xpg'); if(t==='xisy')show('ae-xisy');
+  if(t==='xpctkorting')show('ae-xpct'); if(t==='xeurokorting')show('ae-xeur'); if(t==='xhalenybetalen')show('ae-xhal','ae-ybet');
+  KD[AK].actietype=t; if(t==='halveprijs')KD[AK].av='halveprijs';
+  updateAction();
+}
+function setAv(val){ KD[AK].av=val; updateAction(); refreshBlank(); }
+
+function sb(field,val){
+  KD[AK][field]=val;
+  const cel=curCel();
+  if(cel){
+    const ce=cel.querySelector(`[data-f="${field}"]`);
+    if(ce&&ce!==document.activeElement) ce.textContent=val||'';
+    updateStatic(AK,cel);
+  }
+  refreshBlank();
+}
+function curCel(){ return AF==='sk_maxi'?fi('cel-'+AK):fi('cel-0'); }
+
+function switchK(idx,btn){
+  AK=idx;
+  document.querySelectorAll('.ktab').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  applyTypeUI(KD[idx].kaarttype||'actie');   // toggle + velden volgen het type van deze ¼-kaart
+  loadForm(idx);
+  document.querySelectorAll('.skm__cel').forEach((c,i)=>c.classList.toggle('cur',i===idx));
+}
+function loadForm(idx){
+  const d=KD[idx];
+  ['merk','koptekst','subtekst','vbtekst','aanv','verpakking','inhoud','vp1','vp2','kilo','land','mix','code'].forEach(k=>{const e=fi('f-'+k);if(e)e.value=d[k]||'';});
+  fi('f-max').value=d.max||'';
+  if(fi('f-tipprijs'))fi('f-tipprijs').value=d.av||'';
+  fi('f-kem').value=d.kem||'nee'; fi('row-mix').classList.toggle('hide',(d.kem||'nee')!=='ja');
+  fi('f-alcohol').checked=(d.alcohol==='ja');
+  fi('f-actietype').value=d.actietype||''; onActie();
+  renderScanList();
+  const t=d.actietype||'';
+  if(t==='prijs')fi('f-prijs').value=d.av||'';
+  else if(t==='xplusygratis')fi('f-xpg').value=d.av||'';
+  else if(t==='xisy')fi('f-xisy').value=d.av||'';
+  else if(t==='xpctkorting')fi('f-xpct').value=d.av||'';
+  else if(t==='xeurokorting')fi('f-xeur').value=d.av||'';
+  else if(t==='xhalenybetalen'){fi('f-xhal').value=d.av||'';fi('f-ybet').value=d.av2||'';}
+}
+
+function actionSpec(d){
+  const t=d.actietype||'', av=(d.av||'').trim(), av2=(d.av2||'').trim();
+  if(t==='prijs'&&av){
+    const p=av.replace('€','').replace(',','.').split('.');
+    const eur=(p[0]||'0')+'.', cent=(p.length>1&&p[1])?(p[1]+'00').substring(0,2):'-';
+    const was=[d.vp1,d.vp2].filter(Boolean).join(' - ');
+    const lbl=[d.verpakking,d.inhoud].filter(Boolean).join(' ').trim();
+    return {kind:'price',lbl,was,eur,cent};
+  }
+  let top='',lbl='';
+  if(t==='xpctkorting'&&av){top=av.includes('%')?av:av+'%';lbl='KORTING';}
+  else if(t==='xeurokorting'&&av){top=av.startsWith('€')?av:'€'+av;lbl='KORTING';}
+  else if(t==='xplusygratis'&&av){top=av;lbl='GRATIS';}
+  else if(t==='xisy'&&av){top=av;lbl='GRATIS';}
+  else if(t==='xhalenybetalen'&&av){top=av+' HALEN';lbl=(av2||'?')+' BETALEN';}
+  else if(t==='halveprijs'){top='2e';lbl='HALVE PRIJS';}
+  if(top)return {kind:'two',top,lbl};
+  return {kind:'none'};
+}
+
+function priceEur(av){ if(!av)return''; return String(av).replace('€','').replace(',','.').split('.')[0]||''; }
+function priceCent(av){ if(!av)return''; const p=String(av).replace('€','').replace(',','.').split('.'); return (p.length>1&&p[1])?(p[1]+'00').substring(0,2):'-'; }
+function syncAvMenu(idx){
+  if(idx!==AK)return; const d=KD[idx],t=d.actietype||'';
+  const map={prijs:'f-prijs',xplusygratis:'f-xpg',xisy:'f-xisy',xpctkorting:'f-xpct',xeurokorting:'f-xeur',xhalenybetalen:'f-xhal'};
+  const e=fi(map[t]); if(e&&e!==document.activeElement)e.value=d.av||'';
+  const tp=fi('f-tipprijs'); if(tp&&tp!==document.activeElement)tp.value=d.av||'';
+}
+const setIf=(el,txt)=>{ if(el&&el!==document.activeElement)el.textContent=txt; };
+
+function celHTML(idx){
+  const d=KD[idx];
+  const ce=(cls,f,ph)=>`<div class="${cls}" contenteditable="true" data-f="${f}" data-i="${idx}" data-ph="${ph}" spellcheck="false">${d[f]||''}</div>`;
+  if((d.kaarttype||'actie')==='tip'){
+    const panel=(newtipCfg(AF).k==='left')?' panel':'';
+    return `<div class="pvc newtip${panel}">
+      <div class="nt-band"></div>
+      <div class="nt-nix" data-s="tipnix" style="display:none"><div class="leg">&lt; 25 jaar? laat je legitimatie zien!<br>&lt; 18 jaar verkopen wij geen alcohol</div><img src="${NIX_SVG}" alt="NIX18"></div>
+      <div class="nt-title">
+        ${ce('pv-merk','merk','Merk')}
+        ${ce('pv-koptekst','koptekst','Productomschrijving')}
+        ${ce('pv-subtekst','subtekst','variëteitomschrijving')}
+      </div>
+      <div class="nt-price">
+        <div class="nt-inhoud"><span class="pl-verp" contenteditable="true" data-f="verpakking" data-i="${idx}" data-ph="Per bak" spellcheck="false">${d.verpakking||''}</span><span class="nt-inh" data-s="nt-inh">${d.inhoud||''}</span></div>
+        <div class="nt-amt"><span class="nt-eur" contenteditable="true" data-price="eur" data-i="${idx}" data-ph="0" spellcheck="false">${priceEur(d.av)}</span><span class="nt-cent" contenteditable="true" data-price="cent" data-i="${idx}" data-ph="-" spellcheck="false">${priceCent(d.av)}</span></div>
+      </div>
+      ${ce('nt-land','land','Land van herkomst')}
+      ${ce('nt-aanv','aanv','Aanvullende tekst')}
+    </div>`;
+  }
+  if(LY==='oud'){
+    return `<div class="pvc oldactie2">
+      <div class="oa-txt">
+        ${ce('pv-koptekst','koptekst','Koptekst')}
+        ${ce('pv-subtekst','subtekst','Subtekst')}
+        ${ce('pv-vbtekst','vbtekst','Voorbeeldtekst')}
+      </div>
+      <div class="pv-nix" data-s="nix"><div class="leg">&lt; 25 jaar? Laat je legitimatie zien!<br>&lt; 18 jaar verkopen wij geen alcohol</div><img src="${NIX_SVG}" alt="NIX18"></div>
+      <div class="oa-strike" data-s="oa-strike"></div>
+      <div class="oa-price"><span class="oa-whole" data-s="oa-whole"></span><span class="oa-cent" data-s="oa-cent"></span></div>
+      <div class="oa-label" data-s="oa-label"></div>
+      <div class="oa-two" data-s="oa-two"><div class="oa-two__top" data-s="oa-two-top"></div><div class="oa-two__lbl" data-s="oa-two-lbl"></div></div>
+      <div class="oa-land" data-s="land"></div>
+      <div class="oa-kilo" data-s="kilo"></div>
+      <div class="oa-max" data-s="max"></div>
+    </div>`;
+  }
+  const pe=(cls,part,ph)=>`<span class="${cls}" contenteditable="true" data-price="${part}" data-i="${idx}" data-ph="${ph}" spellcheck="false">${part==='eur'?priceEur(d.av):priceCent(d.av)}</span>`;
+  return `<div class="pvc">
+    <div class="pvL">
+      ${ce('pv-merk','merk','Merk')}
+      ${ce('pv-koptekst','koptekst','Koptekst')}
+      ${ce('pv-subtekst','subtekst','Subtekst')}
+      <div class="pv-mix" data-s="mix"></div>
+      ${ce('pv-vbtekst','vbtekst','Voorbeeldtekst')}
+      ${ce('pv-aanv','aanv','')}
+      ${ce('pv-kilo','kilo','Kiloprijs')}
+      ${ce('pv-land','land','Land van herkomst')}
+      <div class="pv-nix" data-s="nix"><div class="leg">&lt; 25 jaar? Laat je legitimatie zien!<br>&lt; 18 jaar verkopen wij geen alcohol</div><img src="${NIX_SVG}" alt="NIX18"></div>
+    </div>
+    ${ce('pv-code','code','Week 29')}
+    <div class="pv-note" data-s="note"></div>
+    ${ce('pv-max','max','5')}
+    <div class="pvR">
+      <div class="two" data-s="two"><div class="two__top" data-s="two-top" contenteditable="true" data-f="av" data-i="${idx}" data-ph="25%" spellcheck="false">${d.av||''}</div><div class="two__lbl" data-s="two-lbl"></div></div>
+      <div class="price" data-s="price">
+        <div class="price__lbl"><span class="pl-verp" contenteditable="true" data-f="verpakking" data-i="${idx}" data-ph="Per pak" spellcheck="false">${d.verpakking||''}</span><span class="pl-inh" data-s="price-inh">${d.inhoud||''}</span></div>
+        <div class="price__block">${ce('price__was','vp1','van')}
+        <div class="price__amt">${pe('price__eur','eur','0')}<span class="price__dot">.</span>${pe('price__cent','cent','-')}</div></div>
+      </div>
+    </div>
+    <div class="pv-scans" data-s="scans">${scanTilesHTML(idx)}</div>
+  </div>`;
+}
+
+function updateStatic(idx,cel){
+  if(!cel)return; const d=KD[idx];
+  const g=s=>cel.querySelector(`[data-s="${s}"]`);
+  if(KT!=='tip' && LY==='oud'){
+    const spec=actionSpec(d);
+    const two=g('oa-two'), price=cel.querySelector('.oa-price'), oaLbl=g('oa-label'), oaStr=g('oa-strike');
+    const isTwo=(spec.kind==='two');
+    // prijs-sticker OF tweekleurige actie-sticker (1+1 GRATIS / 2 HALEN 1 BETALEN / X% KORTING …)
+    if(two)two.classList.toggle('v',isTwo);
+    if(price)price.style.display=isTwo?'none':'flex';
+    if(isTwo){
+      const top=g('oa-two-top'), lb=g('oa-two-lbl');
+      if(top){top.textContent=spec.top||''; const n=(spec.top||'').replace(/\s/g,'').length||2;
+        top.style.fontSize=n<=2?'34cqh':n<=3?'23cqh':n<=6?'15cqh':'11cqh';}
+      if(lb){lb.textContent=spec.lbl||''; const m=(spec.lbl||'').length;
+        lb.style.fontSize=m<=8?'9cqh':m<=12?'6.5cqh':'5cqh';}
+      if(oaStr)oaStr.style.display='none';
+      if(oaLbl)oaLbl.style.display='none';
+    }else{
+      const av=(d.av||'').replace('€','').replace(',','.').split('.');
+      const whole=(av[0]!==undefined&&av[0]!=='')?(av[0]+'.'):''; const cent=(av.length>1&&av[1])?(av[1]+'00').substring(0,2):(av[0]?'-':'');
+      if(g('oa-whole'))g('oa-whole').textContent=whole;
+      if(g('oa-cent'))g('oa-cent').textContent=cent;
+      const lbl=[d.verpakking,d.inhoud].filter(Boolean).join(' ');
+      if(oaLbl){oaLbl.textContent=lbl; oaLbl.style.display=lbl?'inline-block':'none';}
+      const was=[d.vp1,d.vp2].filter(Boolean).join(' - ');
+      if(oaStr){oaStr.textContent=was; oaStr.style.display=was?'inline-block':'none';}
+    }
+    if(g('kilo'))g('kilo').textContent=d.kilo||'';
+    if(g('land'))g('land').textContent=d.land?('Land van herkomst: '+d.land):'';
+    if(g('max'))g('max').textContent=d.max?`Maximaal ${d.max} aanbiedingen per klant tenzij anders vermeld.`:'';
+    const nx=g('nix'); if(nx)nx.classList.toggle('v',d.alcohol==='ja');
+    return;
+  }
+  if((d.kaarttype||'actie')==='tip'){
+    // Verpakking (bewerkbaar) + inhoud (statisch ernaast); prijs euro/cent (bewerkbaar, punt via CSS);
+    // land + aanvullende tekst bewerkbaar (prefix via CSS). Bij focus niet overschrijven.
+    const vp=cel.querySelector('.pl-verp'); if(vp&&vp!==document.activeElement)vp.textContent=d.verpakking||'';
+    const inh=g('nt-inh'); if(inh)inh.textContent=d.inhoud||'';
+    setIf(cel.querySelector('[data-price="eur"]'), priceEur(d.av));
+    setIf(cel.querySelector('[data-price="cent"]'), priceCent(d.av));
+    const ld=cel.querySelector('[data-f="land"]'); if(ld&&ld!==document.activeElement)ld.textContent=d.land||'';
+    const an=cel.querySelector('[data-f="aanv"]'); if(an&&an!==document.activeElement)an.textContent=d.aanv||'';
+    const nx=g('tipnix'); if(nx)nx.style.display=(d.alcohol==='ja')?'block':'none';
+    return;
+  }
+  g('note').textContent=(d.actietype==='halveprijs')?'**Voor 2e halve prijs geldt: per combinatie kan de prijs verschillen. Je krijgt 25% korting op de totaalprijs.':'';
+  const mix=g('mix'); const mixv=(d.kem==='ja'&&d.mix)?d.mix.split('\n').filter(x=>x.trim()).map(x=>'• '+x.trim()).join('<br>'):''; mix.innerHTML=mixv;
+  g('nix').classList.toggle('v',d.alcohol==='ja');
+  _drawAction(cel,d);
+}
+function updateAction(){
+  const cel=curCel(); if(!cel)return;
+  if(KT!=='tip' && LY==='oud'){ updateStatic(AK,cel); return; }
+  _drawAction(cel,KD[AK]);
+}
+function _drawAction(cel,d){
+  const two=cel.querySelector('[data-s="two"]'), price=cel.querySelector('[data-s="price"]');
+  if(!two||!price)return;
+  const spec=actionSpec(d);
+  // 'two' toont bij korting/gratis/halveprijs; 'price' bij prijs. Toon leeg blok zodra het type gekozen is,
+  // zodat je er direct in kunt typen (leeg = wordt niet geprint).
+  const t=(d.actietype||''), isPrice=(t==='prijs');
+  const showTwo=['halveprijs','xpctkorting','xeurokorting','xplusygratis','xisy','xhalenybetalen'].includes(t);
+  two.classList.toggle('v',showTwo); price.classList.toggle('v',isPrice);
+  if(showTwo){
+    const top=cel.querySelector('[data-s="two-top"]'),l=cel.querySelector('[data-s="two-lbl"]');
+    const av=(t==='halveprijs')?'2e':(d.av||'');
+    setIf(top,av);
+    const n=(av||spec.top||'').replace(/\s/g,'').length||2;
+    top.style.fontSize=n<=2?'34cqh':n<=3?'23cqh':n<=6?'15cqh':'10cqh';
+    l.textContent=spec.lbl; l.style.fontSize=(spec.lbl||'').length<=8?'7cqh':(spec.lbl||'').length<=12?'5.4cqh':'4.3cqh';
+  }else if(isPrice){
+    setIf(cel.querySelector('[data-price="eur"]'),priceEur(d.av));
+    setIf(cel.querySelector('[data-price="cent"]'),priceCent(d.av));
+    const inh=cel.querySelector('[data-s="price-inh"]'); if(inh)inh.textContent=d.inhoud||'';
+    const vp=cel.querySelector('.pl-verp'); if(vp&&vp!==document.activeElement)vp.textContent=d.verpakking||'';
+  }
+}
+
+// ── Scan-barcodes ──────────────────────────────────────────────────────────
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function getScans(i){ try{ return JSON.parse(KD[i].scans||'[]')||[]; }catch(e){ return []; } }
+function setScans(i,arr){ KD[i].scans=JSON.stringify(arr); renderScanList(); refreshScansPreview(); refreshBlank(); }
+function addScan(){ const a=getScans(AK); a.push({naam:'',formaat:'',code:'',type:'ean8'}); setScans(AK,a); }
+function removeScan(i){ const a=getScans(AK); a.splice(i,1); setScans(AK,a); }
+function updScan(i,f,v){ const a=getScans(AK); if(a[i]){ a[i][f]=v; KD[AK].scans=JSON.stringify(a); refreshScansPreview(); } }
+function renderScanList(){
+  const box=fi('scan-list'); if(!box)return; const a=getScans(AK);
+  box.innerHTML = a.map((s,i)=>`
+    <div class="scanrow" style="border:1px solid var(--border,#e4e7e2);border-radius:8px;padding:8px;margin-bottom:8px;">
+      <div style="display:flex;gap:6px;margin-bottom:6px;">
+        <input type="text" placeholder="Productnaam" value="${esc(s.naam)}" oninput="updScan(${i},'naam',this.value)" style="flex:2;min-width:0;">
+        <input type="text" placeholder="Formaat" value="${esc(s.formaat)}" oninput="updScan(${i},'formaat',this.value)" style="flex:1;min-width:0;">
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input type="text" placeholder="Barcodenummer" value="${esc(s.code)}" oninput="updScan(${i},'code',this.value)" style="flex:2;min-width:0;">
+        <select onchange="updScan(${i},'type',this.value)" style="flex:1;min-width:0;">
+          <option value="ean8"${s.type==='ean8'?' selected':''}>EAN-8</option>
+          <option value="ean13"${s.type==='ean13'?' selected':''}>EAN-13</option>
+        </select>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="removeScan(${i})" title="Verwijderen"><i class="fa fa-trash"></i></button>
+      </div>
+    </div>`).join('') || '<p class="muted small" style="margin:0 0 4px;">Nog geen barcodes toegevoegd.</p>';
+}
+function scanTilesHTML(idx){
+  const a=getScans(idx).filter(s=>String(s.code||'').trim());
+  return a.slice(0,8).map(s=>`
+    <div class="scan-tile">
+      <div class="scan-tile__l"><img src="${SCANNER_SVG}" alt=""><span>Scan hier</span></div>
+      <div class="scan-tile__r">
+        <div class="scan-tile__nm">${esc(s.naam)}</div>
+        ${s.formaat?`<div class="scan-tile__fm">${esc(s.formaat)}</div>`:''}
+        <div class="scan-tile__bc"><div class="scan-bars"></div><div class="scan-num">${esc(s.code)}</div></div>
+      </div>
+    </div>`).join('');
+}
+function refreshScansPreview(){ const cel=curCel(); if(cel){ const c=cel.querySelector('[data-s="scans"]'); if(c)c.innerHTML=scanTilesHTML(AK); } }
+
+// ── plus.nl productzoek ──────────────────────────────────────────────────────
+let PZ=[];
+function pzFmt(n){ return n==null?'':Number(n).toFixed(2); }
+function pzEur(n){ return '€ '+pzFmt(n).replace('.',','); }
+// Inline PLUS-blaadjes-spinner voor tijdens het zoeken op plus.nl.
+const PZ_SPINNER = '<div class="pl-inline"><div class="pl-spinner" aria-hidden="true"><svg viewBox="0 0 132 140">'
+  +'<path class="pl-leaf pl-leaf--1" d="M61.2,32.8 L61.2,54.8 C61.2,60.8 56.8,65.6 50.8,65.6 L30.4,65.6 C13.6,65.6 0,51.2 0,33.2 C0,15.6 13.6,0.8 30.4,0.8 C47.6,0.8 61.2,15.2 61.2,32.8 Z"/>'
+  +'<path class="pl-leaf pl-leaf--2" d="M61.2,107.2 L61.2,85.6 C61.2,79.6 56.8,74.8 50.8,74.8 L30.4,74.8 C13.6,74.8 0,89.2 0,107.2 C0,125.2 13.6,139.6 30.4,139.6 C47.6,139.6 61.2,125.2 61.2,107.2 Z"/>'
+  +'<path class="pl-leaf pl-leaf--3" d="M69.6,107.2 L69.6,85.6 C69.6,79.6 74,74.8 80,74.8 L100.4,74.8 C117.2,74.8 131.2,89.2 131.2,107.2 C131.2,125.2 117.2,139.6 100.4,139.6 C83.6,139.6 69.6,125.2 69.6,107.2 Z"/>'
+  +'<path class="pl-leaf pl-leaf--4" d="M70,32.8 L70,54.8 C70,60.8 74.4,65.6 80,65.6 L100.4,65.6 C117.6,65.6 131.2,51.2 131.2,33.2 C131.2,15.6 117.6,0.8 100.4,0.8 C83.6,0.8 70,15.2 70,32.8 Z"/>'
+  +'</svg></div><span>Even zoeken op plus.nl…</span></div>';
+
+async function pzSearch(){
+  const q=fi('pz-q').value.trim(); if(q.length<2) return;
+  fi('pz-status').textContent=''; fi('pz-results').innerHTML=PZ_SPINNER;   // PLUS-spinner tonen
+  try{
+    const r=await fetch('{{ url_for("api_plus_zoek") }}?q='+encodeURIComponent(q));
+    const d=await r.json();
+    if(d && d.error){ fi('pz-results').innerHTML=''; fi('pz-status').textContent='Zoeken mislukt: '+d.error; return; }
+    if(!Array.isArray(d)||!d.length){ fi('pz-results').innerHTML=''; fi('pz-status').textContent='Geen resultaten gevonden.'; return; }
+    PZ=d; fi('pz-status').textContent=d.length+' resultaten — vink aan wat je overneemt:';
+    fi('pz-results').innerHTML=d.map((x,i)=>pzRow(x,i)).join('');
+  }catch(e){ fi('pz-results').innerHTML=''; fi('pz-status').textContent='Zoeken mislukt: '+e; }
+}
+function pzDealTxt(x){
+  if(!x.deal) return '';
+  if(x.deal.kind==='voory') return x.deal.qty+' voor € '+String(x.deal.total).replace('.',',');
+  if(x.deal.kind==='pct')   return x.deal.pct+'% korting';
+  return '';
+}
+function pzRow(x,i){
+  const price = x.actie!=null ? (`<b>${pzEur(x.actie)}</b> <s class="muted">${pzEur(x.van)}</s>`)
+              : (x.prijs!=null?pzEur(x.prijs):'');
+  const dealTxt = pzDealTxt(x);
+  const info = [esc(x.verpakking||''), esc(x.eenheid||''), dealTxt?('<b style="color:#e3000a;">'+esc(dealTxt)+'</b>'):''].filter(Boolean).join(' · ');
+  const hasPrice = (x.actie!=null||x.prijs!=null||!!x.deal);
+  return `<div class="pz-card">
+    <div class="pz-info">
+      ${x.img?`<img src="${esc(x.img)}" alt="" onerror="this.style.display='none'" draggable="true" ondragstart="event.dataTransfer.setData('text/pz-img',this.src);event.dataTransfer.effectAllowed='copy';" title="Sleep deze foto op de kaart" style="cursor:grab;">`:''}
+      <div style="min-width:0;"><div class="pz-nm">${esc(x.naam)}</div><div class="muted small">${info}${price?(' · '+price):''}</div></div>
+    </div>
+    <div class="pz-opts">
+      <label class="pz-ck"><input type="checkbox" id="pz-nm-${i}" checked> Merk + Koptekst</label>
+      <label class="pz-ck"><input type="checkbox" id="pz-vp-${i}" checked> Verpakking</label>
+      <label class="pz-ck"><input type="checkbox" id="pz-eh-${i}" ${x.eenheid?'checked':'disabled'}> Subtekst</label>
+      <label class="pz-ck"><input type="checkbox" id="pz-pr-${i}" ${hasPrice?'checked':'disabled'}> ${x.deal?'Actie':'Prijs'}</label>
+      <label class="pz-ck"><input type="checkbox" id="pz-img-${i}" ${x.img?'checked':'disabled'}> Foto</label>
+      <button type="button" class="btn btn-primary btn-sm" onclick="pzApply(${i})"><i class="fa fa-arrow-left"></i> Overnemen</button>
+    </div>
+  </div>`;
+}
+function pzApply(i){
+  const x=PZ[i], d=KD[AK];
+  if(fi('pz-nm-'+i).checked && x.naam){ d.merk=x.merk||''; d.koptekst=x.koptekst||x.naam; }
+  // Verpakking (per stuk / per zak / per tray …) → het groene 'Per …'-label; onbekend = 'Per ?'
+  if(fi('pz-vp-'+i).checked) d.verpakking = x.verpakking || 'Per ?';
+  const eh=fi('pz-eh-'+i); if(eh && eh.checked && x.eenheid) d.subtekst=x.eenheid;
+  if(fi('pz-pr-'+i).checked){
+    // eerder automatisch ingevulde prijs-aanvulling opruimen (zodat er niks van een vorig product blijft staan)
+    if(/^(€ |Van € )/.test(d.aanv||'')) d.aanv='';
+    if(x.deal && x.deal.kind==='voory'){
+      // 'X voor €Y' → prijsblok met groene label 'X voor'
+      d.actietype='prijs'; d.av=pzFmt(parseFloat(x.deal.total));
+      d.verpakking=x.deal.qty+' voor'; d.vp1=''; d.vp2='';
+    } else if(x.deal && x.deal.kind==='pct'){
+      // 'X% korting' → korting-actie; prijs in Aanvullend als 'Van € oud nu voor € nieuw'
+      d.actietype='xpctkorting'; d.av=x.deal.pct+'%';
+      const nw=(x.actie!=null?x.actie:x.prijs);
+      if(nw!=null && x.van!=null) d.aanv='Van € '+pzFmt(x.van).replace('.',',')+' nu voor € '+pzFmt(nw).replace('.',',');
+      else if(nw!=null) d.aanv='€ '+pzFmt(nw).replace('.',',');
+    } else if(x.actie!=null){ d.actietype='prijs'; d.av=pzFmt(x.actie); if(x.van!=null)d.vp1=pzFmt(x.van); }
+    else if(x.prijs!=null){ d.actietype='prijs'; d.av=pzFmt(x.prijs); }
+  }
+  // Foto automatisch op de kaart plaatsen (aan te vinken 'Foto'). Je kunt 'm daarna nog verplaatsen/schalen.
+  const im=fi('pz-img-'+i);
+  if(im && im.checked && x.img){
+    const arr=getOverlays(AK);
+    arr.push({src:hiRes(x.img), x:0.34, y:0.30, w:0.30});
+    setOverlays(AK, arr);
+  }
+  render(); loadForm(AK);
+  fi('pz-status').textContent='✓ Overgenomen: '+x.naam;
+}
+
+// ── Foto-overlays op de kaart (sleep vanuit zoekresultaten; meerdere foto's mogelijk) ────────
+function getOverlays(i){
+  try{ var v=JSON.parse(KD[i].overlay||'null'); if(!v) return []; return Array.isArray(v)?v:[v]; }
+  catch(e){ return []; }
+}
+function setOverlays(i,arr){ KD[i].overlay = (arr&&arr.length)?JSON.stringify(arr):''; refreshBlank(); }
+// Vraag een grotere/hogere-kwaliteit versie op van de ctfassets/plus-productfoto (thumb is ~120px).
+// Genormaliseerde beeld-URL: strip alle transformaties (o.a. fit=pad/h=) en gebruik de NATUURLIJKE
+// verhouding op hoge resolutie. Zo tonen de preview én de afdruk exact dezelfde foto-vorm.
+function normSrc(u){ if(!u) return u; return u.split('?')[0] + '?w=700&fm=webp'; }
+function hiRes(u){ return normSrc(u); }
+function celIndexOf(el){ const c=el.closest('[id^="cel-"]'); return c?(+c.id.split('-')[1]):0; }
+function attachOverlay(){
+  const kp=fi('kp');
+  if(!kp._ovDrop){ kp._ovDrop=true;   // dropzone maar één keer koppelen
+    kp.addEventListener('dragover', e=>{ if(e.dataTransfer.types.includes('text/pz-img')){ e.preventDefault(); e.dataTransfer.dropEffect='copy'; } });
+    kp.addEventListener('drop', e=>{
+      const src=e.dataTransfer.getData('text/pz-img'); if(!src) return; e.preventDefault();
+      const pvc=(e.target.closest&&e.target.closest('.pvc'))||kp.querySelector('.pvc'); if(!pvc) return;
+      const idx=celIndexOf(pvc); const r=pvc.getBoundingClientRect(); const w=0.28;
+      const x=Math.max(0,Math.min(1-w,(e.clientX-r.left)/r.width - w/2));
+      const y=Math.max(0,Math.min(0.9,(e.clientY-r.top)/r.height - w/2));
+      const arr=getOverlays(idx); arr.push({src:hiRes(src),x,y,w}); setOverlays(idx,arr); paintOverlays(idx);
+    }, false);
+  }
+  [0,1,2,3].forEach(i=>paintOverlays(i));
+}
+const PV_LEAVES=
+  '<span class="ov-spin"><svg viewBox="0 0 132 140" aria-hidden="true">'+
+    '<path class="pv-leaf pv-leaf--1" d="M61.2,32.8 L61.2,54.8 C61.2,60.8 56.8,65.6 50.8,65.6 L30.4,65.6 C13.6,65.6 0,51.2 0,33.2 C0,15.6 13.6,0.8 30.4,0.8 C47.6,0.8 61.2,15.2 61.2,32.8 Z"/>'+
+    '<path class="pv-leaf pv-leaf--2" d="M61.2,107.2 L61.2,85.6 C61.2,79.6 56.8,74.8 50.8,74.8 L30.4,74.8 C13.6,74.8 0,89.2 0,107.2 C0,125.2 13.6,139.6 30.4,139.6 C47.6,139.6 61.2,125.2 61.2,107.2 Z"/>'+
+    '<path class="pv-leaf pv-leaf--3" d="M69.6,107.2 L69.6,85.6 C69.6,79.6 74,74.8 80,74.8 L100.4,74.8 C117.2,74.8 131.2,89.2 131.2,107.2 C131.2,125.2 117.2,139.6 100.4,139.6 C83.6,139.6 69.6,125.2 69.6,107.2 Z"/>'+
+    '<path class="pv-leaf pv-leaf--4" d="M70,32.8 L70,54.8 C70,60.8 74.4,65.6 80,65.6 L100.4,65.6 C117.6,65.6 131.2,51.2 131.2,33.2 C131.2,15.6 117.6,0.8 100.4,0.8 C83.6,0.8 70,15.2 70,32.8 Z"/>'+
+  '</svg></span>';
+function paintOverlays(idx){
+  const cel=fi('cel-'+idx); if(!cel) return; const pvc=cel.querySelector('.pvc'); if(!pvc) return;
+  pvc.querySelectorAll('.pv-overlay').forEach(el=>el.remove());
+  getOverlays(idx).forEach((o,oi)=>{
+    const el=document.createElement('div'); el.className='pv-overlay';
+    el.innerHTML=PV_LEAVES+'<img draggable="false" style="opacity:0"><span class="ov-rs" title="Schalen"></span><span class="ov-del" title="Verwijderen">×</span>';
+    pvc.appendChild(el);
+    const img=el.querySelector('img');
+    img.addEventListener('load', function(){ img.style.opacity='1'; const sp=el.querySelector('.ov-spin'); if(sp)sp.remove(); });
+    img.addEventListener('error', function(){ const sp=el.querySelector('.ov-spin'); if(sp)sp.remove(); });
+    img.src=normSrc(o.src);   // altijd natuurlijke verhouding tonen (ook bij oudere kaarten)
+    if(img.complete && img.naturalWidth){ img.style.opacity='1'; const sp=el.querySelector('.ov-spin'); if(sp)sp.remove(); }
+    el.style.left=(o.x*100)+'%'; el.style.top=(o.y*100)+'%'; el.style.width=(o.w*100)+'%';
+    wireOverlay(el,pvc,idx,oi);
+  });
+}
+function wireOverlay(el,pvc,idx,oi){
+  const img=el.querySelector('img'), rs=el.querySelector('.ov-rs'), del=el.querySelector('.ov-del');
+  let mode=null,sx,sy,o0;
+  const move=e=>{ if(!mode)return; const t=e.touches?e.touches[0]:e; const r=pvc.getBoundingClientRect();
+    const dx=(t.clientX-sx)/r.width, dy=(t.clientY-sy)/r.height; let o=Object.assign({},o0);
+    if(mode==='move'){ o.x=Math.max(0,Math.min(1-o.w,o0.x+dx)); o.y=Math.max(0,Math.min(0.98,o0.y+dy)); }
+    else { o.w=Math.max(0.05,Math.min(1.2,o0.w+dx)); }
+    const arr=getOverlays(idx); arr[oi]=o; setOverlays(idx,arr);
+    el.style.left=(o.x*100)+'%'; el.style.top=(o.y*100)+'%'; el.style.width=(o.w*100)+'%'; e.preventDefault(); };
+  const up=()=>{ mode=null; document.removeEventListener('mousemove',move); document.removeEventListener('mouseup',up);
+    document.removeEventListener('touchmove',move); document.removeEventListener('touchend',up); };
+  const start=(e,m)=>{ mode=m; const t=e.touches?e.touches[0]:e; sx=t.clientX; sy=t.clientY; o0=Object.assign({},getOverlays(idx)[oi]);
+    document.addEventListener('mousemove',move); document.addEventListener('mouseup',up);
+    document.addEventListener('touchmove',move,{passive:false}); document.addEventListener('touchend',up);
+    e.preventDefault(); e.stopPropagation(); };
+  img.addEventListener('mousedown',e=>start(e,'move')); img.addEventListener('touchstart',e=>start(e,'move'),{passive:false});
+  rs.addEventListener('mousedown',e=>start(e,'resize')); rs.addEventListener('touchstart',e=>start(e,'resize'),{passive:false});
+  del.addEventListener('click',e=>{ e.stopPropagation(); const arr=getOverlays(idx); arr.splice(oi,1); setOverlays(idx,arr); paintOverlays(idx); });
+}
+
+function cardHasContent(i){
+  const d=KD[i]; if(!d) return false;
+  return ['merk','koptekst','subtekst','vbtekst','aanv','verpakking','inhoud','vp1','vp2','av','av2','kilo','land','code','scans','overlay']
+    .some(k=>String(d[k]||'').trim());
+}
+// Werk de 'leeg · wordt niet geprint'-markering live bij (zodra je iets typt, verdwijnt hij).
+function refreshBlank(){
+  if(AF!=='sk_maxi') return;
+  [0,1,2,3].forEach(i=>{ const cel=fi('cel-'+i); if(cel) cel.classList.toggle('is-blank',(i!==AK)&&!cardHasContent(i)); });
+}
+function render(){
+  const kp=fi('kp');
+  if(AF==='sk_maxi'){
+    // Alle 4 de kaarten blijven live bewerkbaar (typen in de preview). Lege kaarten worden bij het
+    // AFDRUKKEN wit gelaten; in de editor tonen we ze wél (met een subtiele 'wordt niet geprint'-hint).
+    kp.innerHTML=`<div class="skm">${[0,1,2,3].map(i=>{
+      const blank=(i!==AK)&&!cardHasContent(i);
+      return `<div class="skm__cel ${i===AK?'cur':''} ${blank?'is-blank':''}" id="cel-${i}">${celHTML(i)}</div>`;
+    }).join('')}</div>`;
+    [0,1,2,3].forEach(i=>updateStatic(i,fi('cel-'+i)));
+    [0,1,2,3].forEach(i=>{ if((KD[i].kaarttype||'actie')==='tip')applyNewtip(fi('cel-'+i),AF); });
+  }else{
+    kp.innerHTML=`<div class="single" id="cel-0">${celHTML(0)}</div>`;
+    updateStatic(0,fi('cel-0'));
+    if((KD[0].kaarttype||'actie')==='tip')applyNewtip(fi('cel-0'),AF);
+  }
+  attachCE();
+  attachOverlay();
+}
+function attachCE(){
+  const focusK=el=>{ if(AF==='sk_maxi'){const idx=+el.dataset.i;if(idx!==AK)switchK(idx,document.querySelectorAll('.ktab')[idx]);} };
+  const enterNext=el=>el.addEventListener('keydown',function(e){ if(e.key==='Enter'){e.preventDefault();
+    const all=[...this.closest('.pvc').querySelectorAll('[contenteditable]')]; const nx=all[all.indexOf(this)+1]; if(nx)nx.focus();}});
+  // tekstvelden met data-f
+  document.querySelectorAll('.kp [contenteditable][data-f]').forEach(el=>{
+    el.addEventListener('input',function(){
+      const idx=+this.dataset.i,f=this.dataset.f; KD[idx][f]=this.textContent;
+      if(idx===AK){
+        if(f==='av'){ syncAvMenu(idx); updateAction(); }
+        else { const fe=fi('f-'+f); if(fe&&fe!==document.activeElement)fe.value=this.textContent; }
+      }
+      refreshBlank();
+    });
+    enterNext(el);
+    if(AF==='sk_maxi')el.addEventListener('focus',()=>focusK(el));
+  });
+  // prijs-cijfers (eur/cent) -> combineer naar av
+  document.querySelectorAll('.kp [contenteditable][data-price]').forEach(el=>{
+    el.addEventListener('input',function(){
+      const idx=+this.dataset.i, cel=this.closest('.pvc,.skm__cel')||this.closest('#cel-0');
+      const root=this.closest('[id^="cel-"]')||document;
+      const eur=(root.querySelector('[data-price="eur"]').textContent||'').replace(/[^\d]/g,'');
+      const cent=(root.querySelector('[data-price="cent"]').textContent||'').replace(/[^\d]/g,'');
+      KD[idx].av = eur ? (cent ? eur+'.'+cent : eur) : '';
+      syncAvMenu(idx);
+    });
+    el.addEventListener('keydown',function(e){ if(e.key==='Enter')e.preventDefault(); });
+    if(AF==='sk_maxi')el.addEventListener('focus',()=>focusK(el));
+  });
+}
+
+function saveCard(){
+  if(!KD[0].koptekst&&!KD[0].merk){alert('Vul minimaal een merk of koptekst in voor kaart 1.');return;}
+  fi('h-formaat').value=AF; fi('h-count').value=AF==='sk_maxi'?4:1;
+  for(let i=0;i<4;i++){const d=KD[i];FIELDS.forEach(f=>{const e=fi(`h-${i}-${f}`);if(e)e.value=d[f]||'';});}
+  // PLUS-laadspinner tonen terwijl de kaart op de server wordt opgemaakt (kan onder drukte even duren).
+  if(window.plusLoader) plusLoader.show({% if edit_card %}'Kaart wordt bijgewerkt…'{% else %}'Kaart wordt opgeslagen…'{% endif %});
+  fi('kaartForm').submit();
+}
+
+{% if edit_data and edit_data.formaat %}fi('f-formaat').value={{ edit_data.formaat|tojson }};{% endif %}
+onFmt();
+loadForm(0);
+applyTypeUI(KD[0].kaarttype||'actie');   // begintype = dat van de eerste kaart
+
+// Info-tooltip vast positioneren (fixed) zodat 'ie niet door het paneel wordt afgekapt en altijd bovenop blijft
+(function(){
+  var tip=document.querySelector('.info-tip'); if(!tip) return;
+  var bub=tip.querySelector('.info-tip__bubble'); if(!bub) return;
+  function place(){
+    var r=tip.getBoundingClientRect();
+    var bw=Math.min(290, window.innerWidth-16);
+    bub.style.width=bw+'px';
+    bub.style.left=Math.max(8, Math.min(r.right-bw, window.innerWidth-bw-8))+'px';
+    bub.style.top=(r.bottom+8)+'px';
+  }
+  tip.addEventListener('mouseenter', place);
+  tip.addEventListener('focusin', place);
+  window.addEventListener('scroll', place, true);
+  window.addEventListener('resize', place);
+})();
+</script>
+{% endblock %}

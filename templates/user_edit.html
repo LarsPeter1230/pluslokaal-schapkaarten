@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}{{ tgt.username }} – Gebruiker{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div style="display:flex;align-items:center;gap:14px;">
+    <a href="{{ url_for('register') }}" class="btn btn-ghost btn-sm"><i class="fa fa-arrow-left"></i> Gebruikers</a>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="who__avatar" style="width:44px;height:44px;background:var(--green-tint);color:var(--green-d);font-size:1rem;">
+        {% if tgt.avatar %}<img src="{{ tgt.avatar }}" alt="">{% else %}{{ tgt.username[:2]|upper }}{% endif %}
+      </div>
+      <div>
+        <h1 class="page-title" style="font-size:1.35rem;">{{ tgt.username }}</h1>
+        <p class="page-sub"><span class="badge badge-{{ tgt.role }}">{{ role_labels.get(tgt.role, tgt.role) }}</span> · {{ filiaal_display(tgt.filiaal, tgt.filiaal_naam) }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="flex">
+  <!-- Gegevens -->
+  <div class="panel" style="flex:1 1 360px;max-width:460px;">
+    <div class="panel__head"><i class="fa fa-id-card"></i><h3>Gegevens</h3></div>
+    <div class="panel__body">
+      <form method="post">
+        <input type="hidden" name="action" value="save">
+        <div class="field"><label>Naam</label><input type="text" name="username" value="{{ tgt.username }}" required></div>
+        <div class="field"><label>E-mailadres <span class="muted small">(inlogadres)</span></label><input type="email" name="email" value="{{ tgt.email or '' }}" placeholder="naam@voorbeeld.nl"></div>
+        <div class="field">
+          <label>Rol</label>
+          {% if is_admin %}
+          <select name="role">
+            {% for r in roles %}<option value="{{ r.name }}" {{ 'selected' if tgt.role==r.name }}>{{ r.label }}</option>{% endfor %}
+          </select>
+          {% else %}<input type="text" value="{{ role_labels.get(tgt.role, tgt.role) }}" readonly>{% endif %}
+        </div>
+        <div class="field">
+          <label>Filiaal</label>
+          {% if is_admin %}
+          <select name="filiaal">
+            {% for f in filialen %}
+            <option value="{{ f.nummer }}" {{ 'selected' if f.nummer==tgt.filiaal }}>{{ f.nummer }}{% if f.naam %} — PLUS {{ f.naam }}{% endif %}</option>
+            {% endfor %}
+          </select>
+          {% else %}<input type="text" value="{{ filiaal_display(tgt.filiaal, tgt.filiaal_naam) }}" readonly>{% endif %}
+        </div>
+        {% if is_admin %}
+        <div style="border-top:1px solid var(--border,#e9ecef);margin:14px 0 12px;"></div>
+        <div class="sec__h" style="margin-bottom:10px;"><i class="fa fa-shield-halved"></i> Toegang &amp; beveiliging</div>
+        <div class="field">
+          <label>IP-beleid</label>
+          <select name="access_policy">
+            <option value="anywhere" {{ 'selected' if tgt.access_policy=='anywhere' }}>Overal toegestaan</option>
+            <option value="ip_login" {{ 'selected' if tgt.access_policy=='ip_login' }}>Alleen inloggen vanaf toegestane IP's</option>
+            <option value="ip_print" {{ 'selected' if tgt.access_policy=='ip_print' }}>Overal inloggen, maar alleen printen vanaf winkel-IP's</option>
+          </select>
+        </div>
+        <div class="field"><label>Eigen toegestane IP's <span class="muted small">(leeg = winkel-IP's; komma-gescheiden)</span></label>
+          <input type="text" name="allowed_ips" value="{{ tgt.allowed_ips or '' }}" placeholder="84.28.10.20, 84.28.10.21"></div>
+        <label class="lbl-chk" style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:.85rem;margin:4px 0;cursor:pointer;">
+          <input type="checkbox" name="approved" style="width:18px;height:18px;accent-color:var(--green);" {{ 'checked' if tgt.approved }}> Account goedgekeurd (mag inloggen)</label>
+        <label class="lbl-chk" style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:.85rem;margin:4px 0;cursor:pointer;">
+          <input type="checkbox" name="must_change_password" style="width:18px;height:18px;accent-color:var(--green);" {{ 'checked' if tgt.must_change_password }}> Moet bij eerstvolgende login een nieuw wachtwoord kiezen</label>
+        <label class="lbl-chk" style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:.85rem;margin:4px 0 12px;cursor:pointer;">
+          <input type="checkbox" name="show_tour" style="width:18px;height:18px;accent-color:var(--green);" {{ 'checked' if tgt.show_tour }}> <span><i class="fa fa-route" style="color:var(--green-d);"></i> Rondleiding tonen <span class="muted small">(stapsgewijze uitleg na het inloggen)</span></span></label>
+        {% endif %}
+        <button type="submit" class="btn btn-primary btn-block"><i class="fa fa-floppy-disk"></i> Gegevens opslaan</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Wachtwoord & mail -->
+  <div class="panel" style="flex:1 1 320px;max-width:400px;">
+    <div class="panel__head"><i class="fa fa-key"></i><h3>Wachtwoord &amp; e-mail</h3></div>
+    <div class="panel__body stack">
+      {% if not tgt.email %}
+      <div style="background:var(--amber-tint);color:var(--amber);border-radius:8px;padding:11px 13px;font-size:.82rem;line-height:1.45;">
+        <i class="fa fa-circle-info"></i> Nog geen e-mailadres. Vul dit in bij <strong>Gegevens</strong> om mails te kunnen sturen — of stel het wachtwoord hieronder direct in.
+      </div>
+      {% endif %}
+      <form method="post">
+        <input type="hidden" name="action" value="welcome">
+        <button type="submit" class="btn btn-outline btn-block"><i class="fa fa-envelope"></i> Welkomstmail versturen</button>
+      </form>
+      <form method="post">
+        <input type="hidden" name="action" value="reset">
+        <button type="submit" class="btn btn-outline btn-block"><i class="fa fa-key"></i> Wachtwoord-resetmail sturen</button>
+      </form>
+
+      {% if is_admin %}
+      <div style="border-top:1px solid var(--border-soft);margin-top:8px;padding-top:12px;">
+        <div style="font-size:.85rem;font-weight:600;margin-bottom:8px;">
+          <i class="fa fa-shield-halved"></i> Twee-factor (2FA):
+          {% if tgt.mfa_enabled %}<span style="color:var(--green-d);">ingeschakeld</span>
+          {% elif tgt.role == 'admin' %}<span style="color:#c26a00;">nog niet ingesteld — verplicht</span>
+          {% else %}<span class="muted">uit</span>{% endif %}
+        </div>
+        {% if tgt.mfa_enabled %}
+        <form method="post" onsubmit="return confirm('2FA van {{ tgt.username }} resetten? Diegene moet het bij de volgende login opnieuw instellen (bijv. als het toestel kwijt is).');">
+          <input type="hidden" name="action" value="mfa_reset">
+          <button type="submit" class="btn btn-ghost btn-block btn-sm"><i class="fa fa-rotate"></i> 2FA resetten</button>
+        </form>
+        {% endif %}
+      </div>
+      {% endif %}
+      {% if tgt.email %}
+      <p class="hint">Beide mails bevatten een link waarmee {{ tgt.username }} zelf een wachtwoord instelt (met de tip om hetzelfde wachtwoord als het e-mailaccount te kiezen).</p>
+      {% else %}
+      <form method="post" style="border-top:1px solid var(--border-soft);padding-top:12px;">
+        <input type="hidden" name="action" value="reset">
+        <label>Of stel het wachtwoord direct in</label>
+        <div class="field"><input type="text" name="new_password" placeholder="Nieuw wachtwoord (min. 4 tekens)" required></div>
+        <button type="submit" class="btn btn-primary btn-block"><i class="fa fa-key"></i> Wachtwoord instellen</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Verwijderen -->
+  {% if tgt.username != user.username %}
+  <div class="panel" style="flex:1 1 320px;max-width:400px;">
+    <div class="panel__head"><i class="fa fa-triangle-exclamation" style="color:var(--red);"></i><h3>Verwijderen</h3></div>
+    <div class="panel__body">
+      <p class="hint" style="margin-bottom:12px;">
+        Deze gebruiker heeft <strong>{{ card_count }}</strong> schapkaart{{ '' if card_count==1 else 'en' }} gemaakt.
+        {% if card_count %}Kies hieronder optioneel een gebruiker om de kaarten aan over te dragen.{% endif %}
+      </p>
+      <form method="post" onsubmit="return confirm('{{ tgt.username }} definitief verwijderen?')">
+        <input type="hidden" name="action" value="delete">
+        {% if card_count %}
+        <div class="field">
+          <label>Kaarten overdragen aan <span class="muted small">(optioneel)</span></label>
+          <div class="search" style="width:100%;margin-bottom:8px;">
+            <input type="text" id="transferSearch" placeholder="Zoek gebruiker of filiaal…" autocomplete="off" oninput="filterTransfer()">
+            <i class="fa fa-search"></i>
+          </div>
+          <select name="transfer_to" id="transferSelect" size="6" style="height:auto;padding:6px;">
+            <option value="">— Niet overdragen (kaarten blijven bij filiaal) —</option>
+            {% for o in others %}
+            <option value="{{ o.id }}" data-s="{{ o.username|lower }} {{ o.filiaal }} {{ (o.filiaal_naam or '')|lower }}">
+              {{ o.username }} — {{ filiaal_display(o.filiaal, o.filiaal_naam) }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+        <button type="submit" class="btn btn-danger btn-block"><i class="fa fa-trash"></i> Gebruiker verwijderen</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+function filterTransfer(){
+  var q=document.getElementById('transferSearch').value.toLowerCase().trim();
+  document.querySelectorAll('#transferSelect option').forEach(function(o){
+    if(!o.value){return;}
+    var hit=(o.dataset.s||'').indexOf(q)>-1;
+    o.style.display=hit?'':'none';
+  });
+}
+</script>
+{% endblock %}

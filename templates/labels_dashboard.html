@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Labels – PLUSLokaal{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Labels</h1>
+    <p class="page-sub">{{ jobs|length }} labelbatch{{ '' if jobs|length==1 else 'es' }}</p>
+  </div>
+  <div class="toolbar">
+    {% if filialen %}
+    <form method="get" style="margin:0;">
+      <select name="filiaal" onchange="this.form.submit()">
+        <option value="0">Alle winkels</option>
+        {% for f in filialen %}<option value="{{ f.nummer }}" {{ 'selected' if sel_filiaal==f.nummer }}>{{ f.naam or ('Filiaal '~f.nummer) }} ({{ f.nummer }})</option>{% endfor %}
+      </select>
+    </form>
+    {% endif %}
+    <a href="{{ url_for('label_products') }}" class="btn btn-ghost btn-sm"><i class="fa fa-box"></i> Producten</a>
+    <a href="{{ url_for('label_new') }}" class="btn btn-primary"><i class="fa fa-plus"></i> Labels maken</a>
+  </div>
+</div>
+
+{% if jobs %}
+<div class="kaart-grid">
+  {% for j in jobs %}
+  <div class="kaart">
+    <div class="kaart__prev" style="background:#fff;">
+      <img src="{{ url_for('label_job_preview', job_id=j.id) }}" alt="{{ j.name }}" loading="lazy" style="object-fit:contain;">
+    </div>
+    <div class="kaart__body">
+      <div class="kaart__title">{{ j.name }}</div>
+      <div class="kaart__meta">
+        <span><i class="fa fa-barcode fa-fw"></i> {{ j.items_json|from_json|length }} product(en)</span>
+        <span><i class="fa fa-clock fa-fw"></i> {{ j.created_at.strftime('%d-%m-%Y %H:%M') }}</span>
+        {% if user.role == 'admin' %}<span><i class="fa fa-store fa-fw"></i> {{ filiaal_display(j.filiaal) }}</span>{% endif %}
+      </div>
+      <div class="kaart__acts">
+        <a href="{{ url_for('label_new', edit=j.id) }}" class="iconbtn is-edit" title="Bewerken"><i class="fa fa-pen"></i></a>
+        <a href="{{ url_for('label_view', job_id=j.id, print=1) }}" class="iconbtn is-print" title="Afdrukken"><i class="fa fa-print"></i></a>
+        <a href="{{ url_for('label_view', job_id=j.id) }}" class="iconbtn" title="Bekijken"><i class="fa fa-eye"></i></a>
+        <form method="post" action="{{ url_for('label_delete', job_id=j.id) }}" onsubmit="return confirm('Labelbatch “{{ j.name }}” verwijderen?')" style="margin-left:auto;">
+          <button type="submit" class="iconbtn is-danger" title="Verwijderen"><i class="fa fa-trash"></i></button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty">
+  <i class="fa fa-barcode"></i>
+  <p>Nog geen labels gemaakt.</p>
+  <a href="{{ url_for('label_new') }}" class="btn btn-primary"><i class="fa fa-plus"></i> Eerste labels maken</a>
+</div>
+{% endif %}
+{% endblock %}

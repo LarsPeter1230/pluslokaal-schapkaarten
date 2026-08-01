@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Kennisbank – PLUSLokaal{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Kennisbank &amp; hulp</h1>
+    <p class="page-sub">Uitleg en handleidingen voor alle onderdelen van PLUSLokaal</p>
+  </div>
+  <div class="toolbar">
+    <div class="search">
+      <input type="text" id="kbSearch" placeholder="Zoek in de kennisbank…" autocomplete="off">
+      <i class="fa fa-search"></i>
+    </div>
+  </div>
+</div>
+
+{% if total == 0 %}
+<div class="panel"><div class="panel__body" style="text-align:center;color:var(--muted);padding:40px;">
+  <i class="fa fa-book" style="font-size:1.8rem;opacity:.4;"></i>
+  <div style="margin-top:10px;">Er zijn nog geen artikelen.</div>
+</div></div>
+{% endif %}
+
+<div id="kbGroups">
+{% for cat, arts in groups %}
+  <section class="kb-group" data-cat>
+    <h2 class="kb-group__title">{{ cat }}</h2>
+    <div class="kb-cards">
+      {% for a in arts %}
+      <a class="kb-card" href="{{ url_for('kb_article', slug=a.slug) }}"
+         data-kb="{{ (a.title ~ ' ' ~ (a.summary or '') ~ ' ' ~ cat)|lower }}">
+        <div class="kb-card__ic"><i class="fa {{ a.icon or 'fa-book' }}"></i></div>
+        <div class="kb-card__body">
+          <div class="kb-card__title">{{ a.title }}</div>
+          {% if a.summary %}<div class="kb-card__sum">{{ a.summary }}</div>{% endif %}
+        </div>
+        <i class="fa fa-chevron-right kb-card__arrow"></i>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+{% endfor %}
+</div>
+<div id="kbEmpty" class="muted" style="display:none;text-align:center;padding:30px;">Geen artikelen gevonden.</div>
+
+<script>
+(function(){
+  var inp=document.getElementById('kbSearch'); if(!inp) return;
+  var cards=[].slice.call(document.querySelectorAll('.kb-card'));
+  var groups=[].slice.call(document.querySelectorAll('[data-cat]'));
+  var empty=document.getElementById('kbEmpty');
+  inp.addEventListener('input', function(){
+    var q=inp.value.toLowerCase().trim(), shown=0;
+    cards.forEach(function(c){ var hit=!q||c.getAttribute('data-kb').indexOf(q)>-1; c.style.display=hit?'':'none'; if(hit)shown++; });
+    groups.forEach(function(g){ var any=g.querySelector('.kb-card:not([style*="none"])'); g.style.display=any?'':'none'; });
+    empty.style.display=shown?'none':'';
+  });
+})();
+</script>
+{% endblock %}

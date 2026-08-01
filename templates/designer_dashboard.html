@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Designer – PLUSLokaal{% endblock %}
+{% block head %}
+<style>
+  .dz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:18px;}
+  .dz-card{background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;
+    box-shadow:var(--shadow);transition:transform .15s,box-shadow .15s;display:flex;flex-direction:column;}
+  .dz-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
+  .dz-thumb{height:170px;background:#f4f5f3 center/contain no-repeat;border-bottom:1px solid var(--border-soft);
+    display:flex;align-items:center;justify-content:center;color:var(--placeholder);}
+  .dz-body{padding:12px 14px;display:flex;flex-direction:column;gap:4px;}
+  .dz-body h3{font-size:.95rem;font-weight:800;color:var(--text);margin:0;line-height:1.25;}
+  .dz-meta{font-size:.75rem;color:var(--muted);display:flex;align-items:center;gap:6px;}
+  .dz-kind{font-size:.66rem;font-weight:800;text-transform:uppercase;border-radius:99px;padding:1px 8px;}
+  .dz-kind.label{background:#e8f1fb;color:#1d6fd0;} .dz-kind.paper{background:var(--green-tint);color:var(--green-d);}
+  .dz-new{border:2px dashed var(--border);border-radius:var(--radius-lg);display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:8px;color:var(--green-d);min-height:214px;text-decoration:none;
+    font-weight:800;background:#fff;transition:border-color .15s,background .15s;}
+  .dz-new:hover{border-color:var(--green);background:var(--green-tint2);text-decoration:none;}
+  .dz-new i{font-size:1.8rem;color:var(--green);}
+  .dz-actions{margin-top:auto;display:flex;gap:6px;padding:0 14px 12px;}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Designer <span class="beta-tag" style="background:var(--green-tint);color:var(--green-d);">Bèta</span></h1>
+    <p class="page-sub">Ontwerp vrij op een label of op papier — foto's, tekst, barcodes, iconen en vormen.</p>
+  </div>
+  <a href="{{ url_for('designer_new') }}" class="btn btn-primary"><i class="fa fa-plus"></i> Nieuw ontwerp</a>
+</div>
+
+<div class="dz-grid">
+  <a href="{{ url_for('designer_new') }}" class="dz-new"><i class="fa fa-plus"></i> Nieuw ontwerp</a>
+  {% for d in designs %}
+  <div class="dz-card">
+    <a href="{{ url_for('designer_editor', design_id=d.id) }}" class="dz-thumb"
+       style="{% if d.thumb %}background-image:url('{{ url_for('static', filename='export/' + d.thumb) }}?t={{ d.updated_at.timestamp()|int }}');{% endif %}">
+      {% if not d.thumb %}<i class="fa fa-image fa-2x"></i>{% endif %}
+    </a>
+    <div class="dz-body">
+      <h3>{{ d.title }}</h3>
+      <div class="dz-meta">
+        <span class="dz-kind {{ d.kind }}">{{ 'Label' if d.kind == 'label' else 'Papier' }}</span>
+        <span>{{ '%g × %g mm'|format(d.w_mm, d.h_mm) }}</span>
+      </div>
+    </div>
+    <div class="dz-actions">
+      <a href="{{ url_for('designer_editor', design_id=d.id) }}" class="btn btn-outline btn-sm"><i class="fa fa-pen"></i> Openen</a>
+      <form method="post" action="{{ url_for('designer_delete', design_id=d.id) }}" onsubmit="return confirm('Ontwerp verwijderen?');" style="margin-left:auto;">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <button class="iconbtn is-danger" title="Verwijderen"><i class="fa fa-trash"></i></button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

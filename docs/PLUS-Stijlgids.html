@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLUS — Stijlgids</title>
+<style>
+  :root{
+    --green:#80bd1d; --green-h:#77b01a; --green-d:#115013; --green-dh:#0b380d;
+    --green-tint:#eef6e1; --green-tint2:#f4f9ec;
+    --red:#dd350d; --red-tint:#fdece7; --amber:#b45309; --amber-tint:#fff7e6;
+    --text:#333333; --muted:#6c6c6c; --placeholder:#999999;
+    --border:#d8d8d8; --border-soft:#eaeae7; --bg:#f4f5f3; --card:#ffffff;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.06);
+    --shadow:0 1px 3px rgba(0,0,0,.10),0 1px 2px rgba(0,0,0,.06);
+    --shadow-md:0 6px 20px rgba(0,0,0,.10),0 2px 6px rgba(0,0,0,.06);
+    --radius:8px; --radius-lg:12px; --btn-radius:24px 24px 24px 4px;
+    --header-h:60px; --maxw:1180px;
+    --font:'Open Sans','Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.5;}
+  .wrap{max-width:960px;margin:0 auto;padding:0 20px 80px;}
+  /* Het echte PLUS-logo (currentColor → per plek in te kleuren) */
+  .pluslogo{display:inline-block;height:38px;width:auto;color:#fff;vertical-align:middle;}
+  /* Kop-banner in PLUS-groen */
+  .top{background:var(--green);color:#fff;padding:34px 20px;}
+  .top .inner{max-width:960px;margin:0 auto;display:flex;align-items:center;gap:20px;}
+  .top h1{margin:0;font-size:1.5rem;font-weight:800;}
+  .top p{margin:2px 0 0;opacity:.92;font-size:.95rem;}
+  h2{color:var(--green-d);font-size:1.35rem;font-weight:800;margin:44px 0 6px;
+     padding-bottom:8px;border-bottom:2px solid var(--green-tint);}
+  h2 .num{color:var(--green);font-size:.9rem;font-weight:800;margin-right:8px;}
+  h3{color:var(--green-d);font-size:1rem;font-weight:800;margin:22px 0 10px;}
+  p.lead{color:var(--muted);margin:6px 0 14px;}
+  section{margin-top:6px;}
+  .demo{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);
+    box-shadow:var(--shadow);padding:22px;margin:12px 0;}
+  .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;}
+  pre{background:#0f1a0f;color:#d7e9c6;border-radius:var(--radius);padding:14px 16px;overflow:auto;
+    font-size:.82rem;line-height:1.5;margin:10px 0 0;}
+  pre .c{color:#7fae5a;} pre .k{color:#e6b422;}
+  code.inl{background:var(--green-tint);color:var(--green-d);border-radius:5px;padding:1px 6px;font-size:.86em;}
+  .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
+  .sw{border:1px solid var(--border-soft);border-radius:var(--radius);overflow:hidden;background:#fff;}
+  .sw .chip{height:56px;}
+  .sw .meta{padding:8px 10px;font-size:.78rem;}
+  .sw .meta b{display:block;color:var(--text);font-size:.82rem;}
+  .sw .meta span{color:var(--muted);font-family:monospace;}
+  /* Componenten-demo (1:1 met de app) */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 22px;min-height:44px;
+    border:none;cursor:pointer;font-family:inherit;font-size:.9rem;font-weight:700;line-height:1;
+    border-radius:var(--btn-radius);text-decoration:none;transition:background .2s,border-color .2s;}
+  .btn-primary{background:var(--green);color:#fff;} .btn-primary:hover{background:var(--green-h);}
+  .btn-dark{background:var(--green-d);color:#fff;} .btn-dark:hover{background:var(--green-dh);}
+  .btn-outline{background:#fff;border:1px solid var(--green-d);color:var(--green-d);}
+  .btn-outline:hover{background:rgba(17,80,19,.05);}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+  .btn-ghost:hover{border-color:var(--placeholder);color:var(--text);}
+  .btn-danger{background:var(--red);color:#fff;} .btn-danger:hover{opacity:.9;}
+  .btn-sm{padding:7px 14px;min-height:36px;font-size:.84rem;}
+  .field{margin-bottom:16px;} .field:last-child{margin-bottom:0;}
+  .field label{display:block;font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:6px;}
+  .field input,.field select,.field textarea{width:100%;border:1px solid var(--border);border-radius:var(--radius);
+    padding:10px 13px;font-family:inherit;font-size:.92rem;color:var(--text);background:#fff;outline:none;}
+  .field input:focus{border-color:var(--green-d);}
+  .badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:.72rem;font-weight:800;text-transform:capitalize;}
+  .badge-a{background:var(--red-tint);color:#c62d0c;}
+  .badge-b{background:#fff5e6;color:var(--amber);}
+  .badge-c{background:var(--green-tint);color:var(--green-d);}
+  table.t{width:100%;border-collapse:collapse;font-size:.88rem;}
+  table.t thead th{background:var(--green-tint);color:var(--green-d);font-weight:800;text-align:left;
+    padding:11px 14px;border-bottom:2px solid #dbe9c4;}
+  table.t td{padding:10px 14px;border-bottom:1px solid var(--border-soft);}
+  table.t tbody tr:nth-child(odd) td{background:#f9fbf5;}
+  /* App-header demo */
+  .apphdr{background:var(--green);border-radius:var(--radius) var(--radius) 0 0;height:var(--header-h);
+    display:flex;align-items:center;gap:24px;padding:0 18px;color:#fff;}
+  .apphdr .pluslogo{height:26px;}
+  .apphdr a{color:#fff;text-decoration:none;font-weight:700;font-size:.9rem;opacity:.92;}
+  .apphdr a.active{opacity:1;border-bottom:3px solid #fff;padding-bottom:4px;}
+  /* Login-mockup */
+  .login-demo{background:var(--bg);border-radius:var(--radius-lg);padding:28px;display:flex;justify-content:center;}
+  .login-card{background:#fff;border-radius:var(--radius-lg);box-shadow:var(--shadow-md);padding:30px;max-width:340px;width:100%;}
+  .login-card .brand{display:flex;justify-content:center;margin-bottom:10px;}
+  .login-card .brand .pluslogo{height:30px;color:var(--green);}
+  .login-card h4{text-align:center;color:var(--green-d);margin:6px 0 2px;font-size:1.1rem;}
+  .login-card .sub{text-align:center;color:var(--muted);font-size:.82rem;margin:0 0 18px;}
+  .tokentag{font-family:monospace;font-size:.75rem;color:var(--green-d);background:var(--green-tint);
+    border-radius:5px;padding:1px 6px;margin-left:6px;}
+</style>
+</head>
+<body>
+
+<!-- Het echte PLUS-logo, één keer gedefinieerd; overal herbruikbaar via <use>. currentColor = inkleurbaar. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="plusLogo" viewBox="0 0 609.09 113.5">
+    <path fill="currentColor" d="M602,15c0,7.24-5.87,13.11-13.1,13.11-.78,0-1.53-.07-2.28-.19-5.44-.96-11.19-1.5-17.14-1.5-6.6,0-18.08.16-18.08,7.23,0,14.3,57.69.79,57.69,43.07,0,29.4-29.08,36.79-53.45,36.79-12.29,0-22.95-.9-34.25-2.92-6.24-1.01-11.03-6.42-11.03-12.95v-17.76c11.33,4.72,25.16,7.23,37.73,7.23,9.91,0,18.87-2.04,18.87-7.55,0-14.78-57.69-1.41-57.69-44.02,0-30.18,31.44-35.52,56.44-35.52,11.79,0,24.84,1.41,36.31,3.77v11.23h-.02Z"/>
+    <path fill="currentColor" d="M148.22,111.4V14.77c0-7.24,5.87-13.11,13.11-13.11h59.36c17.13,0,40.25,8.17,40.25,37.73s-18.39,40.4-40.4,40.4h-30.18v18.49c0,7.24-5.87,13.1-13.1,13.1h-29.03ZM190.35,27.14v27.2h8.17c10.06,0,20.28-1.89,20.28-14.15s-10.22-13.05-20.44-13.05h-8.02Z"/>
+    <path fill="currentColor" d="M488.23,66.12c0,35.53-21.85,47.17-55.02,47.17-30.66,0-54.71-12.58-54.71-44.97V1.67h29.03c7.24,0,13.11,5.87,13.11,13.11v51.98c0,10.38,2.99,18.24,13.05,18.24,11,0,13.36-7.39,13.36-18.08V1.67s28.06,0,28.06,0c7.25,0,13.11,5.87,13.11,13.11l.02,51.35Z"/>
+    <path fill="currentColor" d="M279.47,111.4V1.67s29.02,0,29.02,0c7.24,0,13.11,5.87,13.11,13.11v64.24h42.15v19.28c0,7.24-5.86,13.1-13.1,13.1h-71.18Z"/>
+    <path fill="currentColor" d="M53.03,26.55v17.68c0,4.88-3.96,8.84-8.84,8.84h-17.68C11.87,53.06,0,41.19,0,26.55S11.87.03,26.52.03s26.52,11.87,26.52,26.52"/>
+    <path fill="currentColor" d="M53.03,86.95v-17.68c0-4.88-3.96-8.83-8.84-8.83h-17.68c-14.64,0-26.52,11.87-26.52,26.51s11.87,26.52,26.52,26.52,26.52-11.87,26.52-26.52"/>
+    <path fill="currentColor" d="M60.36,86.96v-17.68c0-4.88,3.96-8.84,8.84-8.84h17.68c14.64,0,26.51,11.87,26.51,26.51s-11.87,26.52-26.51,26.52-26.52-11.87-26.52-26.52"/>
+    <path fill="currentColor" d="M60.41,26.55v17.68c0,4.88,3.96,8.84,8.84,8.84h17.68c14.65,0,26.52-11.87,26.52-26.51S101.57.03,86.92.03s-26.51,11.87-26.51,26.52"/>
+  </symbol>
+</svg>
+
+<div class="top">
+  <div class="inner">
+    <svg class="pluslogo" style="height:44px;"><use href="#plusLogo"/></svg>
+    <div>
+      <h1>PLUS — Stijlgids</h1>
+      <p>Het PLUS-ontwerpsysteem — kleuren, typografie en componenten om nieuwe apps en het inlogscherm 1‑op‑1 in stijl te bouwen.</p>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <h2><span class="num">01</span>Kleuren</h2>
+  <p class="lead">PLUS Action Green is de primaire kleur (CTA + header). Donkergroen voor tekst‑acties/links/koppen. Rood alleen semantisch (fout/verwijderen).</p>
+  <div class="demo">
+    <div class="swatches">
+      <div class="sw"><div class="chip" style="background:#80bd1d"></div><div class="meta"><b>Action Green</b><span>#80bd1d · --green</span></div></div>
+      <div class="sw"><div class="chip" style="background:#77b01a"></div><div class="meta"><b>Green hover</b><span>#77b01a · --green-h</span></div></div>
+      <div class="sw"><div class="chip" style="background:#115013"></div><div class="meta"><b>Dark Green</b><span>#115013 · --green-d</span></div></div>
+      <div class="sw"><div class="chip" style="background:#0b380d"></div><div class="meta"><b>Dark hover</b><span>#0b380d · --green-dh</span></div></div>
+      <div class="sw"><div class="chip" style="background:#eef6e1"></div><div class="meta"><b>Green tint</b><span>#eef6e1 · --green-tint</span></div></div>
+      <div class="sw"><div class="chip" style="background:#dd350d"></div><div class="meta"><b>Rood (semantisch)</b><span>#dd350d · --red</span></div></div>
+      <div class="sw"><div class="chip" style="background:#b45309"></div><div class="meta"><b>Amber</b><span>#b45309 · --amber</span></div></div>
+      <div class="sw"><div class="chip" style="background:#333333"></div><div class="meta"><b>Tekst</b><span>#333333 · --text</span></div></div>
+      <div class="sw"><div class="chip" style="background:#6c6c6c"></div><div class="meta"><b>Muted</b><span>#6c6c6c · --muted</span></div></div>
+      <div class="sw"><div class="chip" style="background:#f4f5f3;border-bottom:1px solid #eaeae7"></div><div class="meta"><b>Achtergrond</b><span>#f4f5f3 · --bg</span></div></div>
+      <div class="sw"><div class="chip" style="background:#ffffff;border-bottom:1px solid #eaeae7"></div><div class="meta"><b>Kaart</b><span>#ffffff · --card</span></div></div>
+      <div class="sw"><div class="chip" style="background:#d8d8d8"></div><div class="meta"><b>Rand</b><span>#d8d8d8 · --border</span></div></div>
+    </div>
+  </div>
+
+  <h2><span class="num">02</span>Design tokens (CSS)</h2>
+  <p class="lead">Plak dit <code class="inl">:root</code>-blok in je stylesheet; alle componenten hieronder gebruiken deze variabelen.</p>
+  <pre>:root{
+  <span class="c">/* Kleuren */</span>
+  <span class="k">--green</span>:#80bd1d;   <span class="k">--green-h</span>:#77b01a;  <span class="k">--green-d</span>:#115013;  <span class="k">--green-dh</span>:#0b380d;
+  <span class="k">--green-tint</span>:#eef6e1; <span class="k">--green-tint2</span>:#f4f9ec;
+  <span class="k">--red</span>:#dd350d; <span class="k">--red-tint</span>:#fdece7; <span class="k">--amber</span>:#b45309; <span class="k">--amber-tint</span>:#fff7e6;
+  <span class="k">--text</span>:#333333; <span class="k">--muted</span>:#6c6c6c; <span class="k">--placeholder</span>:#999999;
+  <span class="k">--border</span>:#d8d8d8; <span class="k">--border-soft</span>:#eaeae7; <span class="k">--bg</span>:#f4f5f3; <span class="k">--card</span>:#ffffff;
+  <span class="c">/* Schaduw / radius / maten */</span>
+  <span class="k">--shadow-sm</span>:0 1px 2px rgba(0,0,0,.06);
+  <span class="k">--shadow</span>:0 1px 3px rgba(0,0,0,.10),0 1px 2px rgba(0,0,0,.06);
+  <span class="k">--shadow-md</span>:0 6px 20px rgba(0,0,0,.10),0 2px 6px rgba(0,0,0,.06);
+  <span class="k">--radius</span>:8px; <span class="k">--radius-lg</span>:12px;
+  <span class="k">--btn-radius</span>:24px 24px 24px 4px;   <span class="c">/* kenmerkende PLUS "spraakwolk" */</span>
+  <span class="k">--header-h</span>:60px; <span class="k">--maxw</span>:1180px;
+  <span class="k">--font</span>:'Open Sans','Segoe UI',-apple-system,sans-serif;
+}</pre>
+
+  <h2><span class="num">03</span>Typografie</h2>
+  <p class="lead">Lettertype <b>Open Sans</b> (Gotham‑vervanger). Koppen 800, knoppen/labels 700, body 400.</p>
+  <div class="demo">
+    <div style="font-size:1.8rem;font-weight:800;color:var(--green-d);">Aa — Koptekst 800 <span class="tokentag">--green-d</span></div>
+    <div style="font-size:1.1rem;font-weight:700;margin-top:8px;">Aa — Subkop / knoptekst 700</div>
+    <div style="margin-top:8px;">Aa — Bodytekst 400, kleur <span class="tokentag">--text #333</span></div>
+    <div style="color:var(--muted);margin-top:4px;">Aa — Muted 400 <span class="tokentag">--muted</span></div>
+  </div>
+
+  <h2><span class="num">04</span>Knoppen</h2>
+  <p class="lead">Kenmerkend: de <b>spraakwolk‑radius</b> <code class="inl">24px 24px 24px 4px</code>, hoogte 44px, gewicht 700.</p>
+  <div class="demo">
+    <div class="row">
+      <button class="btn btn-primary">Primaire actie</button>
+      <button class="btn btn-dark">Donkergroen</button>
+      <button class="btn btn-outline">Outline</button>
+      <button class="btn btn-ghost">Ghost</button>
+      <button class="btn btn-danger">Verwijderen</button>
+      <button class="btn btn-primary btn-sm">Klein</button>
+    </div>
+    <pre><span class="c">/* basis */</span>
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:11px 22px;min-height:44px;border:none;cursor:pointer;
+  font:700 .9rem/1 var(--font);border-radius:var(--btn-radius);text-decoration:none;
+  transition:background .2s;}
+.btn-primary{background:var(--green);color:#fff;}   .btn-primary:hover{background:var(--green-h);}
+.btn-outline{background:#fff;border:1px solid var(--green-d);color:var(--green-d);}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.btn-danger{background:var(--red);color:#fff;}
+.btn-sm{padding:7px 14px;min-height:36px;font-size:.84rem;}</pre>
+  </div>
+
+  <h2><span class="num">05</span>Formuliervelden</h2>
+  <div class="demo">
+    <div style="max-width:360px;">
+      <div class="field"><label>E‑mailadres</label><input type="email" placeholder="naam@voorbeeld.nl"></div>
+      <div class="field"><label>Wachtwoord</label><input type="password" placeholder="••••••••"></div>
+    </div>
+    <pre>.field label{display:block;font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:6px;}
+.field input{width:100%;border:1px solid var(--border);border-radius:var(--radius);
+  padding:10px 13px;font:400 .92rem var(--font);color:var(--text);background:#fff;outline:none;}
+.field input:focus{border-color:var(--green-d);}</pre>
+  </div>
+
+  <h2><span class="num">06</span>Panelen · badges · tabellen</h2>
+  <div class="demo">
+    <div style="border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;max-width:420px;">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;gap:9px;">
+        <span style="color:var(--green);">◆</span><b style="color:var(--green-d);">Paneelkop</b></div>
+      <div style="padding:16px 18px;">Kaart met <code class="inl">--radius-lg</code> + <code class="inl">--shadow</code>.
+        <div class="row" style="margin-top:10px;">
+          <span class="badge badge-a">rood</span>
+          <span class="badge badge-b">amber</span>
+          <span class="badge badge-c">groen</span>
+        </div>
+      </div>
+    </div>
+    <table class="t" style="margin-top:16px;">
+      <thead><tr><th>Kolom A</th><th>Kolom B</th><th>Kolom C</th></tr></thead>
+      <tbody>
+        <tr><td>Rij één</td><td>Waarde</td><td>123</td></tr>
+        <tr><td>Rij twee</td><td>Waarde</td><td>456</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2><span class="num">07</span>App‑header</h2>
+  <p class="lead">Groene balk (hoogte <code class="inl">--header-h</code> 60px) met logo links en witte nav‑links; actief item krijgt een witte onderrand.</p>
+  <div class="demo" style="padding:0;overflow:hidden;">
+    <div class="apphdr">
+      <svg class="pluslogo"><use href="#plusLogo"/></svg>
+      <a href="#" class="active">Dashboard</a>
+      <a href="#">Producten</a>
+      <a href="#">Rapporten</a>
+      <a href="#">Instellingen</a>
+    </div>
+  </div>
+
+  <h2><span class="num">08</span>Inlogscherm</h2>
+  <p class="lead">Belangrijk patroon: gecentreerde witte kaart op de grijze achtergrond, logo bovenaan, velden + primaire knop op volle breedte.</p>
+  <div class="demo" style="padding:0;overflow:hidden;">
+    <div class="login-demo">
+      <div class="login-card">
+        <div class="brand"><svg class="pluslogo"><use href="#plusLogo"/></svg></div>
+        <h4>Inloggen</h4>
+        <p class="sub">Inloggen met je PLUS-account</p>
+        <div class="field"><label>E‑mailadres</label><input type="email" placeholder="naam@voorbeeld.nl"></div>
+        <div class="field"><label>Wachtwoord</label><input type="password" placeholder="••••••••"></div>
+        <button class="btn btn-primary" style="width:100%;">Inloggen</button>
+        <p style="text-align:center;margin:14px 0 0;font-size:.82rem;"><a href="#" style="color:var(--green-d);">Wachtwoord vergeten?</a></p>
+      </div>
+    </div>
+  </div>
+  <pre>.login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:var(--bg);padding:20px;}
+.login-card{background:#fff;border-radius:var(--radius-lg);box-shadow:var(--shadow-md);
+  padding:30px;max-width:340px;width:100%;}
+.login-card .brand{display:flex;justify-content:center;margin-bottom:10px;}
+.login-card .brand svg{height:30px;color:var(--green);}   <span class="c">/* logo groen op wit */</span>
+.login-card h4{text-align:center;color:var(--green-d);font-weight:800;margin:6px 0 2px;}
+.login-card .sub{text-align:center;color:var(--muted);font-size:.82rem;margin:0 0 18px;}
+.login-card .btn-primary{width:100%;}</pre>
+  <p class="lead" style="margin-top:12px;">Het logo is één inline <code class="inl">&lt;svg&gt;</code> met <code class="inl">fill="currentColor"</code>: zet <code class="inl">color:#fff</code> op de groene header en <code class="inl">color:var(--green)</code> op de witte login‑kaart.</p>
+
+  <h2><span class="num">09</span>Vuistregels</h2>
+  <div class="demo">
+    <ul style="margin:0;padding-left:20px;color:var(--text);">
+      <li>Groen = actie/merk; <b>donkergroen</b> = tekst‑acties, links en koppen; <b>rood</b> alleen voor fouten/verwijderen.</li>
+      <li>Knoppen altijd de spraakwolk‑radius <code class="inl">24px 24px 24px 4px</code>; primaire knop per scherm bij voorkeur maar één.</li>
+      <li>Kaarten/panelen: <code class="inl">--radius-lg</code> + <code class="inl">--shadow</code>, kop in donkergroen 800.</li>
+      <li>Formuliervelden: rand <code class="inl">--border</code>, focus <code class="inl">--green-d</code>, label 700 muted.</li>
+      <li>Ruime witruimte, achtergrond <code class="inl">--bg #f4f5f3</code>, content op witte kaarten.</li>
+    </ul>
+  </div>
+
+  <p style="text-align:center;color:var(--muted);font-size:.8rem;margin-top:40px;">© 2026 PLUS · Stijlgids</p>
+</div>
+</body>
+</html>

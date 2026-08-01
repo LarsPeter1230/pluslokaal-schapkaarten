@@ -1,0 +1,218 @@
+<!-- Globale print-wachtrij: stapelende voortgangsmeldingen (rechtsboven) + keuze-popup per kaart.
+     Beschikbaar op elke pagina via base.html. Gebruikt de CSRF-fetch-wrapper uit _csrf.html. -->
+<div id="ppqStack" class="ppq-stack" aria-live="polite"></div>
+
+<!-- Keuze-popup: printen op de winkelprinter / downloaden / annuleren -->
+<div id="ppqModal" class="ppq-modal" hidden>
+  <div class="ppq-modal__backdrop" data-ppq-cancel></div>
+  <div class="ppq-modal__box" role="dialog" aria-modal="true" aria-labelledby="ppqModalTitle">
+    <h3 id="ppqModalTitle">Kaart printen</h3>
+    <p class="ppq-modal__sub" id="ppqModalSub"></p>
+    <label class="ppq-modal__qty">Aantal
+      <input type="number" id="ppqCopies" value="1" min="1" max="50">
+    </label>
+    <div class="ppq-modal__acts">
+      <button type="button" class="btn btn-primary" id="ppqPrintBtn"><i class="fa fa-print"></i> <span id="ppqPrintLabel">Printen op winkelprinter</span></button>
+      <button type="button" class="btn btn-outline" id="ppqDownloadBtn"><i class="fa fa-download"></i> Downloaden</button>
+      <button type="button" class="btn btn-ghost" data-ppq-cancel>Annuleren</button>
+    </div>
+    <p class="ppq-modal__hint">Na op “Printen” te klikken gaat het printen <b>op de achtergrond</b> verder (melding rechtsboven), zodat je meteen de volgende kaart in de wachtrij kunt zetten.</p>
+  </div>
+</div>
+
+<style>
+  .ppq-stack{position:fixed;top:calc(var(--header-h,64px) + 14px);right:16px;z-index:600;
+    display:flex;flex-direction:column;gap:10px;width:320px;max-width:calc(100vw - 32px);pointer-events:none;}
+  .ppq-toast{pointer-events:auto;background:var(--card,#fff);border:1px solid var(--border,#e6e6e6);
+    border-left:4px solid var(--green,#4a9b28);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.16);
+    padding:12px 12px 12px 14px;display:flex;flex-direction:column;gap:6px;animation:ppqIn .22s ease;}
+  .ppq-toast.is-done{border-left-color:#2c8a1e;}
+  .ppq-toast.is-error{border-left-color:#e3000a;}
+  .ppq-toast__head{display:flex;align-items:flex-start;gap:8px;}
+  .ppq-toast__ic{flex:none;width:22px;height:22px;text-align:center;color:var(--green,#4a9b28);
+    margin-top:1px;display:flex;align-items:center;justify-content:center;}
+  .ppq-toast.is-error .ppq-toast__ic{color:#e3000a;}
+  .ppq-leaf-spin{display:block;width:22px;height:22px;}
+  .ppq-leaf{fill:var(--green,#4a9b28);animation:ppqLeaf 1.2s ease-in-out infinite;transform-origin:center;}
+  .ppq-leaf--1{animation-delay:0s;} .ppq-leaf--4{animation-delay:.3s;}
+  .ppq-leaf--3{animation-delay:.6s;} .ppq-leaf--2{animation-delay:.9s;}
+  .ppq-toast.is-error .ppq-leaf{fill:#e3000a;}
+  @keyframes ppqLeaf{0%,75%,100%{opacity:.22;}25%{opacity:1;}}
+  .ppq-toast__body{flex:1;min-width:0;}
+  .ppq-toast__title{font-size:.84rem;font-weight:800;color:var(--text,#222);line-height:1.2;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ppq-toast__msg{font-size:.75rem;color:var(--muted,#666);line-height:1.3;margin-top:2px;
+    overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+  .ppq-toast__x{flex:none;background:none;border:none;color:var(--muted,#888);cursor:pointer;padding:2px 4px;font-size:.9rem;}
+  .ppq-toast__x:hover{color:var(--text,#222);}
+  .ppq-bar{height:6px;border-radius:99px;background:var(--border-soft,#eee);overflow:hidden;}
+  .ppq-bar__fill{height:100%;width:0;background:var(--green,#4a9b28);border-radius:99px;transition:width .35s ease;}
+  .ppq-toast.is-done .ppq-bar__fill{background:#2c8a1e;}
+  .ppq-toast.is-error .ppq-bar__fill{background:#e3000a;}
+  .ppq-toast__foot{display:flex;justify-content:flex-end;}
+  .ppq-toast__cancel{background:none;border:none;color:#e3000a;font-size:.74rem;font-weight:700;
+    cursor:pointer;padding:2px 2px;}
+  .ppq-toast__cancel:hover{text-decoration:underline;}
+  .ppq-toast__cancel[disabled]{color:var(--placeholder,#aaa);cursor:default;text-decoration:none;}
+  @keyframes ppqIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:none;}}
+
+  .ppq-modal{position:fixed;inset:0;z-index:650;display:flex;align-items:center;justify-content:center;padding:16px;}
+  .ppq-modal[hidden]{display:none;}
+  .ppq-modal__backdrop{position:absolute;inset:0;background:rgba(20,26,20,.5);}
+  .ppq-modal__box{position:relative;background:var(--card,#fff);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.25);
+    padding:22px 22px 18px;width:380px;max-width:100%;}
+  .ppq-modal__box h3{margin:0 0 4px;font-size:1.05rem;font-weight:800;color:var(--green-d,#2c6b0f);}
+  .ppq-modal__sub{margin:0 0 14px;font-size:.85rem;color:var(--muted,#666);}
+  .ppq-modal__qty{display:flex;align-items:center;gap:10px;font-size:.85rem;color:var(--text,#222);font-weight:600;margin-bottom:16px;}
+  .ppq-modal__qty input{width:90px;height:40px;padding:0 10px;border:1px solid var(--border,#ddd);border-radius:8px;text-align:center;}
+  .ppq-modal__acts{display:flex;flex-direction:column;gap:8px;}
+  .ppq-modal__acts .btn{width:100%;justify-content:center;white-space:normal;line-height:1.25;
+    height:auto;min-height:44px;padding:8px 14px;text-align:center;}
+  .ppq-modal__acts .btn[disabled]{opacity:.55;cursor:not-allowed;}
+  #ppqPrintLabel{overflow-wrap:anywhere;}
+  .ppq-modal__hint{margin:14px 0 0;font-size:.72rem;color:var(--placeholder,#999);line-height:1.5;}
+  @media (max-width:560px){
+    .ppq-modal{align-items:flex-end;padding:0;}
+    .ppq-modal__box{width:100%;border-radius:16px 16px 0 0;padding-bottom:calc(18px + env(safe-area-inset-bottom));}
+  }
+</style>
+
+<script>
+(function(){
+  var stack = document.getElementById('ppqStack');
+  var STATUS_BASE = "{{ url_for('print_status', job_id='__JOB__') }}";
+  var CANCEL_BASE = "{{ url_for('print_cancel', job_id='__JOB__') }}";
+
+  function el(tag, cls, html){ var e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e; }
+
+  // PLUS-blaadjes laadanimatie (zelfde als bij de winkelpakketten-meldingen)
+  var PPQ_LEAVES =
+    '<svg class="ppq-leaf-spin" viewBox="0 0 132 140" aria-hidden="true">'+
+      '<path class="ppq-leaf ppq-leaf--1" d="M61.2,32.8 L61.2,54.8 C61.2,60.8 56.8,65.6 50.8,65.6 L30.4,65.6 C13.6,65.6 0,51.2 0,33.2 C0,15.6 13.6,0.8 30.4,0.8 C47.6,0.8 61.2,15.2 61.2,32.8 L61.2,32.8 Z"/>'+
+      '<path class="ppq-leaf ppq-leaf--2" d="M61.2,107.2 L61.2,85.6 C61.2,79.6 56.8,74.8 50.8,74.8 L30.4,74.8 C13.6,74.8 0,89.2 0,107.2 C0,125.2 13.6,139.6 30.4,139.6 C47.6,139.6 61.2,125.2 61.2,107.2 L61.2,107.2 Z"/>'+
+      '<path class="ppq-leaf ppq-leaf--3" d="M69.6,107.2 L69.6,85.6 C69.6,79.6 74,74.8 80,74.8 L100.4,74.8 C117.2,74.8 131.2,89.2 131.2,107.2 C131.2,125.2 117.2,139.6 100.4,139.6 C83.6,139.6 69.6,125.2 69.6,107.2 L69.6,107.2 Z"/>'+
+      '<path class="ppq-leaf ppq-leaf--4" d="M70,32.8 L70,54.8 C70,60.8 74.4,65.6 80,65.6 L100.4,65.6 C117.6,65.6 131.2,51.2 131.2,33.2 C131.2,15.6 117.6,0.8 100.4,0.8 C83.6,0.8 70,15.2 70,32.8 L70,32.8 Z"/>'+
+    '</svg>';
+
+  function makeToast(title){
+    var t = el('div','ppq-toast');
+    t.innerHTML =
+      '<div class="ppq-toast__head">'+
+        '<span class="ppq-toast__ic">'+PPQ_LEAVES+'</span>'+
+        '<div class="ppq-toast__body">'+
+          '<div class="ppq-toast__title"></div>'+
+          '<div class="ppq-toast__msg">Bezig met starten…</div>'+
+        '</div>'+
+        '<button class="ppq-toast__x" title="Sluiten"><i class="fa fa-xmark"></i></button>'+
+      '</div>'+
+      '<div class="ppq-bar"><div class="ppq-bar__fill"></div></div>'+
+      '<div class="ppq-toast__foot"><button class="ppq-toast__cancel" hidden><i class="fa fa-ban"></i> Annuleren</button></div>';
+    t.querySelector('.ppq-toast__title').textContent = title || 'Printen…';
+    t.querySelector('.ppq-toast__x').addEventListener('click', function(){ t.remove(); });
+    stack.appendChild(t);
+    return t;
+  }
+  function setToast(t, percent, message, state){
+    var fill = t.querySelector('.ppq-bar__fill');
+    if(fill && percent != null) fill.style.width = Math.max(0, Math.min(100, percent)) + '%';
+    var msg = t.querySelector('.ppq-toast__msg');
+    if(msg && message != null) msg.textContent = message;
+    var ic = t.querySelector('.ppq-toast__ic');
+    var cancel = t.querySelector('.ppq-toast__cancel');
+    // Bij afronden: blaadjes vervangen door een status-icoon
+    if(state === 'done'){ t.classList.add('is-done'); if(ic) ic.innerHTML='<i class="fa fa-circle-check fa-fw"></i>'; if(cancel) cancel.hidden = true; }
+    if(state === 'error'){ t.classList.add('is-error'); if(ic) ic.innerHTML='<i class="fa fa-circle-exclamation fa-fw"></i>'; if(cancel) cancel.hidden = true; }
+    if(state === 'cancelled'){ t.classList.add('is-error'); if(ic) ic.innerHTML='<i class="fa fa-ban fa-fw"></i>'; if(cancel) cancel.hidden = true; }
+  }
+
+  function poll(jobId, toast, onDone, onError){
+    var url = STATUS_BASE.replace('__JOB__', jobId);
+    // Annuleerknop activeren zodra we een job-id hebben.
+    var cancel = toast.querySelector('.ppq-toast__cancel');
+    cancel.hidden = false;
+    cancel.addEventListener('click', function(){
+      cancel.disabled = true;
+      setToast(toast, null, 'Annuleren…');
+      fetch(CANCEL_BASE.replace('__JOB__', jobId), {method:'POST'}).catch(function(){});
+    });
+    var timer = setInterval(function(){
+      fetch(url).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(p){
+        if(p.title){ toast.querySelector('.ppq-toast__title').textContent = p.title; }
+        if(p.status === 'done'){
+          clearInterval(timer);
+          setToast(toast, 100, p.message || 'Klaar.', 'done');
+          if(typeof onDone === 'function'){ try{ onDone(); }catch(e){} }
+          setTimeout(function(){ toast.style.transition='opacity .5s'; toast.style.opacity='0';
+            setTimeout(function(){ toast.remove(); }, 500); }, 4500);
+        } else if(p.status === 'cancelled'){
+          clearInterval(timer);
+          setToast(toast, 100, p.message || 'Geannuleerd.', 'cancelled');
+          if(typeof onError === 'function'){ try{ onError('cancelled'); }catch(e){} }
+          setTimeout(function(){ toast.style.transition='opacity .5s'; toast.style.opacity='0';
+            setTimeout(function(){ toast.remove(); }, 500); }, 4000);
+        } else if(p.status === 'error'){
+          clearInterval(timer);
+          setToast(toast, 100, p.error || p.message || 'Printen mislukt.', 'error');
+          if(typeof onError === 'function'){ try{ onError(p.error || p.message || 'error'); }catch(e){} }
+        } else {
+          setToast(toast, p.percent, p.message);
+        }
+      }).catch(function(){ /* even geen verbinding; volgende tik opnieuw */ });
+    }, 1000);
+  }
+
+  // Publieke API
+  window.PlusPrint = {
+    // start een print-job; opts: {startUrl, body(FormData|null), json(obj|null), title, onDone(fn), onError(fn)}
+    start: function(opts){
+      var toast = makeToast(opts.title);
+      var fetchOpts = { method:'POST' };
+      if(opts.json){ fetchOpts.headers = {'Content-Type':'application/json'}; fetchOpts.body = JSON.stringify(opts.json); }
+      else if(opts.body){ fetchOpts.body = opts.body; }
+      var onError = opts.onError;
+      fetch(opts.startUrl, fetchOpts)
+        .then(function(r){ return r.json().then(function(d){ return {ok:r.ok, d:d}; }); })
+        .then(function(res){
+          if(!res.ok || res.d.error || !res.d.job_id){
+            setToast(toast, 100, res.d.error || 'Printen kon niet starten.', 'error');
+            if(typeof onError === 'function'){ try{ onError(res.d.error || 'start-mislukt'); }catch(e){} }
+            return;
+          }
+          poll(res.d.job_id, toast, opts.onDone, onError);
+        })
+        .catch(function(){ setToast(toast, 100, 'Verbinding met de server mislukt.', 'error');
+          if(typeof onError === 'function'){ try{ onError('verbinding'); }catch(e){} } });
+    },
+    // keuze-popup voor één kaart; opts: {title, printUrl, downloadUrl, printerName, canPrint}
+    chooseCard: function(opts){
+      var modal = document.getElementById('ppqModal');
+      var canPrint = opts.canPrint !== false;   // default: wel printen
+      modal.querySelector('#ppqModalTitle').textContent = 'Printen: ' + (opts.title || 'kaart');
+      var copies = modal.querySelector('#ppqCopies'); copies.value = 1;
+      var printBtn = modal.querySelector('#ppqPrintBtn');
+      var dlBtn = modal.querySelector('#ppqDownloadBtn');
+      var qtyRow = modal.querySelector('.ppq-modal__qty');
+      if(canPrint){
+        modal.querySelector('#ppqModalSub').textContent = opts.printerName ? ('Winkelprinter: ' + opts.printerName) : '';
+        modal.querySelector('#ppqPrintLabel').textContent = opts.printerName ? ('Printen op ' + opts.printerName) : 'Printen op winkelprinter';
+        printBtn.disabled = false; if(qtyRow) qtyRow.style.display = '';
+      } else {
+        modal.querySelector('#ppqModalSub').textContent = 'Voor deze winkel is geen printer ingesteld — je kunt de kaart wel downloaden.';
+        modal.querySelector('#ppqPrintLabel').textContent = 'Geen printer ingesteld';
+        printBtn.disabled = true; if(qtyRow) qtyRow.style.display = 'none';
+      }
+      function close(){ modal.hidden = true; }
+      printBtn.onclick = function(){
+        if(!canPrint) return;
+        var n = parseInt(copies.value) || 1;
+        close();
+        window.PlusPrint.start({ startUrl: opts.printUrl, json: {copies: n}, title: opts.title, onDone: opts.onDone });
+      };
+      dlBtn.onclick = function(){ close(); window.location.href = opts.downloadUrl;
+        if(typeof opts.onDownload === 'function'){ try{ opts.onDownload(); }catch(e){} } };
+      modal.querySelectorAll('[data-ppq-cancel]').forEach(function(b){ b.onclick = close; });
+      modal.hidden = false;
+    }
+  };
+})();
+</script>

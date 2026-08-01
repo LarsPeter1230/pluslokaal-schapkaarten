@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Feedback – PLUSLokaal{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Feedback</h1>
+    <p class="page-sub">
+      {{ counts.all }} melding{{ '' if counts.all==1 else 'en' }}
+      {% if counts.unread %}· <strong style="color:var(--green-d)">{{ counts.unread }} ongelezen</strong>{% endif %}
+    </p>
+  </div>
+  <div class="toolbar">
+    <form class="search" method="get" style="margin:0;">
+      {% if f_type %}<input type="hidden" name="type" value="{{ f_type }}">{% endif %}
+      {% if f_status %}<input type="hidden" name="status" value="{{ f_status }}">{% endif %}
+      <input type="text" name="q" value="{{ q }}" placeholder="Zoek in meldingen…" autocomplete="off">
+      <i class="fa fa-search"></i>
+    </form>
+  </div>
+</div>
+
+{# Filterbalk #}
+<div class="fb-filters">
+  <div class="fb-chips">
+    <a class="fb-chip {{ 'is-on' if not f_status and not f_type }}" href="{{ url_for('feedback_list', q=q) }}">Alle <span>{{ counts.all }}</span></a>
+    {% for key,meta in FEEDBACK_STATUS.items() %}
+    <a class="fb-chip {{ 'is-on' if f_status==key }}" href="{{ url_for('feedback_list', q=q, type=f_type, status=key) }}"
+       style="{{ 'border-color:%s;color:%s;'|format(meta[1],meta[1]) if f_status==key else '' }}">
+      {{ meta[0] }} <span>{{ counts[key] }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  <div class="fb-chips">
+    {% for key,meta in FEEDBACK_TYPES.items() %}
+    <a class="fb-chip {{ 'is-on' if f_type==key }}" href="{{ url_for('feedback_list', q=q, type=(none if f_type==key else key), status=f_status) }}">
+      <i class="fa {{ meta[1] }}"></i> {{ meta[0] }}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="table-wrap">
+  <table class="table fb-table">
+    <thead>
+      <tr>
+        <th style="width:34px;"></th>
+        <th>Melding</th>
+        <th>Type</th>
+        <th>Van</th>
+        <th>Winkel</th>
+        <th>Status</th>
+        <th style="text-align:right;">Wanneer</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in items %}
+      {% set tmeta = FEEDBACK_TYPES.get(f.ftype, ('?','fa-circle')) %}
+      {% set smeta = FEEDBACK_STATUS.get(f.status, (f.status,'#666','#eee')) %}
+      <tr class="{{ 'is-unread' if not f.is_read }}" style="cursor:pointer;"
+          onclick="if(!event.target.closest('form,button,a'))location.href='{{ url_for('feedback_detail', fid=f.id) }}'">
+        <td>{% if not f.is_read %}<span class="fb-dot" title="Ongelezen"></span>{% endif %}</td>
+        <td>
+          <a href="{{ url_for('feedback_detail', fid=f.id) }}" class="fb-titlelink">{{ f.title }}</a>
+          <div class="fb-snippet">{{ f.message[:90] }}{{ '…' if f.message|length > 90 }}</div>
+        </td>
+        <td><span class="fb-typetag"><i class="fa {{ tmeta[1] }}"></i> {{ tmeta[0] }}</span></td>
+        <td>{{ f.username or '—' }}</td>
+        <td>{{ f.filiaal_naam or f.filiaal or '—' }}</td>
+        <td><span class="fb-status" style="color:{{ smeta[1] }};background:{{ smeta[2] }};">{{ smeta[0] }}</span></td>
+        <td style="text-align:right;white-space:nowrap;color:var(--muted);font-size:.82rem;">{{ f.created_at.strftime('%d-%m-%Y %H:%M') }}</td>
+        <td style="text-align:right;white-space:nowrap;">
+          {% if f.screenshot %}<i class="fa fa-image" title="Bevat schermafbeelding" style="color:var(--muted);"></i>{% endif %}
+          <a href="{{ url_for('feedback_detail', fid=f.id) }}" class="iconbtn is-edit" title="Openen"><i class="fa fa-arrow-right"></i></a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:36px 10px;">
+        <i class="fa fa-inbox" style="font-size:1.6rem;opacity:.4;"></i>
+        <div style="margin-top:8px;">Geen meldingen gevonden{% if q %} voor “{{ q }}”{% endif %}.</div>
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

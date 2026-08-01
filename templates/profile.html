@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Mijn profiel – PLUSLokaal{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Mijn profiel</h1>
+    <p class="page-sub">Beheer je profielfoto en wachtwoord</p>
+  </div>
+</div>
+
+<div class="flex">
+  <!-- Profielfoto -->
+  <div class="panel" style="flex:0 0 300px;">
+    <div class="panel__head"><i class="fa fa-image-portrait"></i><h3>Profielfoto</h3></div>
+    <div class="panel__body" style="text-align:center;">
+      <div class="avatar-lg" id="avatarPreview">
+        {% if user.avatar %}<img src="{{ user.avatar }}" alt="">{% else %}<span>{{ user.username[:2]|upper }}</span>{% endif %}
+      </div>
+      <form method="post" id="avatarForm">
+        <input type="hidden" name="action" value="avatar">
+        <input type="hidden" name="avatar_data" id="avatarData">
+        <input type="file" accept="image/*" id="avatarFile" hidden>
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('avatarFile').click()">
+            <i class="fa fa-upload"></i> Foto kiezen
+          </button>
+          {% if user.avatar %}
+          <button type="submit" class="btn btn-ghost btn-sm" onclick="document.getElementById('avatarData').value='remove'">
+            <i class="fa fa-trash"></i> Verwijderen
+          </button>
+          {% endif %}
+        </div>
+        <p class="hint" style="margin-top:10px;">Max 3 MB. Wordt automatisch bijgesneden.</p>
+      </form>
+    </div>
+  </div>
+
+  <!-- Wachtwoord -->
+  <div class="panel" style="flex:0 0 360px;">
+    <div class="panel__head"><i class="fa fa-key"></i><h3>Wachtwoord wijzigen</h3></div>
+    <div class="panel__body">
+      <div style="background:var(--green-tint);color:var(--green-d);border-radius:8px;padding:11px 13px;font-size:.82rem;line-height:1.45;margin-bottom:16px;">
+        💡 Kies bij voorkeur hetzelfde wachtwoord als dat van je e-mailaccount, dan vergeet je het niet.
+      </div>
+      <form method="post">
+        <div class="field"><label>Huidig wachtwoord</label><input type="password" name="current" placeholder="••••••••" required></div>
+        <div class="field"><label>Nieuw wachtwoord</label><input type="password" name="new" placeholder="••••••••" required></div>
+        <div class="field"><label>Herhaal nieuw wachtwoord</label><input type="password" name="new2" placeholder="••••••••" required></div>
+        <button type="submit" class="btn btn-primary btn-block"><i class="fa fa-floppy-disk"></i> Wachtwoord opslaan</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Account -->
+  <div class="panel" style="flex:0 0 260px;">
+    <div class="panel__head"><i class="fa fa-circle-user"></i><h3>Account</h3></div>
+    <div class="panel__body stack">
+      <div><label>Naam</label><div style="font-weight:800;">{{ user.username }}</div></div>
+      {% if user.email %}<div><label>E-mailadres <span class="muted small">(inlogadres)</span></label><div style="font-weight:600;">{{ user.email }}</div></div>{% endif %}
+      <div><label>Rol</label><div><span class="badge badge-{{ user.role }}">{{ user.role }}</span></div></div>
+      <div><label>Filiaal</label><div style="font-weight:800;">{{ filiaal_display(user.filiaal, user.filiaal_naam) }}</div></div>
+    </div>
+  </div>
+
+  <!-- Portaal (pluslokaal.nl-koppeling) -->
+  <div class="panel" style="flex:1 1 340px;">
+    <div class="panel__head"><i class="fa fa-globe"></i><h3>Portaal &amp; pluslokaal.nl</h3></div>
+    <div class="panel__body stack">
+      {% if user.portaal_user %}
+      <div><label>Gekoppeld account</label>
+        <div style="font-weight:800;">{{ user.portaal_user }}
+          <span class="badge" style="background:var(--green-tint);color:var(--green-d);">gekoppeld</span></div></div>
+      {% else %}
+      <p class="muted" style="margin:0 0 2px;">Nog niet gekoppeld. Vul je pluslokaal.nl-gegevens in om
+        onder <b>Portaal</b> automatisch ingelogd te zijn.</p>
+      {% endif %}
+      <form method="post" class="stack">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="portaal">
+        <div class="field">
+          <label>pluslokaal.nl gebruikersnaam</label>
+          <input type="text" name="portaal_user" value="{{ user.portaal_user or '' }}" placeholder="bv. 110ond" autocomplete="off" required>
+        </div>
+        <div class="field">
+          <label>pluslokaal.nl wachtwoord {% if user.portaal_user %}<span class="muted small">(leeg = behouden)</span>{% endif %}</label>
+          <input type="password" name="portaal_pass" placeholder="••••••••" autocomplete="off" {% if not user.portaal_user %}required{% endif %}>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">
+          <i class="fa fa-{{ 'floppy-disk' if user.portaal_user else 'link' }}"></i> {{ 'Opslaan' if user.portaal_user else 'Koppelen' }}
+        </button>
+      </form>
+      {% if user.portaal_user %}
+      <form method="post" onsubmit="return confirm('pluslokaal.nl ontkoppelen? Je moet dan opnieuw koppelen.');" style="margin-top:-4px;">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="portaal_unlink">
+        <button type="submit" class="btn btn-ghost btn-sm"><i class="fa fa-link-slash"></i> Ontkoppelen</button>
+      </form>
+      {% endif %}
+      <p class="hint" style="margin:2px 0 0;">Je wachtwoord wordt <b>versleuteld</b> bewaard en nooit getoond.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var file=document.getElementById('avatarFile');
+  file.addEventListener('change',function(){
+    var f=this.files[0]; if(!f) return;
+    if(f.size>3*1024*1024){alert('Afbeelding te groot (max 3 MB).');return;}
+    var img=new Image(), reader=new FileReader();
+    reader.onload=function(e){ img.onload=function(){
+      // vierkant bijsnijden + verkleinen naar 256px
+      var s=Math.min(img.width,img.height), c=document.createElement('canvas'); c.width=c.height=256;
+      var ctx=c.getContext('2d');
+      ctx.drawImage(img,(img.width-s)/2,(img.height-s)/2,s,s,0,0,256,256);
+      var data=c.toDataURL('image/jpeg',0.85);
+      document.getElementById('avatarData').value=data;
+      document.getElementById('avatarPreview').innerHTML='<img src="'+data+'" alt="">';
+      document.getElementById('avatarForm').submit();
+    }; img.src=e.target.result; };
+    reader.readAsDataURL(f);
+  });
+})();
+</script>
+{% endblock %}

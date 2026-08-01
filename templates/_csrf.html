@@ -1,0 +1,27 @@
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<script>
+(function(){
+  var meta=document.querySelector('meta[name="csrf-token"]');
+  var TOK=meta?meta.getAttribute('content'):'';
+  function inject(root){
+    (root||document).querySelectorAll('form').forEach(function(f){
+      var m=(f.getAttribute('method')||'get').toLowerCase();
+      if(m!=='get' && !f.querySelector('input[name="_csrf"]')){
+        var i=document.createElement('input');
+        i.type='hidden'; i.name='_csrf'; i.value=TOK; f.appendChild(i);
+      }
+    });
+  }
+  if(document.readyState!=='loading') inject(); else document.addEventListener('DOMContentLoaded',function(){inject();});
+  // fetch/XHR automatisch van de CSRF-header voorzien
+  if(window.fetch){
+    var _f=window.fetch;
+    window.fetch=function(u,o){ o=o||{}; var m=(o.method||'GET').toUpperCase();
+      if(m!=='GET'&&m!=='HEAD'){ var h=new Headers(o.headers||{}); if(!h.has('X-CSRFToken'))h.set('X-CSRFToken',TOK); o.headers=h; }
+      return _f(u,o); };
+  }
+  var _open=XMLHttpRequest.prototype.open, _send=XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.open=function(m){ this.__m=(m||'GET').toUpperCase(); return _open.apply(this,arguments); };
+  XMLHttpRequest.prototype.send=function(){ if(this.__m&&this.__m!=='GET'&&this.__m!=='HEAD'){ try{this.setRequestHeader('X-CSRFToken',TOK);}catch(e){} } return _send.apply(this,arguments); };
+})();
+</script>

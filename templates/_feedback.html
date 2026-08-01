@@ -1,0 +1,331 @@
+{# Zwevend feedback-widget (rechtsonder), voor alle ingelogde gebruikers. #}
+<div id="fbWidget" class="fbw"
+     data-submit="{{ url_for('feedback_submit') }}"
+     data-mine="{{ url_for('feedback_mine') }}"
+     data-updates="{{ url_for('feedback_updates') }}"
+     data-kb="{{ url_for('kb_index') }}">
+  <button type="button" class="fbw__toggle" id="fbToggle" aria-label="Hulp &amp; feedback" title="Hulp &amp; feedback">
+    <i class="fa fa-question"></i>
+    <span class="fbw__toggle-badge" id="fbToggleBadge" {% if not feedback_my_unread %}hidden{% endif %}>{{ feedback_my_unread if feedback_my_unread and feedback_my_unread < 100 else ('99+' if feedback_my_unread else '') }}</span>
+  </button>
+
+  <div class="fbw__panel" id="fbPanel" role="dialog" aria-label="Feedback geven">
+    <div class="fbw__head">
+      <div>
+        <div class="fbw__title">Hoe kunnen we helpen?</div>
+        <div class="fbw__sub">Meld een probleem, deel een suggestie of idee</div>
+      </div>
+      <button type="button" class="fbw__x" id="fbClose" aria-label="Sluiten"><i class="fa fa-xmark"></i></button>
+    </div>
+
+    <div class="fbw__tabs">
+      <button type="button" class="fbw__tab is-active" data-tab="new">Nieuwe melding</button>
+      <button type="button" class="fbw__tab" data-tab="mine">
+        Mijn meldingen<span class="fbw__tabbadge" id="fbMineBadge" {% if not feedback_my_unread %}hidden{% endif %}>{{ feedback_my_unread if feedback_my_unread and feedback_my_unread < 100 else ('99+' if feedback_my_unread else '') }}</span>
+      </button>
+    </div>
+
+    <div class="fbw__body">
+      {# ── PANE: nieuwe melding ── #}
+      <div id="fbPaneNew">
+        <form id="fbForm">
+          <input type="hidden" name="page_url" id="fbPageUrl">
+          <div class="fbw__types" id="fbTypes">
+            <label class="fbw__type is-active">
+              <input type="radio" name="type" value="probleem" checked>
+              <i class="fa fa-triangle-exclamation"></i><span>Probleem</span>
+            </label>
+            <label class="fbw__type">
+              <input type="radio" name="type" value="suggestie">
+              <i class="fa fa-lightbulb"></i><span>Suggestie</span>
+            </label>
+            <label class="fbw__type">
+              <input type="radio" name="type" value="idee">
+              <i class="fa fa-wand-magic-sparkles"></i><span>Idee</span>
+            </label>
+          </div>
+
+          <div class="fbw__field">
+            <input type="text" name="title" id="fbTitle" maxlength="200" placeholder="Korte titel (optioneel)">
+          </div>
+          <div class="fbw__field">
+            <textarea name="message" id="fbMessage" rows="4" maxlength="5000"
+              placeholder="Beschrijf zo duidelijk mogelijk wat je wilt melden…" required></textarea>
+          </div>
+
+          {# Screenshot-blok #}
+          <div class="fbw__shot" id="fbShotBlock">
+            <div class="fbw__shot-label">
+              <span><i class="fa fa-camera"></i> Schermafbeelding</span>
+              <span class="fbw__shot-hint" id="fbShotHint">Bezig met vastleggen…</span>
+            </div>
+            <div class="fbw__shot-preview" id="fbShotPreview" hidden>
+              <img id="fbShotImg" alt="Schermafbeelding">
+              <div class="fbw__shot-actions">
+                <button type="button" class="fbw__mini danger" id="fbShotRemove"><i class="fa fa-trash"></i> Verwijderen</button>
+                <button type="button" class="fbw__mini" id="fbShotUploadBtn"><i class="fa fa-upload"></i> Andere uploaden</button>
+              </div>
+            </div>
+            <div class="fbw__shot-empty" id="fbShotEmpty" hidden>
+              <button type="button" class="fbw__mini" id="fbShotUploadBtn2"><i class="fa fa-upload"></i> Screenshot uploaden</button>
+            </div>
+            <input type="file" id="fbShotFile" accept="image/*" hidden>
+            <input type="hidden" name="screenshot" id="fbShotData">
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" id="fbSubmit">
+            <i class="fa fa-paper-plane"></i> Versturen
+          </button>
+          <div class="fbw__msg" id="fbFormMsg" hidden></div>
+        </form>
+
+        <div class="fbw__done" id="fbDone" hidden>
+          <div class="fbw__done-ic"><i class="fa fa-circle-check"></i></div>
+          <div class="fbw__done-t">Bedankt voor je melding!</div>
+          <div class="fbw__done-s">Je vindt hem terug onder <strong>Mijn meldingen</strong> — daar zie je ook onze reactie.</div>
+          <button type="button" class="btn btn-ghost btn-sm" id="fbAgain">Nog een melding</button>
+        </div>
+      </div>
+
+      {# ── PANE: mijn meldingen ── #}
+      <div id="fbPaneMine" hidden>
+        <div id="fbMineList" class="fbw-mine">
+          <div class="fbw-mine__empty"><i class="fa fa-spinner fa-spin"></i> Laden…</div>
+        </div>
+
+        {# gespreksweergave #}
+        <div id="fbConv" hidden>
+          <button type="button" class="fbw-conv__back" id="fbConvBack"><i class="fa fa-arrow-left"></i> Terug naar mijn meldingen</button>
+          <div class="fbw-conv__head" id="fbConvTitle"></div>
+          <div class="fbw-conv__st" id="fbConvStatus"></div>
+          <div class="fb-thread" id="fbConvThread"></div>
+          <form id="fbConvForm" class="fb-reply">
+            <textarea id="fbConvBody" rows="2" placeholder="Typ een reactie…" required></textarea>
+            <button type="submit" class="btn btn-primary"><i class="fa fa-paper-plane"></i></button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <a class="fbw__foot" href="{{ url_for('kb_index') }}">
+      <i class="fa fa-book-open"></i> Kennisbank openen — uitleg &amp; handleidingen
+    </a>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/html2canvas.min.js', v=app_version) }}"></script>
+<script>
+(function(){
+  var w = document.getElementById('fbWidget');
+  if(!w) return;
+  var panel   = document.getElementById('fbPanel');
+  var toggle  = document.getElementById('fbToggle');
+  var closeB  = document.getElementById('fbClose');
+  var form    = document.getElementById('fbForm');
+  var msgEl   = document.getElementById('fbMessage');
+  var typesEl = document.getElementById('fbTypes');
+  var doneEl  = document.getElementById('fbDone');
+  var formMsg = document.getElementById('fbFormMsg');
+  var submitB = document.getElementById('fbSubmit');
+  var shotHint   = document.getElementById('fbShotHint');
+  var shotPrev   = document.getElementById('fbShotPreview');
+  var shotEmpty  = document.getElementById('fbShotEmpty');
+  var shotImg    = document.getElementById('fbShotImg');
+  var shotData   = document.getElementById('fbShotData');
+  var shotFile   = document.getElementById('fbShotFile');
+  var pageUrl    = document.getElementById('fbPageUrl');
+  // tabs & mine
+  var tabs    = [].slice.call(w.querySelectorAll('.fbw__tab'));
+  var paneNew = document.getElementById('fbPaneNew');
+  var paneMine= document.getElementById('fbPaneMine');
+  var mineList= document.getElementById('fbMineList');
+  var conv    = document.getElementById('fbConv');
+  var convThread=document.getElementById('fbConvThread');
+  var convTitle =document.getElementById('fbConvTitle');
+  var convStatus=document.getElementById('fbConvStatus');
+  var convForm  =document.getElementById('fbConvForm');
+  var convBody  =document.getElementById('fbConvBody');
+  var convBack  =document.getElementById('fbConvBack');
+  var toggleBadge=document.getElementById('fbToggleBadge');
+  var mineBadge  =document.getElementById('fbMineBadge');
+
+  var opened=false, capturing=false, hoverTimer=null, lastOpen=0;
+  var curTab='new', curFid=null, convTimer=null, mineTimer=null;
+  var CSRF=(document.querySelector('meta[name="csrf-token"]')||{}).content||
+           (document.querySelector('meta[name="csrf-token"]')&&document.querySelector('meta[name="csrf-token"]').getAttribute('content'))||'';
+
+  function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':s);return d.innerHTML;}
+  function setBadge(n){
+    n=n||0;
+    var txt=n>99?'99+':String(n);
+    [toggleBadge,mineBadge].forEach(function(b){ if(!b)return; if(n>0){b.hidden=false;b.textContent=txt;}else{b.hidden=true;} });
+  }
+
+  /* ── screenshot ── */
+  function setShot(u){ if(u){shotImg.src=u;shotData.value=u;shotPrev.hidden=false;shotEmpty.hidden=true;}
+    else{shotImg.src='';shotData.value='';shotPrev.hidden=true;shotEmpty.hidden=false;} }
+  function capture(){
+    if(capturing) return;
+    if(typeof html2canvas!=='function'){ shotHint.textContent=''; setShot(''); return; }
+    capturing=true; shotHint.textContent='Bezig met vastleggen…';
+    html2canvas(document.body,{allowTaint:true,useCORS:true,logging:false,
+      scale:Math.min(window.devicePixelRatio||1,1.2),width:window.innerWidth,height:window.innerHeight,
+      x:window.scrollX,y:window.scrollY,windowWidth:document.documentElement.clientWidth,
+      windowHeight:document.documentElement.clientHeight,ignoreElements:function(el){return el===w;}
+    }).then(function(canvas){
+      var url; try{url=canvas.toDataURL('image/jpeg',0.7);}catch(e){url='';}
+      if(url&&url.length>3.5*1024*1024){try{url=canvas.toDataURL('image/jpeg',0.5);}catch(e){}}
+      shotHint.textContent=url?'Automatisch gemaakt':''; setShot(url); capturing=false;
+    }).catch(function(){ shotHint.textContent=''; setShot(''); capturing=false; });
+  }
+
+  /* ── open/close ── */
+  function open(){
+    lastOpen=Date.now();
+    if(panel.classList.contains('is-open')) return;
+    panel.classList.add('is-open');
+    pageUrl.value=location.pathname+location.search;
+    if(!opened){ opened=true; if(curTab==='new') capture(); }
+    if(curTab==='mine') loadMine();
+    setTimeout(function(){ try{ (curTab==='new'?msgEl:null)&&msgEl.focus(); }catch(e){} },120);
+  }
+  function close(){ panel.classList.remove('is-open'); stopConvPoll(); stopMinePoll(); }
+
+  w.addEventListener('mouseenter',function(){ clearTimeout(hoverTimer); if(window.matchMedia('(hover:hover)').matches) open(); });
+  w.addEventListener('mouseleave',function(){
+    if(!window.matchMedia('(hover:hover)').matches) return;
+    hoverTimer=setTimeout(function(){ if(!busy()) close(); },400);
+  });
+  function busy(){ return msgEl.value.trim() || (convBody&&convBody.value.trim()) || curFid!=null || curTab==='mine'; }
+  toggle.addEventListener('click',function(e){ e.stopPropagation();
+    if(panel.classList.contains('is-open')){ if(Date.now()-lastOpen<500) return; close(); } else { open(); } });
+  closeB.addEventListener('click',function(e){ e.stopPropagation(); close(); });
+  panel.addEventListener('click',function(e){ e.stopPropagation(); });
+  document.addEventListener('click',function(){ if(!busy()) close(); });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape') close(); });
+
+  /* ── tabs ── */
+  function switchTab(t){
+    curTab=t;
+    tabs.forEach(function(b){ b.classList.toggle('is-active', b.getAttribute('data-tab')===t); });
+    paneNew.hidden=(t!=='new'); paneMine.hidden=(t!=='mine');
+    if(t==='mine'){ showList(); loadMine(); startMinePoll(); }
+    else { stopMinePoll(); stopConvPoll(); if(opened && !shotData.value && !capturing && !doneEl.hidden===false){} }
+  }
+  tabs.forEach(function(b){ b.addEventListener('click',function(){ switchTab(b.getAttribute('data-tab')); }); });
+
+  /* ── mijn meldingen ── */
+  function statusPill(m){ return '<span class="fbw-ticket__st" style="color:'+m.status_color+';background:'+m.status_bg+'">'+esc(m.status_label)+'</span>'; }
+  function loadMine(){
+    fetch(w.getAttribute('data-mine'),{headers:{'X-Requested-With':'fetch'}})
+      .then(function(r){return r.json();}).then(function(j){
+        if(!j||!j.ok) return;
+        setBadge(j.unread_total);
+        if(!j.items.length){ mineList.innerHTML='<div class="fbw-mine__empty"><i class="fa fa-inbox" style="font-size:1.4rem;opacity:.4"></i><div style="margin-top:8px">Je hebt nog geen meldingen gemaakt.</div></div>'; return; }
+        mineList.innerHTML=j.items.map(function(m){
+          return '<button type="button" class="fbw-ticket" data-fid="'+m.id+'">'+
+            '<span class="fbw-ticket__ic"><i class="fa '+m.ftype_icon+'"></i></span>'+
+            '<span class="fbw-ticket__b"><span class="fbw-ticket__t">'+esc(m.title)+'</span>'+
+            '<span class="fbw-ticket__m">'+statusPill(m)+
+              (m.replies?('<span><i class="fa fa-comment"></i> '+m.replies+'</span>'):'')+
+              '<span style="margin-left:auto">'+esc(m.at)+'</span></span></span>'+
+            (m.unread?'<span class="fbw-ticket__dot" title="Nieuwe reactie"></span>':'')+
+          '</button>';
+        }).join('');
+        [].forEach.call(mineList.querySelectorAll('.fbw-ticket'),function(b){
+          b.addEventListener('click',function(){ openConv(b.getAttribute('data-fid')); });
+        });
+      }).catch(function(){});
+  }
+  function showList(){ conv.hidden=true; mineList.hidden=false; curFid=null; stopConvPoll(); }
+
+  /* ── gesprek ── */
+  function renderThread(msgs){
+    var seen={}; [].forEach.call(convThread.querySelectorAll('[data-mid]'),function(el){seen[el.getAttribute('data-mid')]=1;});
+    msgs.forEach(function(m){
+      if(seen[String(m.id)]) return;
+      var d=document.createElement('div');
+      d.className='fb-msg '+(m.is_admin?'is-admin':'is-user'); d.setAttribute('data-mid',m.id);
+      d.innerHTML='<div class="fb-msg__who">'+esc(m.author)+(m.is_admin?' <span class="fb-msg__tag">beheer</span>':'')+
+        '</div><div class="fb-msg__body">'+esc(m.body)+'</div><div class="fb-msg__at">'+esc(m.at)+'</div>';
+      convThread.appendChild(d);
+    });
+    convThread.scrollTop=convThread.scrollHeight;
+  }
+  function openConv(fid){
+    curFid=fid; mineList.hidden=true; conv.hidden=false; convThread.innerHTML='';
+    convTitle.textContent='Melding laden…'; convStatus.textContent='';
+    pollConv(true); startConvPoll();
+  }
+  function pollConv(first){
+    if(curFid==null) return;
+    fetch('/feedback/'+curFid+'/thread',{headers:{'X-Requested-With':'fetch'}})
+      .then(function(r){return r.json();}).then(function(j){
+        if(!j||!j.ok) return;
+        convTitle.textContent=j.title;
+        convStatus.innerHTML='<span class="fbw-ticket__st" style="color:'+j.status_color+';background:'+j.status_bg+'">'+esc(j.status_label)+'</span>';
+        renderThread(j.messages);
+        setBadge(j.unread_total);
+      }).catch(function(){});
+  }
+  convBack.addEventListener('click',showList);
+  convForm.addEventListener('submit',function(e){
+    e.preventDefault(); if(!convBody.value.trim()||curFid==null) return;
+    var btn=convForm.querySelector('button'); btn.disabled=true;
+    var fd=new FormData(); fd.append('body',convBody.value); fd.append('_csrf',CSRF);
+    fetch('/feedback/'+curFid+'/reageer',{method:'POST',body:fd,headers:{'X-Requested-With':'fetch','X-CSRFToken':CSRF}})
+      .then(function(r){return r.json();}).then(function(j){ btn.disabled=false;
+        if(j&&j.ok){ renderThread([j.message]); convBody.value=''; } }).catch(function(){ btn.disabled=false; });
+  });
+  function startConvPoll(){ stopConvPoll(); convTimer=setInterval(function(){ pollConv(false); },5000); }
+  function stopConvPoll(){ if(convTimer){clearInterval(convTimer);convTimer=null;} }
+  function startMinePoll(){ stopMinePoll(); mineTimer=setInterval(function(){ if(curFid==null) loadMine(); },8000); }
+  function stopMinePoll(){ if(mineTimer){clearInterval(mineTimer);mineTimer=null;} }
+
+  /* ── achtergrond-badge (ook als widget dicht is) ── */
+  function pollUpdates(){
+    fetch(w.getAttribute('data-updates'),{headers:{'X-Requested-With':'fetch'}})
+      .then(function(r){return r.json();}).then(function(j){ if(j&&j.ok) setBadge(j.unread_total); }).catch(function(){});
+  }
+  setInterval(pollUpdates, 25000);
+
+  /* ── type-keuze ── */
+  typesEl.addEventListener('change',function(){
+    [].forEach.call(typesEl.querySelectorAll('.fbw__type'),function(l){ l.classList.toggle('is-active', l.querySelector('input').checked); });
+  });
+
+  /* ── screenshot verwijderen / uploaden ── */
+  document.getElementById('fbShotRemove').addEventListener('click',function(){ setShot(''); });
+  function pick(){ shotFile.click(); }
+  document.getElementById('fbShotUploadBtn').addEventListener('click',pick);
+  document.getElementById('fbShotUploadBtn2').addEventListener('click',pick);
+  shotFile.addEventListener('change',function(){
+    var f=shotFile.files&&shotFile.files[0]; if(!f) return;
+    if(f.size>4*1024*1024){ alert('Afbeelding is te groot (max 4 MB).'); shotFile.value=''; return; }
+    var r=new FileReader(); r.onload=function(){ setShot(r.result); }; r.readAsDataURL(f); shotFile.value='';
+  });
+
+  /* ── nieuwe melding versturen ── */
+  form.addEventListener('submit',function(e){
+    e.preventDefault();
+    if(!msgEl.value.trim()){ msgEl.focus(); return; }
+    submitB.disabled=true; submitB.innerHTML='<i class="fa fa-spinner fa-spin"></i> Versturen…'; formMsg.hidden=true;
+    var fd=new FormData(form);
+    fetch(w.getAttribute('data-submit'),{method:'POST',body:fd})
+      .then(function(r){return r.json().catch(function(){return {ok:false};});})
+      .then(function(j){
+        submitB.disabled=false; submitB.innerHTML='<i class="fa fa-paper-plane"></i> Versturen';
+        if(j&&j.ok){ form.hidden=true; doneEl.hidden=false; }
+        else{ formMsg.hidden=false; formMsg.textContent=(j&&j.error)||'Er ging iets mis. Probeer het opnieuw.'; }
+      }).catch(function(){
+        submitB.disabled=false; submitB.innerHTML='<i class="fa fa-paper-plane"></i> Versturen';
+        formMsg.hidden=false; formMsg.textContent='Geen verbinding. Probeer het opnieuw.';
+      });
+  });
+  document.getElementById('fbAgain').addEventListener('click',function(){
+    form.reset(); form.hidden=false; doneEl.hidden=true;
+    [].forEach.call(typesEl.querySelectorAll('.fbw__type'),function(l,i){ l.classList.toggle('is-active', i===0); });
+    setShot(''); shotHint.textContent=''; capture();
+  });
+})();
+</script>

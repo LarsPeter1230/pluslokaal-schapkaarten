@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Twee-factor instellen | PLUS</title>
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static',filename='img/favicon.svg') }}">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Open Sans',sans-serif;background:#fff;color:#333;min-height:100vh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased;}
+header.plus-header{background:#80bd1d;box-shadow:2px 1px 6px 0 rgba(51,51,51,.2);height:64px;display:flex;align-items:center;padding:0 20px;}
+header.plus-header img{height:34px;}
+.wrap{flex:1;display:flex;justify-content:center;padding:40px 20px;}
+.box{width:100%;max-width:460px;}
+h1{color:#115013;font-size:1.6rem;margin-bottom:6px;}
+.sub{color:#6c6c6c;margin-bottom:18px;line-height:1.5;}
+ol{margin:0 0 18px 18px;color:#333;line-height:1.7;}
+.qr{text-align:center;margin:14px 0;}
+.qr img{width:200px;height:200px;border:1px solid #e5e5e5;border-radius:12px;padding:8px;background:#fff;}
+.secret{text-align:center;margin:6px 0 18px;}
+.secret code{background:#f4f6f2;border:1px solid #e2e6dd;border-radius:8px;padding:8px 12px;font-size:1rem;letter-spacing:.12em;color:#115013;display:inline-block;word-break:break-all;}
+.field{position:relative;margin-bottom:16px;}
+.field input{width:100%;height:56px;border:1px solid #999;border-radius:8px;padding:0 16px;font-size:1.5rem;letter-spacing:.4em;text-align:center;font-family:inherit;}
+.field input:focus{outline:none;border:2px solid #115013;}
+.btn{width:100%;height:52px;background:#80bd1d;color:#fff;border:none;border-radius:24px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.btn:hover{background:#77b01a;}
+.form-error{background:#fdecea;color:#b71c1c;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:.9rem;}
+.form-ok{background:#e8f5e9;color:#1b5e20;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:.9rem;}
+.badge{display:inline-block;background:#eef6e2;color:#115013;font-weight:700;font-size:.78rem;padding:4px 10px;border-radius:99px;margin-bottom:14px;}
+.foot{margin-top:18px;font-size:.85rem;}
+.foot a{color:#115013;}
+</style>
+{% include '_csrf.html' %}
+</head>
+<body>
+<header class="plus-header"><img src="{{ url_for('static',filename='img/plus-logo.svg') }}" alt="PLUS"
+  onerror="this.outerHTML='<span style=\'color:#fff;font-weight:800;font-size:1.3rem\'>PLUS</span>'"></header>
+<div class="wrap"><div class="box">
+  {% if forced %}<span class="badge">Verplicht voor beheerders</span>{% endif %}
+  <h1>Twee-factor-authenticatie instellen</h1>
+  <p class="sub">Beveilig je account met een extra code uit een authenticator-app.</p>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat,msg in messages %}<p class="{{ 'form-ok' if cat=='success' else 'form-error' }}">{{ msg }}</p>{% endfor %}
+  {% endwith %}
+  <ol>
+    <li>Open een authenticator-app (Google/Microsoft Authenticator, 1Password, Authy…).</li>
+    <li>Scan de QR-code hieronder, of voer de sleutel handmatig in.</li>
+    <li>Voer de 6-cijferige code in om te bevestigen.</li>
+  </ol>
+  <div class="qr"><img src="{{ qr }}" alt="QR-code"></div>
+  <div class="secret"><code>{{ secret }}</code></div>
+  <form method="post" novalidate>
+    <div class="field">
+      <input type="text" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*"
+             maxlength="6" placeholder="000000" required autofocus>
+    </div>
+    <button type="submit" class="btn">Bevestigen &amp; inschakelen</button>
+  </form>
+  {% if not forced %}<p class="foot"><a href="{{ url_for('profile') }}">← Terug naar profiel</a></p>{% endif %}
+</div></div>
+</body>
+</html>

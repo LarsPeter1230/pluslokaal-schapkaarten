@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Opslag – PLUSLokaal{% endblock %}
+{% block content %}
+{% macro human(b) -%}
+{%- if b >= 1073741824 -%}{{ (b / 1073741824) | round(1) }} GB
+{%- elif b >= 1048576 -%}{{ (b / 1048576) | round(1) }} MB
+{%- elif b >= 1024 -%}{{ (b / 1024) | round(0) | int }} KB
+{%- else -%}{{ b }} B{%- endif -%}
+{%- endmacro %}
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Opslag</h1>
+    <p class="page-sub">Schijfgebruik en automatisch opruimen van oude kaarten</p>
+  </div>
+</div>
+
+<div class="flex">
+  <!-- Schijfgebruik -->
+  <div class="panel" style="flex:1 1 460px;max-width:560px;">
+    <div class="panel__head"><i class="fa fa-hard-drive"></i><h3>Schijfgebruik</h3></div>
+    <div class="panel__body">
+      {% set pct = s.disk_pct %}
+      {% set barcol = '#e3000a' if pct >= 90 else ('#f5a623' if pct >= 75 else 'var(--green)') %}
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+        <strong style="font-size:1.05rem;">{{ pct }}% vol</strong>
+        <span class="muted small">{{ human(s.disk_used) }} van {{ human(s.disk_total) }} gebruikt · {{ human(s.disk_free) }} vrij</span>
+      </div>
+      <div style="height:16px;border-radius:99px;background:#e9ecef;overflow:hidden;">
+        <div style="height:100%;width:{{ pct }}%;background:{{ barcol }};border-radius:99px;transition:width .3s;"></div>
+      </div>
+      {% if pct >= 90 %}
+      <p class="hint" style="margin-top:12px;color:#e3000a;font-weight:600;"><i class="fa fa-triangle-exclamation"></i> De schijf zit bijna vol — ruim oude kaarten op.</p>
+      {% endif %}
+
+      <div class="grid cols-2" style="margin-top:20px;gap:14px;">
+        <div class="field" style="margin:0;">
+          <label class="muted small">Kaartbestanden (PNG + PDF)</label>
+          <div style="font-size:1.15rem;font-weight:700;">{{ human(s.export_bytes) }}</div>
+          <span class="muted small">{{ s.file_count }} bestanden</span>
+        </div>
+        <div class="field" style="margin:0;">
+          <label class="muted small">Database</label>
+          <div style="font-size:1.15rem;font-weight:700;">{{ human(s.db_bytes) }}</div>
+          <span class="muted small">{{ s.card_count }} kaarten</span>
+        </div>
+      </div>
+      {% if s.oldest %}
+      <p class="muted small" style="margin-top:14px;">Oudste kaart: {{ s.oldest.strftime('%d-%m-%Y') }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Opruimen -->
+  <div class="panel" style="flex:1 1 380px;max-width:480px;">
+    <div class="panel__head"><i class="fa fa-broom"></i><h3>Oude kaarten opruimen</h3></div>
+    <div class="panel__body">
+
+      <form method="post" style="margin-bottom:22px;">
+        <input type="hidden" name="action" value="save">
+        <label style="display:flex;align-items:center;gap:10px;font-weight:600;color:var(--text);margin-bottom:14px;cursor:pointer;">
+          <input type="checkbox" name="cleanup_auto" style="width:18px;height:18px;accent-color:var(--green);" {{ 'checked' if s.cleanup_auto }}>
+          Automatisch opruimen inschakelen
+        </label>
+        <div class="field">
+          <label>Kaarten verwijderen ouder dan</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="number" name="cleanup_days" min="1" value="{{ s.cleanup_days if s.cleanup_days != '0' else '' }}" placeholder="bijv. 90" style="max-width:120px;">
+            <span class="muted">dagen</span>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm"><i class="fa fa-floppy-disk"></i> Regel opslaan</button>
+        <p class="hint" style="margin-top:10px;">
+          {% if s.cleanup_auto and s.cleanup_days != '0' %}
+            Actief: kaarten ouder dan {{ s.cleanup_days }} dagen worden automatisch verwijderd (max. 1× per 6 uur).
+            {% if s.cleanup_last_run %}<br>Laatst uitgevoerd: {{ s.cleanup_last_run.replace('T',' ') }}.{% endif %}
+          {% else %}
+            Automatisch opruimen staat uit.
+          {% endif %}
+        </p>
+      </form>
+
+      <hr style="border:none;border-top:1px solid var(--border, #e9ecef);margin:18px 0;">
+
+      <form method="post" onsubmit="return confirm('Weet je zeker dat je alle kaarten ouder dan het opgegeven aantal dagen wilt verwijderen? Dit kan niet ongedaan worden gemaakt.');">
+        <input type="hidden" name="action" value="cleanup">
+        <div class="field">
+          <label>Nu handmatig opruimen — ouder dan</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="number" name="cleanup_days_manual" min="1" required placeholder="bijv. 90" style="max-width:120px;">
+            <span class="muted">dagen</span>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-outline btn-sm"><i class="fa fa-trash"></i> Nu opruimen</button>
+        <p class="hint" style="margin-top:10px;">Verwijdert direct de kaarten én hun bestanden (PNG + PDF).</p>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+<!-- Winkelpakket-cache (van pluslokaal.nl gedownloade print-PDF's) -->
+<div class="panel" style="margin-top:20px;">
+  <div class="panel__head" style="justify-content:space-between;flex-wrap:wrap;gap:10px;">
+    <div style="display:flex;align-items:center;gap:9px;">
+      <i class="fa fa-box-archive"></i><h3>Winkelpakket-cache</h3>
+    </div>
+    <span class="muted small">
+      {{ w2p.total_cards }} kaart(en) gecached · {{ w2p.total_rows }} PDF-bestand(en) · {{ human(w2p.total_bytes) }}
+      {%- if w2p.thumb_bytes %} · {{ human(w2p.thumb_bytes) }} thumbnails{% endif %}
+    </span>
+  </div>
+  <div class="panel__body">
+    <p class="muted small" style="margin-top:0;">
+      Weekpakket-schapkaarten uit het printsysteem. <b>In cache</b> = de kaarten (metadata) zijn bekend
+      en zichtbaar bij Winkelpakketten; <b>Gedownload</b> = de print-PDF's staan op deze server, dus
+      direct samen te voegen &amp; te printen.{% if w2p.syncing %} <strong style="color:var(--green-d);">Er loopt op dit moment een synchronisatie.</strong>{% endif %}
+    </p>
+
+    {% if w2p.weeks %}
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+      <table style="width:100%;border-collapse:collapse;font-size:.88rem;min-width:560px;">
+        <thead>
+          <tr style="text-align:left;border-bottom:2px solid var(--border-soft);">
+            <th style="padding:8px 10px;">Week / pakket</th>
+            <th style="padding:8px 10px;">Kaarten in cache</th>
+            <th style="padding:8px 10px;">Gedownload</th>
+            <th style="padding:8px 10px;">PDF's</th>
+            <th style="padding:8px 10px;">Grootte</th>
+            <th style="padding:8px 10px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for w in w2p.weeks %}
+          {% set short = w.label.replace('PRINT_PLUS_WEEKPAKKET_','').replace('_',' ') %}
+          <tr style="border-bottom:1px solid var(--border-soft);">
+            <td style="padding:8px 10px;font-weight:600;white-space:nowrap;">
+              {{ short }}{% if w.category %} <span class="muted small">· {{ w.category }}</span>{% endif %}
+            </td>
+            <td style="padding:8px 10px;">
+              {{ w.total_cards }} <span class="muted small">kaart(en)</span>
+              <span class="muted small">· {{ w.groups }} afd.</span>
+            </td>
+            <td style="padding:8px 10px;white-space:nowrap;">
+              {% if w.status == 'full' %}
+                <span style="display:inline-block;background:var(--green-tint);color:var(--green-d);font-weight:800;font-size:.72rem;border-radius:99px;padding:2px 9px;"><i class="fa fa-circle-check"></i> Gedownload</span>
+              {% elif w.status == 'partial' %}
+                <span style="display:inline-block;background:#fff5e6;color:var(--amber);font-weight:800;font-size:.72rem;border-radius:99px;padding:2px 9px;"><i class="fa fa-hourglass-half"></i> Deels ({{ w.downloaded_groups }}/{{ w.groups }})</span>
+              {% else %}
+                <span style="display:inline-block;background:#f0f0ee;color:var(--muted);font-weight:800;font-size:.72rem;border-radius:99px;padding:2px 9px;"><i class="fa fa-cloud-arrow-down"></i> Niet gedownload</span>
+              {% endif %}
+            </td>
+            <td style="padding:8px 10px;">{{ w.rows }}</td>
+            <td style="padding:8px 10px;">{{ human(w.bytes) if w.bytes else '—' }}</td>
+            <td style="padding:8px 10px;text-align:right;">
+              <form method="post" style="margin:0;" onsubmit="return confirm('Week {{ short }} volledig verwijderen? Alle kaarten én bestanden van deze week worden gewist en de week verdwijnt ook uit Winkelpakketten.');">
+                <input type="hidden" name="action" value="w2p_delete_week">
+                <input type="hidden" name="period_id" value="{{ w.period_id }}">
+                <button type="submit" class="iconbtn is-danger" title="Week volledig verwijderen"><i class="fa fa-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:16px;">
+      <form method="post" style="margin:0;" onsubmit="return confirm('WEET JE HET ZEKER? De VOLLEDIGE winkelpakket-cache wordt verwijderd. Alle kaarten moeten opnieuw naar de server gedownload worden.');">
+        <input type="hidden" name="action" value="w2p_delete_all">
+        <button type="submit" class="btn btn-outline btn-sm"><i class="fa fa-trash"></i> Volledige cache legen</button>
+      </form>
+    </div>
+    {% else %}
+    <p class="muted small">Er is nog niets gecached. Gebruik op de pagina <a href="{{ url_for('winkelpakketten') }}">Printbare winkelpakketten</a> de knop <em>“Download naar deze server”</em>.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

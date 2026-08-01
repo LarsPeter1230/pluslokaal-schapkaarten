@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Logboek – PLUSLokaal{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Logboek</h1>
+    <p class="page-sub">{{ total }} gebeurtenis{{ '' if total==1 else 'sen' }}{% if shown < total %} · {{ shown }} getoond{% endif %}
+      · wie deed wat, wanneer en vanaf welk IP</p>
+  </div>
+  <div class="toolbar">
+    <form class="search" method="get" style="margin:0;">
+      {% if cat %}<input type="hidden" name="cat" value="{{ cat }}">{% endif %}
+      <input type="text" name="q" value="{{ q }}" placeholder="Zoek in logs (naam, IP, actie, tekst)…" autocomplete="off">
+      <i class="fa fa-search"></i>
+    </form>
+  </div>
+</div>
+
+<div class="fb-filters" style="margin-bottom:14px;">
+  <div class="fb-chips">
+    {% set catlabels = {'inloggen':'Inloggen','printen':'Printen','gebruikers':'Gebruikers','feedback':'Feedback','overig':'Overig'} %}
+    <a class="fb-chip {{ 'is-on' if not cat }}" href="{{ url_for('logs_view', q=q) }}">Alles <span>{{ counts.all }}</span></a>
+    {% for c in cats %}
+    <a class="fb-chip {{ 'is-on' if cat==c }}" href="{{ url_for('logs_view', q=q, cat=c) }}">{{ catlabels.get(c, c|capitalize) }}</a>
+    {% endfor %}
+    <a class="fb-chip {{ 'is-on' if cat=='overig' }}" href="{{ url_for('logs_view', q=q, cat='overig') }}">Overig</a>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <table class="table logs-table">
+    <thead>
+      <tr>
+        <th style="white-space:nowrap;">Wanneer</th>
+        <th>Actie</th>
+        <th>Gebruiker</th>
+        <th>IP-adres</th>
+        <th>Details</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in items %}
+      {% set a = e.action or '' %}
+      {% set bad = ('mislukt' in a) or ('geblokkeerd' in a) or ('geweigerd' in a) or ('verwijderd' in a) %}
+      {% set warn = ('geannuleerd' in a) %}
+      {% set isprint = a.startswith('print') or a.startswith('winkelpakket') or a.startswith('printer') %}
+      {% set islogin = a.startswith('login') or a=='logout' or a.startswith('mfa') %}
+      <tr>
+        <td style="white-space:nowrap;color:var(--muted);font-size:.82rem;">{{ e.created_at.strftime('%d-%m-%Y %H:%M:%S') }}</td>
+        <td>
+          <span class="log-badge {{ 'is-bad' if bad else 'is-warn' if warn else 'is-print' if isprint else 'is-login' if islogin else 'is-other' }}">
+            {{ LOG_LABELS.get(a, a) }}
+          </span>
+        </td>
+        <td>{{ e.username or '—' }}{% if e.filiaal %} <span class="muted small">({{ e.filiaal }})</span>{% endif %}</td>
+        <td><code style="font-size:.8rem;">{{ e.ip or '—' }}</code></td>
+        <td style="font-size:.85rem;color:var(--text);word-break:break-word;">{{ e.detail or '' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:34px 10px;">
+        <i class="fa fa-clipboard-list" style="font-size:1.5rem;opacity:.4;"></i>
+        <div style="margin-top:8px;">Geen logregels gevonden{% if q %} voor “{{ q }}”{% endif %}.</div>
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if shown >= 500 %}
+<p class="muted small" style="margin-top:10px;">De 500 meest recente regels worden getoond. Verfijn met een zoekterm of filter om ouder terug te vinden.</p>
+{% endif %}
+{% endblock %}

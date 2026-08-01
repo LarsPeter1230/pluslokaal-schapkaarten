@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Mijn team – PLUSLokaal{% endblock %}
+{% block content %}
+<div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;">
+  <div>
+    <h1 class="page-title">Mijn team</h1>
+    <p class="page-sub">PLUS {{ f_obj.naam if f_obj else fil }} · {{ (active|length) }} lid/leden{% if pending %} · {{ pending|length }} wachtend op goedkeuring{% endif %}</p>
+  </div>
+  {% if filialen %}
+  <form method="get" style="margin:0;">
+    <select name="filiaal" onchange="this.form.submit()">
+      {% for x in filialen %}<option value="{{ x.nummer }}" {{ 'selected' if fil==x.nummer }}>{{ x.naam or ('Filiaal '~x.nummer) }} ({{ x.nummer }})</option>{% endfor %}
+    </select>
+  </form>
+  {% endif %}
+</div>
+
+{% if not mail_on %}
+<div class="panel" style="margin-bottom:14px;"><div class="panel__body" style="padding:12px 16px;background:#fff8e6;border-left:4px solid #f7941d;">
+  <span class="small">E-mail staat uit — uitnodigingen worden niet verstuurd. Nieuwe leden moeten hun wachtwoord via een reset-link of de admin krijgen.</span>
+</div></div>
+{% endif %}
+
+{% if pending %}
+<div class="panel" style="margin-bottom:16px;border-left:3px solid #f7941d;">
+  <div class="panel__head"><i class="fa fa-user-clock"></i><h3>Wacht op goedkeuring</h3></div>
+  <div class="panel__body">
+    {% for m in pending %}
+    <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #f0f0f0;flex-wrap:wrap;">
+      <div style="flex:1;min-width:160px;"><strong>{{ m.username }}</strong><br><span class="muted small">{{ m.email }}</span></div>
+      <form method="post" style="margin:0;"><input type="hidden" name="action" value="approve"><input type="hidden" name="id" value="{{ m.id }}">
+        <button class="btn btn-primary btn-sm"><i class="fa fa-check"></i> Goedkeuren</button></form>
+      <form method="post" style="margin:0;" onsubmit="return confirm('Afwijzen en verwijderen?')"><input type="hidden" name="action" value="remove"><input type="hidden" name="id" value="{{ m.id }}">
+        <button class="btn btn-ghost btn-sm" style="color:#e3000a;">Afwijzen</button></form>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="flex">
+  <div class="panel" style="flex:0 1 320px;">
+    <div class="panel__head"><i class="fa fa-user-plus"></i><h3>Teamlid toevoegen</h3></div>
+    <div class="panel__body">
+      <form method="post">
+        <input type="hidden" name="action" value="add">
+        <div class="field"><label>Naam</label><input type="text" name="username" required></div>
+        <div class="field"><label>E-mailadres <span class="muted small">(inlog + uitnodiging)</span></label><input type="email" name="email" required></div>
+        <div class="field"><label>Rol</label>
+          <select name="role">{% for r in roles %}<option value="{{ r.name }}" {{ 'selected' if r.name=='medewerker' }}>{{ r.label }}</option>{% endfor %}</select></div>
+        <button type="submit" class="btn btn-primary btn-block"><i class="fa fa-plus"></i> Toevoegen &amp; uitnodigen</button>
+      </form>
+    </div>
+  </div>
+
+  <div style="flex:1;min-width:320px;">
+    <div class="table-wrap">
+      <table class="table" style="width:100%;">
+        <thead><tr><th>Naam</th><th>Rol</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for m in active %}
+          <tr>
+            <td><strong>{{ m.username }}</strong><br><span class="muted small">{{ m.email or '—' }}</span></td>
+            <td>
+              {% if m.role == 'admin' or m.id == user.id %}{{ role_labels.get(m.role, m.role) }}
+              {% else %}
+              <form method="post" style="margin:0;"><input type="hidden" name="action" value="role"><input type="hidden" name="id" value="{{ m.id }}">
+                <select name="role" onchange="this.form.submit()">{% for r in roles %}<option value="{{ r.name }}" {{ 'selected' if r.name==m.role }}>{{ r.label }}</option>{% endfor %}</select></form>
+              {% endif %}
+            </td>
+            <td>{% if m.must_change_password %}<span class="muted small">uitgenodigd</span>{% else %}<span class="small" style="color:#2c6b0f;">actief</span>{% endif %}</td>
+            <td style="text-align:right;white-space:nowrap;">
+              {% if m.email %}
+              <form method="post" style="display:inline;"><input type="hidden" name="action" value="invite"><input type="hidden" name="id" value="{{ m.id }}"><button class="iconbtn" title="Uitnodiging (opnieuw)"><i class="fa fa-paper-plane"></i></button></form>
+              <form method="post" style="display:inline;"><input type="hidden" name="action" value="reset"><input type="hidden" name="id" value="{{ m.id }}"><button class="iconbtn" title="Wachtwoord-reset mailen"><i class="fa fa-key"></i></button></form>
+              {% endif %}
+              {% if m.id != user.id and m.role != 'admin' %}
+              <form method="post" style="display:inline;" onsubmit="return confirm('{{ m.username }} verwijderen?')"><input type="hidden" name="action" value="remove"><input type="hidden" name="id" value="{{ m.id }}"><button class="iconbtn is-danger" title="Verwijderen"><i class="fa fa-trash"></i></button></form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

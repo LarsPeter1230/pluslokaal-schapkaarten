@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Rollen – PLUSLokaal{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Rollen &amp; rechten</h1>
+    <p class="page-sub">Beheer wat elke rol mag. Admin heeft altijd volledige toegang.</p>
+  </div>
+</div>
+
+<div class="flex">
+  <!-- Nieuwe rol -->
+  <div class="panel" style="flex:0 1 320px;">
+    <div class="panel__head"><i class="fa fa-plus"></i><h3>Nieuwe rol</h3></div>
+    <div class="panel__body">
+      <form method="post">
+        <input type="hidden" name="action" value="create">
+        <div class="field"><label>Naam van de rol</label><input type="text" name="label" placeholder="bijv. Kassamedewerker" required></div>
+        <label class="muted small" style="display:block;margin-bottom:6px;">Rechten</label>
+        {% for key, lbl in perm_defs %}
+        <label class="perm-chk"><input type="checkbox" name="perms" value="{{ key }}"> {{ lbl }}</label>
+        {% endfor %}
+        <button type="submit" class="btn btn-primary btn-block" style="margin-top:12px;"><i class="fa fa-plus"></i> Rol aanmaken</button>
+        <p class="hint" style="margin-top:8px;">Eigen rollen zijn winkel-gescoped (gebruikers zien alleen hun eigen winkel).</p>
+      </form>
+    </div>
+  </div>
+
+  <!-- Bestaande rollen -->
+  <div style="flex:1;min-width:320px;display:flex;flex-direction:column;gap:14px;">
+    {% for r in roles %}
+    <div class="panel">
+      <div class="panel__head" style="display:flex;align-items:center;gap:10px;">
+        <i class="fa fa-user-shield"></i>
+        <h3 style="flex:1;">{{ r.label }}
+          {% if r.is_system %}<span class="badge" style="background:#eef0ec;color:#666;font-size:.7rem;padding:2px 8px;border-radius:99px;margin-left:6px;">basisrol</span>{% endif %}
+          {% if r.name == 'admin' %}<span class="badge" style="background:#eaf6df;color:#2c6b0f;font-size:.7rem;padding:2px 8px;border-radius:99px;margin-left:4px;">volledige toegang</span>{% endif %}
+        </h3>
+        <span class="muted small">{{ counts.get(r.name, 0) }} gebruiker(s)</span>
+      </div>
+      <div class="panel__body">
+        {% if r.name == 'admin' %}
+        <p class="muted small" style="margin:0;">De admin (superadmin) heeft altijd alle rechten en beheert rollen, gebruikers, filialen en instellingen. Dit is niet aanpasbaar.</p>
+        {% else %}
+        <form method="post">
+          <input type="hidden" name="action" value="save">
+          <input type="hidden" name="id" value="{{ r.id }}">
+          {% if not r.is_system %}
+          <div class="field"><label>Naam</label><input type="text" name="label" value="{{ r.label }}"></div>
+          {% endif %}
+          <div class="grid cols-2" style="gap:4px 14px;margin-bottom:10px;">
+            {% for key, lbl in perm_defs %}
+            <label class="perm-chk"><input type="checkbox" name="perms" value="{{ key }}" {{ 'checked' if key in role_perms.get(r.name, []) }}> {{ lbl }}</label>
+            {% endfor %}
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fa fa-floppy-disk"></i> Opslaan</button>
+            {% if not r.is_system %}
+            <button type="submit" formaction="{{ url_for('rollen') }}" name="action" value="delete" class="btn btn-ghost btn-sm" style="color:#e3000a;" onclick="return confirm('Rol “{{ r.label }}” verwijderen?')" {{ 'disabled' if counts.get(r.name,0) }}><i class="fa fa-trash"></i> Verwijderen</button>
+            {% if counts.get(r.name,0) %}<span class="muted small">in gebruik — niet verwijderbaar</span>{% endif %}
+            {% endif %}
+          </div>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<style>.perm-chk{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--text);padding:5px 0;cursor:pointer;}
+.perm-chk input{width:17px;height:17px;accent-color:var(--green);}</style>
+{% endblock %}

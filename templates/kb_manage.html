@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Kennisbank beheren – PLUSLokaal{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Kennisbank beheren</h1>
+    <p class="page-sub">{{ arts|length }} artikel{{ '' if arts|length==1 else 'en' }} · pas aan of voeg toe</p>
+  </div>
+  <div class="toolbar">
+    <a href="{{ url_for('kb_index') }}" class="btn btn-ghost"><i class="fa fa-eye"></i> Bekijk als gebruiker</a>
+    <a href="{{ url_for('kb_edit') }}" class="btn btn-primary"><i class="fa fa-plus"></i> Nieuw artikel</a>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <table class="table">
+    <thead><tr><th>Artikel</th><th>Categorie</th><th>Volgorde</th><th>Bijgewerkt</th><th></th></tr></thead>
+    <tbody>
+      {% for a in arts %}
+      <tr>
+        <td>
+          <a href="{{ url_for('kb_article', slug=a.slug) }}" style="color:inherit;font-weight:700;">
+            <i class="fa {{ a.icon or 'fa-book' }}" style="color:var(--muted);width:18px;"></i> {{ a.title }}
+          </a>
+          {% if a.summary %}<div class="muted small" style="margin-top:2px;">{{ a.summary }}</div>{% endif %}
+        </td>
+        <td>{{ a.category or '—' }}</td>
+        <td>{{ a.sort_index }}</td>
+        <td class="muted small">{{ a.updated_at.strftime('%d-%m-%Y') }}</td>
+        <td style="text-align:right;white-space:nowrap;">
+          <a href="{{ url_for('kb_edit', aid=a.id) }}" class="iconbtn is-edit" title="Bewerken"><i class="fa fa-pen"></i></a>
+          <form method="post" action="{{ url_for('kb_delete', aid=a.id) }}" style="display:inline;"
+                onsubmit="return confirm('Artikel “{{ a.title }}” verwijderen?')">
+            <button type="submit" class="iconbtn is-danger" title="Verwijderen"><i class="fa fa-trash"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px;">Nog geen artikelen.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

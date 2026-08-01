@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<title>Printen</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#fff;}
+img{width:100%;height:auto;display:block;}
+@media print {
+  @page { margin:0; size:{{ page_size|default('A3 landscape') }}; }
+  img { width:100vw; }
+}
+</style>
+</head>
+<body onload="window.print()">
+  <img src="{{ url_for('static',filename='export/'+image) }}" alt="Schapkaart">
+</body>
+</html>

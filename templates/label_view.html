@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}{{ job.name }} – Labels – PLUSLokaal{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <a href="{{ url_for('labels_dashboard') }}" class="btn btn-ghost btn-sm"><i class="fa fa-arrow-left"></i> Terug</a>
+    <div>
+      <h1 class="page-title">{{ job.name }}</h1>
+      <p class="page-sub">{{ items|length }} product(en) · {{ job.created_at.strftime('%d-%m-%Y %H:%M') }}{% if fil %} · PLUS {{ fil.naam or fil.nummer }}{% endif %} · label {{ Lw }}×{{ Lh }} mm</p>
+    </div>
+  </div>
+  <div class="toolbar">
+    <button type="button" class="btn btn-primary btn-sm" onclick="openQty()"><i class="fa fa-print"></i> Afdrukken</button>
+    <a href="{{ url_for('label_new', edit=job.id) }}" class="btn btn-outline btn-sm"><i class="fa fa-pen"></i> Bewerken</a>
+    <form method="post" action="{{ url_for('label_delete', job_id=job.id) }}" style="margin:0;" onsubmit="return confirm('Labelbatch “{{ job.name }}” verwijderen?')">
+      <button type="submit" class="btn btn-ghost btn-sm" style="color:#e3000a;"><i class="fa fa-trash"></i> Verwijderen</button>
+    </form>
+  </div>
+</div>
+
+<div class="label-list">
+  {% for it in items %}
+  <div class="label-row">
+    <img src="{{ url_for('label_job_preview', job_id=job.id, i=loop.index0) }}" alt="">
+    <div>
+      <div class="lr-name">{{ it.name }}</div>
+      <div class="muted small">{{ it.barcode }}{% if it.price is not none %} · € {{ '%.2f'|format(it.price) }}{% endif %} · standaard ×{{ it.qty or 1 }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Afdruk-popup: aantal per product -->
+<div id="qtyModal" class="qmodal-ov" style="display:none;">
+  <div class="qmodal">
+    <h3>Hoeveel labels afdrukken?</h3>
+    <div class="qlist">
+      {% for it in items %}
+      <div class="qrow">
+        <span class="qname">{{ it.name }}</span>
+        <input type="number" min="0" value="{{ it.qty or 1 }}" data-i="{{ loop.index0 }}" data-bc="{{ it.barcode }}" class="qinput">
+      </div>
+      {% endfor %}
+    </div>
+    <div class="qbtns">
+      {% if fil and fil.printer_ip %}
+      <button class="btn btn-primary btn-block" id="netbtn" onclick="printNetwork()"><i class="fa fa-network-wired"></i> Print op winkelprinter</button>
+      {% endif %}
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-outline" style="flex:1;" onclick="printBrowser()"><i class="fa fa-print"></i> Print via browser</button>
+        <button class="btn btn-ghost" style="flex:1;" onclick="closeQty()">Annuleren</button>
+      </div>
+      <div id="qmsg" class="muted small" style="text-align:center;min-height:16px;"></div>
+    </div>
+  </div>
+</div>
+
+<style>
+.label-list{display:flex;flex-direction:column;gap:10px;max-width:560px;}
+.label-row{display:flex;gap:12px;align-items:center;border:1px solid var(--border,#e4e7e2);border-radius:10px;padding:10px;background:#fff;}
+.label-row img{height:84px;width:auto;border:1px solid #eee;border-radius:4px;}
+.lr-name{font-weight:700;}
+.qmodal-ov{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px;}
+.qmodal{background:#fff;border-radius:14px;padding:22px;width:360px;max-width:100%;max-height:82vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.25);}
+.qmodal h3{font-size:1.05rem;font-weight:800;color:var(--green,#2c6b0f);margin:0 0 14px;}
+.qrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #f0f0f0;}
+.qname{font-size:.9rem;flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.qmodal input.qinput{width:80px;flex:0 0 80px;height:40px;padding:0 8px;border:1px solid #ddd;border-radius:7px;text-align:center;box-sizing:border-box;}
+.qbtns{display:flex;flex-direction:column;gap:8px;margin-top:16px;}
+</style>
+
+<script>
+const PREVIEW="{{ url_for('label_job_preview', job_id=job.id) }}";
+function openQty(){ document.getElementById('qtyModal').style.display='flex'; document.getElementById('qmsg').textContent=''; }
+// Afdruk-popup automatisch openen als we vanaf het dashboard met ?print=1 komen
+if(new URLSearchParams(location.search).get('print')==='1'){ document.addEventListener('DOMContentLoaded', openQty); }
+function closeQty(){ document.getElementById('qtyModal').style.display='none'; }
+function qtyMap(){ const m=[]; document.querySelectorAll('#qtyModal .qinput').forEach(function(el){
+  m.push({i:+el.dataset.i, bc:el.dataset.bc, qty:Math.max(0,parseInt(el.value)||0)}); }); return m; }
+
+// Browserprint: apart printvenster, elk label exact {{ Lw }}×{{ Lh }} mm, aantal per product.
+function printBrowser(){
+  const rows=qtyMap().filter(r=>r.qty>0);
+  if(!rows.length){ document.getElementById('qmsg').textContent='Vul minstens 1 label in.'; return; }
+  let cells='';
+  rows.forEach(function(r){ const src=PREVIEW+'?i='+r.i;
+    for(let k=0;k<r.qty;k++) cells+='<div class="c"><img src="'+src+'"></div>'; });
+  const css='@page{size:{{ Lw }}mm {{ Lh }}mm;margin:0}html,body{margin:0;padding:0;background:#fff}'
+    +'.c{width:{{ Lw }}mm;height:{{ Lh }}mm;overflow:hidden;page-break-after:always;break-after:page}'
+    +'.c:last-child{page-break-after:avoid;break-after:avoid}'
+    +'.c img{width:{{ Lw }}mm;height:{{ Lh }}mm;display:block;object-fit:contain}';
+  const w=window.open('','_blank','width=420,height=640');
+  if(!w){ document.getElementById('qmsg').textContent='Sta pop-ups toe om te printen.'; return; }
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Labels — {{ job.name|e }}</title><style>'+css+'</style></head><body>'+cells+'</body></html>');
+  w.document.close();
+  let done=false; function go(){ if(done)return; done=true; try{w.focus();w.print();}catch(e){} setTimeout(function(){try{w.close();}catch(e){}},400); }
+  const imgs=w.document.images, n=imgs.length; let loaded=0;
+  if(!n){ go(); return; }
+  for(let i=0;i<n;i++){ if(imgs[i].complete){ if(++loaded>=n)go(); } else imgs[i].onload=imgs[i].onerror=function(){ if(++loaded>=n)go(); }; }
+  setTimeout(go,2500); closeQty();
+}
+
+{% if fil and fil.printer_ip %}
+async function printNetwork(){
+  const rows=qtyMap().filter(r=>r.qty>0);
+  if(!rows.length){ document.getElementById('qmsg').textContent='Vul minstens 1 label in.'; return; }
+  const quantities={}; rows.forEach(function(r){ if(r.bc) quantities[r.bc]=(quantities[r.bc]||0)+r.qty; });
+  const btn=document.getElementById('netbtn'); if(btn)btn.disabled=true;
+  document.getElementById('qmsg').textContent='Versturen naar printer…';
+  try{
+    const resp=await fetch('{{ url_for("label_print_network", job_id=job.id) }}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({quantities:quantities})});
+    const d=await resp.json();
+    document.getElementById('qmsg').textContent=d.success?d.message:(d.error||'Printen mislukt.');
+  }catch(e){ document.getElementById('qmsg').textContent='Printen mislukt: '+e; }
+  if(btn)btn.disabled=false;
+}
+{% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}{% if edit_card %}Scankaart bewerken{% else %}Nieuwe scankaart{% endif %} – PLUSLokaal{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-ghost btn-sm"><i class="fa fa-arrow-left"></i> Terug</a>
+    <div>
+      <h1 class="page-title">{% if edit_card %}Scankaart bewerken{% else %}Nieuwe scankaart{% endif %}</h1>
+      <p class="page-sub">SK Maxi — 4 scankaarten op één A4. Elke kaart vul je apart; de indeling past zich vanzelf aan.</p>
+    </div>
+  </div>
+</div>
+
+<form id="scanForm" method="post" action="{{ url_for('scankaart_new') }}" style="display:none;">
+  <input type="hidden" name="edit_id" value="{{ edit_card.id if edit_card else '' }}">
+  <input type="hidden" name="cards" id="h-cards">
+</form>
+
+<div class="editor">
+  <div class="editor__form">
+    <div class="ktabs show" id="sktabs">
+      {% for i in range(4) %}<button class="ktab {{ 'active' if i==0 }}" type="button" onclick="switchC({{ i }},this)">Kaart {{ i+1 }}<span class="ktab__n" id="ktabn-{{ i }}"></span></button>{% endfor %}
+    </div>
+    <div class="sec">
+      <div class="sec__h"><i class="fa fa-barcode"></i> Producten op <span id="cardlabel">kaart 1</span></div>
+      <div id="prod-list"></div>
+      <button type="button" class="btn btn-outline btn-sm btn-block" onclick="addProd()" style="margin-top:6px;"><i class="fa fa-plus"></i> Product toevoegen</button>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button type="button" class="btn btn-ghost btn-sm" style="flex:1;" onclick="copyToAll()" title="Deze kaart naar alle 4 kopiëren"><i class="fa fa-copy"></i> Naar alle 4</button>
+        <button type="button" class="btn btn-ghost btn-sm" style="flex:1;" onclick="clearCard()" title="Deze kaart leegmaken"><i class="fa fa-eraser"></i> Leegmaken</button>
+      </div>
+      <p class="muted small" style="margin:8px 0 0;">Tip: 1 product = groot “Scan hier” met de barcode ernaast; meerdere producten komen in nette vakjes.</p>
+    </div>
+    <button type="button" class="btn btn-primary btn-block" onclick="saveScan()" style="padding:13px;">
+      <i class="fa fa-floppy-disk"></i> {% if edit_card %}Scankaart bijwerken{% else %}Scankaart opslaan{% endif %}
+    </button>
+  </div>
+
+  <div class="editor__preview">
+    <div class="prev-bar"><span class="prev-bar__lbl">Live preview — SK Maxi (4 scankaarten)</span></div>
+    <div class="scankp" id="scankp"></div>
+  </div>
+</div>
+
+<style>
+.scankp{width:100%;max-width:760px;aspect-ratio:297/210;background:#fff;display:grid;
+  grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:1.2%;padding:1%;box-sizing:border-box;}
+.sk-slot{container-type:size;cursor:pointer;border:2px solid transparent;border-radius:3.2cqh;}
+.sk-slot.cur{border-color:#115013;}
+.sk-card{width:100%;height:100%;background:#72c62e;border-radius:3cqh;box-sizing:border-box;padding:2.2cqh;}
+.sk-card--empty{background:#fff;border:2px dashed #d5dbcf;}
+.sk-card--empty .sk-empty2{color:#9aa290;}
+.sk-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.6cqh 1.4cqh;width:100%;height:100%;}
+.sk-compact{display:grid;grid-template-columns:0.9fr 1.1fr;gap:1.6cqh;width:100%;height:100%;}
+.sk-compact .sk-right{display:flex;flex-direction:column;justify-content:center;gap:2.2cqh;}
+.sk-hero{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1cqh;}
+.sk-hero img{height:11cqh;width:auto;filter:brightness(0) invert(1);}
+.sk-hero span{color:#fff;font-weight:900;line-height:1;letter-spacing:-.01em;font-size:5cqh;}
+.sk-hero.small img{height:8cqh;}
+.sk-hero.small span{font-size:3.6cqh;}
+.sk-empty2{display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.85);font-weight:800;font-size:3.4cqh;}
+.sk-box{background:#fff;border-radius:1.6cqh;box-sizing:border-box;padding:1.4cqh 1.4cqh 1.2cqh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-width:0;overflow:hidden;}
+.sk-box.plain{background:transparent;}
+.sk-box__nm{font-weight:800;color:#231f20;text-align:center;line-height:1.05;font-size:2.7cqh;}
+.sk-box__fm{color:#231f20;text-align:center;line-height:1;font-size:2cqh;margin-top:.4cqh;}
+.sk-box__bc{margin-top:auto;background:#fff;border-radius:.5cqh;padding:.6cqh .5cqh .3cqh;width:86%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;}
+.sk-bars{width:90%;height:6cqh;background:repeating-linear-gradient(90deg,#231f20 0,#231f20 .32cqh,#fff .32cqh,#fff .62cqh);}
+.sk-num{font-size:1.7cqh;color:#231f20;letter-spacing:.14em;margin-top:.3cqh;}
+.sk-empty{visibility:hidden;}
+.ktab__n{display:inline-block;min-width:16px;margin-left:5px;padding:0 5px;border-radius:99px;background:rgba(0,0,0,.12);font-size:.7rem;font-weight:800;}
+.ktab.active .ktab__n{background:rgba(255,255,255,.35);}
+</style>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+const SCANNER_SVG="{{ url_for('static',filename='img/scanner-icon.svg') }}";
+let SC=[[],[],[],[]], AC=0;
+{% if edit_data %}
+(()=>{ const ed={{ edit_data|tojson }};
+  if(Array.isArray(ed.cells)) ed.cells.forEach((c,i)=>{ if(i<4) SC[i]=(c.products||[]).slice(); });
+  else if(Array.isArray(ed.products)) SC[0]=ed.products.slice();   // vorige (enkelvoudige) opzet
+})();
+{% endif %}
+const fi=id=>document.getElementById(id);
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+function switchC(i,btn){ AC=i;
+  document.querySelectorAll('#sktabs .ktab').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active'); else document.querySelectorAll('#sktabs .ktab')[i].classList.add('active');
+  fi('cardlabel').textContent='kaart '+(i+1);
+  document.querySelectorAll('.sk-slot').forEach((s,k)=>s.classList.toggle('cur',k===i));
+  renderProdList();
+}
+function addProd(){ SC[AC].push({naam:'',formaat:'',code:'',type:'ean13'}); renderProdList(); renderPreview(); }
+function removeProd(i){ SC[AC].splice(i,1); renderProdList(); renderPreview(); }
+function updProd(i,f,v){ if(SC[AC][i]){ SC[AC][i][f]=v; renderPreview(); } }
+function clearCard(){ SC[AC]=[]; renderProdList(); renderPreview(); }
+function copyToAll(){ const src=JSON.parse(JSON.stringify(SC[AC])); for(let i=0;i<4;i++) if(i!==AC) SC[i]=JSON.parse(JSON.stringify(src)); renderPreview(); }
+
+function renderProdList(){
+  const box=fi('prod-list'); const a=SC[AC];
+  box.innerHTML=a.map((s,i)=>`
+    <div style="border:1px solid var(--border,#e4e7e2);border-radius:8px;padding:8px;margin-bottom:8px;">
+      <div style="display:flex;gap:6px;margin-bottom:6px;align-items:center;">
+        <span class="muted small" style="width:20px;text-align:center;">${i+1}</span>
+        <input type="text" placeholder="Productnaam" value="${esc(s.naam)}" oninput="updProd(${i},'naam',this.value)" style="flex:2;min-width:0;">
+        <input type="text" placeholder="Formaat (bv. 24 x 30 cl)" value="${esc(s.formaat)}" oninput="updProd(${i},'formaat',this.value)" style="flex:1.4;min-width:0;">
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;padding-left:26px;">
+        <input type="text" placeholder="Barcodenummer" value="${esc(s.code)}" oninput="updProd(${i},'code',this.value)" style="flex:2;min-width:0;">
+        <select onchange="updProd(${i},'type',this.value)" style="flex:1;min-width:0;">
+          <option value="ean13"${s.type==='ean13'?' selected':''}>EAN-13</option>
+          <option value="ean8"${s.type==='ean8'?' selected':''}>EAN-8</option>
+        </select>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="removeProd(${i})" title="Verwijderen"><i class="fa fa-trash"></i></button>
+      </div>
+    </div>`).join('') || '<p class="muted small" style="margin:0 0 4px;">Nog geen producten op deze kaart. Voeg er minstens één toe.</p>';
+  updTabCounts();
+}
+function updTabCounts(){
+  for(let i=0;i<4;i++){ const n=SC[i].filter(p=>String(p.code||'').trim()||String(p.naam||'').trim()).length;
+    const el=fi('ktabn-'+i); if(el){ el.textContent=n||''; el.style.display=n?'':'none'; } }
+}
+function heroHTML(small){ return `<div class="sk-hero ${small?'small':''}"><img src="${SCANNER_SVG}" alt=""><span>Scan hier</span></div>`; }
+function boxHTML(p,plain){
+  return `<div class="sk-box ${plain?'plain':''}">
+    <div class="sk-box__nm">${esc(p.naam)}</div>
+    ${p.formaat?`<div class="sk-box__fm">${esc(p.formaat)}</div>`:''}
+    <div class="sk-box__bc"><div class="sk-bars"></div><div class="sk-num">${esc(p.code)}</div></div>
+  </div>`;
+}
+function cardInner(list){
+  const prods=list.filter(p=>String(p.code||'').trim()||String(p.naam||'').trim());
+  const n=prods.length;
+  if(n===0) return `<div class="sk-card sk-card--empty"><div class="sk-empty2">leeg — blijft wit</div></div>`;
+  let inner;
+  if(n<=2){
+    inner=`<div class="sk-compact">${heroHTML(false)}<div class="sk-right">${prods.map(p=>boxHTML(p,n===1)).join('')}</div></div>`;
+  } else {
+    const rows=Math.max(2,Math.ceil((n+1)/2));
+    const cells=[heroHTML(true), ...prods.map(p=>boxHTML(p,false))];
+    while(cells.length<rows*2) cells.push('<div class="sk-empty"></div>');
+    inner=`<div class="sk-grid" style="grid-template-rows:repeat(${rows},1fr)">${cells.join('')}</div>`;
+  }
+  return `<div class="sk-card">${inner}</div>`;
+}
+function renderPreview(){
+  fi('scankp').innerHTML=[0,1,2,3].map(i=>
+    `<div class="sk-slot ${i===AC?'cur':''}" onclick="switchC(${i})">${cardInner(SC[i])}</div>`).join('');
+  updTabCounts();
+}
+function saveScan(){
+  const has=SC.some(c=>c.some(p=>String(p.code||'').trim()));
+  if(!has){ alert('Voeg minstens één product met barcode toe.'); return; }
+  fi('h-cards').value=JSON.stringify(SC);
+  if(window.plusLoader) plusLoader.show({% if edit_card %}'Scankaart wordt bijgewerkt…'{% else %}'Scankaart wordt opgeslagen…'{% endif %});
+  fi('scanForm').submit();
+}
+if(!SC[0].length){ SC[0].push({naam:'',formaat:'',code:'',type:'ean13'}); }
+renderProdList(); renderPreview();
+</script>
+{% endblock %}

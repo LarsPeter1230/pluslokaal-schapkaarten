@@ -1,0 +1,948 @@
+{% extends "base.html" %}
+{% block title %}Printbare winkelpakketten – PLUSLokaal{% endblock %}
+{% block content %}
+<div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;">
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-ghost btn-sm"><i class="fa fa-arrow-left"></i> Terug</a>
+    <div>
+      <h1 class="page-title">Printbare winkelpakketten</h1>
+      <p class="page-sub">Bekijk en download kant-en-klare weekpakket-schapkaarten per afdeling.{% if synced_at %} <span class="muted small">· Laatst bijgewerkt: {{ synced_at.replace('T',' ') }}</span>{% endif %}</p>
+    </div>
+  </div>
+  {% if can_sync %}
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <form method="post" action="{{ url_for('winkelpakketten_sync_meta') }}" id="wpMetaSyncForm"
+          data-progress-url="{{ url_for('winkelpakketten_sync_meta_progress') }}" style="margin:0;">
+      <button type="submit" class="btn btn-outline btn-sm" id="wpMetaSyncBtn" {{ 'disabled' if meta_syncing }}>
+        <i class="fa fa-rotate {{ 'fa-spin' if meta_syncing }}"></i> {{ 'Bezig met cache-sync…' if meta_syncing else 'Cache synchroniseren' }}
+      </button>
+    </form>
+    <form method="post" action="{{ url_for('winkelpakketten_sync_pdfs') }}" id="wpPdfSyncForm"
+          data-progress-url="{{ url_for('winkelpakketten_sync_pdfs_progress') }}" style="margin:0;">
+      <button type="submit" class="btn btn-outline btn-sm" id="wpPdfSyncBtn" {{ 'disabled' if pdf_syncing }}>
+        <i class="fa fa-cloud-arrow-down {{ 'fa-spin' if pdf_syncing }}"></i> {{ 'Bezig met downloaden naar server…' if pdf_syncing else 'Download naar deze server' }}
+      </button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+{% macro sync_widget(prefix, title) %}
+<div class="wp-modal" id="{{ prefix }}Modal" hidden>
+  <div class="wp-modal__backdrop"></div>
+  <div class="wp-modal__box" role="dialog" aria-modal="true" aria-labelledby="{{ prefix }}ModalTitle">
+    <div class="wp-spinner wp-spinner--lg" aria-hidden="true">
+      <svg viewBox="0 0 132 140">
+        <path class="wp-leaf wp-leaf--1" d="M61.2,32.8 L61.2,54.8 C61.2,60.8 56.8,65.6 50.8,65.6 L30.4,65.6 C13.6,65.6 0,51.2 0,33.2 C0,15.6 13.6,0.8 30.4,0.8 C47.6,0.8 61.2,15.2 61.2,32.8 L61.2,32.8 Z"/>
+        <path class="wp-leaf wp-leaf--2" d="M61.2,107.2 L61.2,85.6 C61.2,79.6 56.8,74.8 50.8,74.8 L30.4,74.8 C13.6,74.8 0,89.2 0,107.2 C0,125.2 13.6,139.6 30.4,139.6 C47.6,139.6 61.2,125.2 61.2,107.2 L61.2,107.2 Z"/>
+        <path class="wp-leaf wp-leaf--3" d="M69.6,107.2 L69.6,85.6 C69.6,79.6 74,74.8 80,74.8 L100.4,74.8 C117.2,74.8 131.2,89.2 131.2,107.2 C131.2,125.2 117.2,139.6 100.4,139.6 C83.6,139.6 69.6,125.2 69.6,107.2 L69.6,107.2 Z"/>
+        <path class="wp-leaf wp-leaf--4" d="M70,32.8 L70,54.8 C70,60.8 74.4,65.6 80,65.6 L100.4,65.6 C117.6,65.6 131.2,51.2 131.2,33.2 C131.2,15.6 117.6,0.8 100.4,0.8 C83.6,0.8 70,15.2 70,32.8 L70,32.8 Z"/>
+      </svg>
+    </div>
+    <h3 id="{{ prefix }}ModalTitle">{{ title }}…</h3>
+    <p class="wp-modal__msg" id="{{ prefix }}ModalMsg">Bezig met starten…</p>
+    <div class="wp-progress"><div class="wp-progress__bar" id="{{ prefix }}ModalBar" style="width:0%"></div></div>
+    <p class="wp-modal__stats" id="{{ prefix }}ModalStats"></p>
+    <p class="wp-modal__detail" id="{{ prefix }}ModalDetail"></p>
+    <div class="wp-modal__acts">
+      <button type="button" class="btn btn-ghost btn-sm" id="{{ prefix }}ModalBg">Verdergaan &amp; op achtergrond doorgaan</button>
+      <button type="button" class="btn btn-primary btn-sm" id="{{ prefix }}ModalClose" hidden>Sluiten</button>
+    </div>
+  </div>
+</div>
+
+<div class="wp-toast" id="{{ prefix }}Toast" hidden>
+  <div class="wp-spinner wp-spinner--sm" aria-hidden="true">
+    <svg viewBox="0 0 132 140">
+      <path class="wp-leaf wp-leaf--1" d="M61.2,32.8 L61.2,54.8 C61.2,60.8 56.8,65.6 50.8,65.6 L30.4,65.6 C13.6,65.6 0,51.2 0,33.2 C0,15.6 13.6,0.8 30.4,0.8 C47.6,0.8 61.2,15.2 61.2,32.8 L61.2,32.8 Z"/>
+      <path class="wp-leaf wp-leaf--2" d="M61.2,107.2 L61.2,85.6 C61.2,79.6 56.8,74.8 50.8,74.8 L30.4,74.8 C13.6,74.8 0,89.2 0,107.2 C0,125.2 13.6,139.6 30.4,139.6 C47.6,139.6 61.2,125.2 61.2,107.2 L61.2,107.2 Z"/>
+      <path class="wp-leaf wp-leaf--3" d="M69.6,107.2 L69.6,85.6 C69.6,79.6 74,74.8 80,74.8 L100.4,74.8 C117.2,74.8 131.2,89.2 131.2,107.2 C131.2,125.2 117.2,139.6 100.4,139.6 C83.6,139.6 69.6,125.2 69.6,107.2 L69.6,107.2 Z"/>
+      <path class="wp-leaf wp-leaf--4" d="M70,32.8 L70,54.8 C70,60.8 74.4,65.6 80,65.6 L100.4,65.6 C117.6,65.6 131.2,51.2 131.2,33.2 C131.2,15.6 117.6,0.8 100.4,0.8 C83.6,0.8 70,15.2 70,32.8 L70,32.8 Z"/>
+    </svg>
+  </div>
+  <div class="wp-toast__body">
+    <strong>{{ title }}…</strong>
+    <span class="wp-toast__msg" id="{{ prefix }}ToastMsg">Bezig…</span>
+    <div class="wp-progress wp-progress--sm"><div class="wp-progress__bar" id="{{ prefix }}ToastBar" style="width:0%"></div></div>
+  </div>
+  <button type="button" class="wp-toast__reopen" id="{{ prefix }}ToastReopen" title="Toon voortgang"><i class="fa fa-up-right-and-down-left-from-center"></i></button>
+</div>
+{% endmacro %}
+
+{% if can_sync %}
+{{ sync_widget('wpMetaSync', 'Cache synchroniseren') }}
+{{ sync_widget('wpPdfSync', 'Download naar deze server') }}
+{% endif %}
+
+<form id="wpCartForm"
+      data-start-url="{{ url_for('winkelpakketten_download_start') }}"
+      data-print-url="{{ url_for('winkelpakketten_print_start') }}"
+      data-progress-url="{{ url_for('winkelpakketten_download_progress', job_id='__JOB__') }}"
+      data-file-url="{{ url_for('winkelpakketten_download_file', job_id='__JOB__') }}">
+<div class="wp-layout">
+
+  <!-- LINKS: mappen-navigatie (categorie -> periodes -> afdelingen) -->
+  <aside class="panel wp-nav">
+    <div class="panel__head"><i class="fa fa-folder-open"></i><h3>Weekpakketten</h3></div>
+    <div class="panel__body" style="padding:10px;">
+      <nav class="wp-tree">
+        {% for c in categories %}
+        {% set c_active = (c.category_id == sel_category) %}
+        <a href="{{ url_for('winkelpakketten', category=c.category_id) }}"
+           class="wp-tree__cat {{ 'is-active' if c_active }}">
+          <i class="fa {{ 'fa-folder-open' if c_active else 'fa-folder' }} fa-fw"></i>
+          <span>{{ c.label }}</span>
+        </a>
+        {% if c_active %}
+          {% if periods %}
+          <div class="wp-tree__periods">
+            {% for p in periods %}
+            {% set p_active = (sel_period is not none and p.period_id == sel_period) %}
+            <a href="{{ url_for('winkelpakketten', category=sel_category, period=p.period_id) }}"
+               class="wp-tree__period {{ 'is-active' if p_active }}">
+              <i class="fa {{ 'fa-folder-open' if p_active else 'fa-folder' }} fa-fw"></i>
+              <span>{{ p.label }}</span>
+            </a>
+            {% if p_active %}
+              {% if groups %}
+              <div class="wp-tree__groups">
+                {% for g in groups %}
+                <a href="{{ url_for('winkelpakketten', category=sel_category, period=p.period_id, group=g.group_id) }}"
+                   class="wp-tree__group {{ 'is-active' if (sel_group is not none and g.group_id == sel_group) }}">
+                  <i class="fa fa-layer-group fa-fw"></i>
+                  <span>{{ g.label }}</span>
+                </a>
+                {% endfor %}
+              </div>
+              {% else %}
+              <p class="muted wp-tree__hint"><small>Geen afdelingen in dit pakket.</small></p>
+              {% endif %}
+            {% endif %}
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="muted wp-tree__hint"><small>Er zijn nog geen weekpakketten in "{{ c.label }}" beschikbaar.</small></p>
+          {% endif %}
+        {% endif %}
+        {% endfor %}
+      </nav>
+    </div>
+  </aside>
+
+  <!-- RECHTS: kaarten van de gekozen groep -->
+  <section class="wp-main">
+    {% if sel_group is not none and documents %}
+    {% set formaten = documents|map(attribute='formaat')|reject('equalto', '')|unique|sort %}
+    <div class="panel">
+      <div class="panel__head" style="justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div style="display:flex;align-items:center;gap:9px;">
+          <i class="fa fa-images"></i>
+          <h3>Kaarten in deze afdeling</h3>
+        </div>
+        <div class="toolbar">
+          <button type="button" class="btn btn-ghost btn-sm" id="wpToggleAll">
+            <i class="fa fa-check-double"></i> Alles selecteren
+          </button>
+        </div>
+      </div>
+      <div class="panel__body">
+        <div class="wp-filters">
+          <div class="wp-filters__search">
+            <i class="fa fa-magnifying-glass"></i>
+            <input type="text" id="wpSearch" placeholder="Zoek op naam…" autocomplete="off">
+          </div>
+          <select id="wpFormaatFilter" class="wp-filters__select">
+            <option value="">Alle kaartsoorten/formaten</option>
+            {% for f in formaten %}
+            <option value="{{ f }}">{{ f }}</option>
+            {% endfor %}
+          </select>
+          <label class="wp-filters__toggle" title="Briljant-varianten worden normaal niet gebruikt">
+            <input type="checkbox" id="wpBriljantToggle" {{ 'checked' if show_briljant }}>
+            <span>Toon Briljant-varianten</span>
+          </label>
+          <span class="muted wp-filters__count"><small><span id="wpVisibleCount">{{ documents|length }}</span> van {{ documents|length }} getoond</small></span>
+        </div>
+        <div class="kaart-grid">
+          {% for d in documents %}
+          <label class="kaart wp-kaart {{ 'is-unavailable' if d.unavailable }}" for="wp-{{ d.promotion_document_id }}"
+                 data-naam="{{ d.naam|lower }}" data-formaat="{{ d.formaat }}">
+            <div class="wp-kaart__fmt">{{ d.formaat }}</div>
+            <div class="kaart__prev">
+              <img src="{{ url_for('winkelpakketten_thumb', doc_id=d.promotion_document_id) }}"
+                   alt="{{ d.naam }}" loading="lazy"
+                   onerror="this.parentElement.style.background='#f1f1ee'">
+              {% if d.unavailable %}<span class="wp-gone"><i class="fa fa-ban"></i> Niet meer beschikbaar</span>{% endif %}
+            </div>
+            <div class="kaart__body">
+              <div class="kaart__title">{{ d.naam }}</div>
+              <div class="wp-kaart__foot">
+                {% if d.unavailable %}
+                <div class="wp-foot-row wp-gone-note">Deze kaart staat niet meer op pluslokaal.nl en kan niet meer worden opgehaald.</div>
+                {% else %}
+                <div class="wp-foot-row">
+                  <span class="wp-check">
+                    <input type="checkbox" name="doc_ids" value="{{ d.promotion_document_id }}"
+                           id="wp-{{ d.promotion_document_id }}" class="wp-cb">
+                    <i class="fa fa-check"></i>
+                  </span>
+                  <span class="wp-check-lbl">In winkelmandje</span>
+                </div>
+                <div class="wp-foot-row wp-qtyrow" onclick="event.preventDefault();event.stopPropagation();"
+                     title="Aantal afdrukken van deze kaart">
+                  <span class="wp-qtylbl"><i class="fa fa-copy"></i> Aantal</span>
+                  <span class="wp-qty" data-doc="{{ d.promotion_document_id }}">
+                    <button type="button" class="wp-qty__b" data-d="-1">&minus;</button>
+                    <input type="text" class="wp-qty__n" value="1" inputmode="numeric" aria-label="Aantal">
+                    <button type="button" class="wp-qty__b" data-d="1">+</button>
+                  </span>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </label>
+          {% endfor %}
+        </div>
+        <p class="muted wp-empty-filter" id="wpNoMatch" style="display:none;"><small>Geen kaarten gevonden voor deze zoekopdracht/filter.</small></p>
+      </div>
+    </div>
+
+    {% elif sel_group is not none %}
+    <div class="empty">
+      <i class="fa fa-folder-open"></i>
+      <p>Deze afdeling bevat geen kaarten.</p>
+    </div>
+    {% else %}
+    <div class="empty">
+      <i class="fa fa-arrow-left"></i>
+      <p>Kies links een weekpakket en afdeling om de printbare kaarten te bekijken.</p>
+    </div>
+    {% endif %}
+  </section>
+
+</div>
+
+<!-- Sticky mandje-balk: altijd zichtbaar, telt over alle afdelingen/weken heen -->
+<div class="wp-actionbar">
+  <div class="wp-actionbar__info">
+    <strong><span id="wpCountBar">0</span> kaart(en) in winkelmandje</strong>
+    <span class="muted"><small>Geselecteerde kaarten (ook uit andere afdelingen/weken) worden per formaat samengevoegd tot één printbaar PDF-bestand.</small></span>
+  </div>
+  <div class="wp-actionbar__btns">
+    <button type="button" class="btn btn-ghost btn-sm" id="wpViewCart">
+      <i class="fa fa-basket-shopping"></i> Bekijk mandje
+    </button>
+    <button type="button" class="btn btn-ghost btn-sm" id="wpClearCart">
+      <i class="fa fa-trash"></i> Mandje legen
+    </button>
+    <button type="submit" class="btn btn-outline {{ 'wp-dl-hidden' if store_printer and store_printer.print_only and store_printer.ready }}" id="wpSubmit" disabled>
+      <i class="fa fa-file-pdf"></i> Samenvoegen &amp; downloaden per formaat
+    </button>
+    <button type="button" class="btn btn-primary" id="wpPrint" disabled>
+      <i class="fa fa-print"></i>
+      {% if store_printer and store_printer.ready %}Samenvoegen &amp; printen op {{ store_printer.name }}
+      {% elif store_printer and store_printer.reason == 'choose' %}Kies eerst een winkel (rechtsboven)
+      {% else %}Geen printer ingesteld{% endif %}
+    </button>
+  </div>
+</div>
+
+<!-- Winkelmandje-overzicht: alle geselecteerde kaarten + aantallen, aanpasbaar -->
+<div class="wp-modal" id="wpCartModal" hidden>
+  <div class="wp-modal__backdrop" id="wpCartBackdrop"></div>
+  <div class="wp-modal__box wp-cart-box" role="dialog" aria-modal="true" aria-label="Winkelmandje">
+    <div class="wp-cart-head">
+      <h3><i class="fa fa-basket-shopping"></i> Winkelmandje</h3>
+      <button type="button" class="iconbtn" id="wpCartClose" title="Sluiten"><i class="fa fa-xmark"></i></button>
+    </div>
+    <div class="wp-cart-list" id="wpCartList"></div>
+    <div class="wp-cart-foot">
+      <span class="wp-cart-total" id="wpCartTotal"></span>
+      <div class="wp-cart-acts">
+        <button type="button" class="btn btn-outline btn-sm {{ 'wp-dl-hidden' if store_printer and store_printer.print_only and store_printer.ready }}" id="wpCartDownload"><i class="fa fa-file-pdf"></i> Downloaden</button>
+        {% if store_printer and store_printer.ready %}
+        <button type="button" class="btn btn-primary btn-sm" id="wpCartPrint"><i class="fa fa-print"></i> Printen op {{ store_printer.name }}</button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Download-voortgang: nette pop-up met de PLUS-blaadjes als laadcirkel -->
+<div class="wp-modal" id="wpModal" hidden>
+  <div class="wp-modal__backdrop"></div>
+  <div class="wp-modal__box" role="dialog" aria-modal="true" aria-labelledby="wpModalTitle">
+    <div class="wp-spinner wp-spinner--lg" aria-hidden="true">
+      <svg viewBox="0 0 132 140">
+        <path class="wp-leaf wp-leaf--1" d="M61.2,32.8 L61.2,54.8 C61.2,60.8 56.8,65.6 50.8,65.6 L30.4,65.6 C13.6,65.6 0,51.2 0,33.2 C0,15.6 13.6,0.8 30.4,0.8 C47.6,0.8 61.2,15.2 61.2,32.8 L61.2,32.8 Z"/>
+        <path class="wp-leaf wp-leaf--2" d="M61.2,107.2 L61.2,85.6 C61.2,79.6 56.8,74.8 50.8,74.8 L30.4,74.8 C13.6,74.8 0,89.2 0,107.2 C0,125.2 13.6,139.6 30.4,139.6 C47.6,139.6 61.2,125.2 61.2,107.2 L61.2,107.2 Z"/>
+        <path class="wp-leaf wp-leaf--3" d="M69.6,107.2 L69.6,85.6 C69.6,79.6 74,74.8 80,74.8 L100.4,74.8 C117.2,74.8 131.2,89.2 131.2,107.2 C131.2,125.2 117.2,139.6 100.4,139.6 C83.6,139.6 69.6,125.2 69.6,107.2 L69.6,107.2 Z"/>
+        <path class="wp-leaf wp-leaf--4" d="M70,32.8 L70,54.8 C70,60.8 74.4,65.6 80,65.6 L100.4,65.6 C117.6,65.6 131.2,51.2 131.2,33.2 C131.2,15.6 117.6,0.8 100.4,0.8 C83.6,0.8 70,15.2 70,32.8 L70,32.8 Z"/>
+      </svg>
+    </div>
+    <h3 id="wpModalTitle">Kaarten downloaden…</h3>
+    <p class="wp-modal__msg" id="wpModalMsg">Bezig met starten…</p>
+    <div class="wp-progress"><div class="wp-progress__bar" id="wpModalBar" style="width:0%"></div></div>
+    <div class="wp-modal__acts">
+      <button type="button" class="btn btn-ghost btn-sm" id="wpModalBg">Verdergaan &amp; op achtergrond downloaden</button>
+      <button type="button" class="btn btn-primary btn-sm" id="wpModalClose" hidden>Sluiten</button>
+    </div>
+  </div>
+</div>
+
+<!-- Mini voortgangsmelding rechtsboven — blijft zichtbaar als je op "Verdergaan" klikt -->
+<div class="wp-toast" id="wpToast" hidden>
+  <div class="wp-spinner wp-spinner--sm" aria-hidden="true">
+    <svg viewBox="0 0 132 140">
+      <path class="wp-leaf wp-leaf--1" d="M61.2,32.8 L61.2,54.8 C61.2,60.8 56.8,65.6 50.8,65.6 L30.4,65.6 C13.6,65.6 0,51.2 0,33.2 C0,15.6 13.6,0.8 30.4,0.8 C47.6,0.8 61.2,15.2 61.2,32.8 L61.2,32.8 Z"/>
+      <path class="wp-leaf wp-leaf--2" d="M61.2,107.2 L61.2,85.6 C61.2,79.6 56.8,74.8 50.8,74.8 L30.4,74.8 C13.6,74.8 0,89.2 0,107.2 C0,125.2 13.6,139.6 30.4,139.6 C47.6,139.6 61.2,125.2 61.2,107.2 L61.2,107.2 Z"/>
+      <path class="wp-leaf wp-leaf--3" d="M69.6,107.2 L69.6,85.6 C69.6,79.6 74,74.8 80,74.8 L100.4,74.8 C117.2,74.8 131.2,89.2 131.2,107.2 C131.2,125.2 117.2,139.6 100.4,139.6 C83.6,139.6 69.6,125.2 69.6,107.2 L69.6,107.2 Z"/>
+      <path class="wp-leaf wp-leaf--4" d="M70,32.8 L70,54.8 C70,60.8 74.4,65.6 80,65.6 L100.4,65.6 C117.6,65.6 131.2,51.2 131.2,33.2 C131.2,15.6 117.6,0.8 100.4,0.8 C83.6,0.8 70,15.2 70,32.8 L70,32.8 Z"/>
+    </svg>
+  </div>
+  <div class="wp-toast__body">
+    <strong id="wpToastTitle">Kaarten downloaden…</strong>
+    <span class="wp-toast__msg" id="wpToastMsg">Bezig…</span>
+    <div class="wp-progress wp-progress--sm"><div class="wp-progress__bar" id="wpToastBar" style="width:0%"></div></div>
+  </div>
+  <button type="button" class="wp-toast__reopen" id="wpToastReopen" title="Toon voortgang"><i class="fa fa-up-right-and-down-left-from-center"></i></button>
+</div>
+</form>
+
+<style>
+  .wp-layout{display:grid;grid-template-columns:280px 1fr;gap:20px;align-items:start;}
+  .page:has(.wp-layout){max-width:min(1760px,96vw);}
+  .wp-nav{position:sticky;top:calc(var(--header-h) + 16px);}
+  .wp-tree{display:flex;flex-direction:column;gap:2px;}
+  .wp-tree__cat{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:var(--radius);
+    color:var(--text);font-size:.9rem;font-weight:700;text-decoration:none;line-height:1.25;}
+  .wp-tree__cat span,.wp-tree__period span,.wp-tree__group span{min-width:0;overflow-wrap:anywhere;}
+  .wp-tree__cat:hover{background:var(--green-tint2);}
+  .wp-tree__cat.is-active{background:var(--green-tint);color:var(--green-d);}
+  .wp-tree__cat i{color:var(--green);}
+  .wp-tree__cat.is-active i{color:var(--green-d);}
+  .wp-tree__periods{display:flex;flex-direction:column;gap:1px;margin:2px 0 6px;padding-left:10px;
+    border-left:2px solid var(--border-soft);margin-left:14px;}
+  .wp-tree__period{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--radius);
+    color:var(--text);font-size:.86rem;font-weight:700;text-decoration:none;line-height:1.2;}
+  .wp-tree__period:hover{background:var(--green-tint2);}
+  .wp-tree__period.is-active{background:var(--green-tint);color:var(--green-d);}
+  .wp-tree__period i{color:var(--placeholder);}
+  .wp-tree__period.is-active i{color:var(--green-d);}
+  .wp-tree__groups{display:flex;flex-direction:column;gap:1px;margin:2px 0 6px;padding-left:10px;
+    border-left:2px solid var(--border-soft);margin-left:10px;}
+  .wp-tree__group{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--radius);
+    color:var(--muted);font-size:.85rem;font-weight:600;text-decoration:none;line-height:1.2;}
+  .wp-tree__group:hover{background:var(--green-tint2);color:var(--text);}
+  .wp-tree__group.is-active{background:var(--green);color:#fff;}
+  .wp-tree__group i{color:var(--placeholder);}
+  .wp-tree__group:hover i,.wp-tree__group.is-active i{color:inherit;}
+  .wp-tree__hint{padding:6px 10px 8px 24px;margin:0;}
+
+  .wp-filters{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+  .wp-filters__search{position:relative;flex:1;min-width:200px;}
+  .wp-filters__search i{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--placeholder);font-size:.85rem;}
+  .wp-filters__search input{width:100%;padding:9px 12px 9px 32px;border:1px solid var(--border);
+    border-radius:var(--radius);font-size:.88rem;background:#fff;}
+  .wp-filters__select{padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius);
+    font-size:.88rem;background:#fff;color:var(--text);}
+  .wp-filters__count{white-space:nowrap;}
+  .wp-filters__toggle{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted);cursor:pointer;white-space:nowrap;}
+  .wp-filters__toggle input{margin:0;cursor:pointer;}
+
+  .kaart-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;}
+  .wp-kaart{cursor:pointer;position:relative;transition:box-shadow .18s,border-color .18s;}
+  .wp-kaart__fmt{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.02em;
+    color:var(--muted);background:var(--green-tint2);padding:6px 10px;border-bottom:1px solid var(--border-soft);}
+  .wp-kaart .kaart__prev{aspect-ratio:auto;height:190px;background:#fff;}
+  .wp-kaart .kaart__prev img{width:100%;height:100%;object-fit:contain;padding:10px;box-sizing:border-box;}
+  .wp-kaart .kaart__body{padding:10px 12px;}
+  .wp-kaart .kaart__title{font-size:.84rem;margin-bottom:0;}
+  .wp-kaart__foot{display:flex;flex-direction:column;gap:8px;padding-top:10px;margin-top:10px;
+    border-top:1px solid var(--border-soft);font-size:.8rem;color:var(--muted);font-weight:600;}
+  .wp-foot-row{display:flex;align-items:center;gap:8px;}
+  .wp-qtyrow{justify-content:space-between;}
+  .wp-qtylbl{display:inline-flex;align-items:center;gap:6px;font-size:.76rem;}
+  .wp-check{position:relative;width:20px;height:20px;flex:none;border-radius:5px;
+    background:#fff;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;}
+  .wp-check i{font-size:.68rem;color:#fff;opacity:0;transition:opacity .12s;}
+  .wp-check input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer;}
+  /* Niet meer beschikbaar (verdwenen van pluslokaal.nl) */
+  .wp-kaart.is-unavailable{cursor:default;opacity:.72;}
+  .wp-kaart.is-unavailable .kaart__prev img{filter:grayscale(1);opacity:.5;}
+  .wp-gone{position:absolute;left:8px;top:8px;background:#dd350d;color:#fff;font-size:.7rem;font-weight:700;
+    padding:3px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:5px;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+  .wp-gone-note{font-size:.74rem;color:var(--muted,#6c6c6c);line-height:1.3;padding:2px 0;}
+  .wp-kaart:has(.wp-cb:checked){border-color:var(--green);box-shadow:0 0 0 2px var(--green);}
+  .wp-kaart:has(.wp-cb:checked) .wp-check{background:var(--green);border-color:var(--green);}
+  .wp-kaart:has(.wp-cb:checked) .wp-check i{opacity:1;}
+  .wp-kaart:has(.wp-cb:checked) .wp-kaart__foot{color:var(--green-d);}
+  /* Aantal-stepper per kaart (aantal afdrukken) */
+  .wp-check-lbl{flex:1;}
+  .wp-qty{display:inline-flex;align-items:center;flex:none;border:1px solid var(--green);
+    border-radius:8px;overflow:hidden;background:#fff;height:30px;}
+  .wp-qty .wp-qty__b{width:30px;height:30px;flex:none;border:none;background:var(--green-tint2);
+    cursor:pointer;color:var(--green-d);font-size:1.15rem;font-weight:800;line-height:1;padding:0;
+    display:flex;align-items:center;justify-content:center;}
+  .wp-qty .wp-qty__b:hover{background:var(--green);color:#fff;}
+  .wp-qty input.wp-qty__n{width:34px;height:30px;flex:none;border:none;border-left:1px solid var(--border-soft);
+    border-right:1px solid var(--border-soft);border-radius:0;padding:0;text-align:center;font-weight:800;
+    font-size:.88rem;color:var(--text);background:#fff;outline:none;box-shadow:none !important;
+    -moz-appearance:textfield;}
+  .wp-kaart:has(.wp-cb:checked) .wp-qty{border-color:var(--green);}
+  .wp-qty.multi{border-color:var(--green);background:var(--green-tint);}
+
+  .wp-actionbar{position:sticky;bottom:0;margin-top:16px;z-index:20;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-md);padding:14px 18px;}
+  .wp-actionbar__info{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .wp-actionbar__info strong{color:var(--green-d);font-size:.95rem;}
+  .wp-actionbar__btns{display:flex;gap:8px;align-items:center;}
+  .wp-actionbar__btns .btn{white-space:normal;}
+
+  @media (max-width:820px){
+    .wp-layout{grid-template-columns:1fr;}
+    .wp-nav{position:static;}
+    .wp-actionbar{flex-direction:column;align-items:stretch;padding:12px 14px;}
+    .wp-actionbar__btns{flex-direction:column;width:100%;}
+    .wp-actionbar .btn{width:100%;justify-content:center;}
+  }
+  @media (max-width:560px){
+    .wp-filters{gap:8px;}
+    .wp-filters__search{min-width:0;flex:1 1 100%;}
+    .wp-filters__select{flex:1 1 100%;}
+    .wp-filters__toggle{flex:1 1 100%;}
+    .kaart-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
+    .wp-kaart .kaart__prev{height:150px;}
+  }
+
+  /* Download-voortgang: modal + mini-toast + PLUS-blaadjes spinner */
+  .wp-modal{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;}
+  .wp-modal[hidden]{display:none;}
+  .wp-modal__backdrop{position:absolute;inset:0;background:rgba(20,26,20,.5);}
+  .wp-modal__box{position:relative;background:var(--card);border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-md);padding:32px 36px;max-width:380px;width:92vw;text-align:center;
+    display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .wp-modal__box h3{margin:8px 0 0;font-size:1.05rem;color:var(--text);}
+  .wp-modal__msg{margin:0;color:var(--muted);font-size:.86rem;min-height:1.2em;}
+  .wp-modal__stats{margin:6px 0 0;color:var(--placeholder);font-size:.78rem;min-height:1.1em;}
+  .wp-modal__detail{margin:2px 0 0;color:var(--placeholder);font-size:.76rem;font-style:italic;min-height:1.1em;}
+  .wp-modal__acts{margin-top:16px;display:flex;gap:8px;}
+  .wp-modal__acts .btn[hidden]{display:none;}
+  /* Winkelmandje-overzicht */
+  .wp-cart-box{max-width:560px;width:94vw;text-align:left;padding:0;align-items:stretch;max-height:82vh;}
+  .wp-cart-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border-soft);}
+  .wp-cart-head h3{margin:0;color:var(--green-d);display:flex;align-items:center;gap:9px;font-size:1.05rem;}
+  .wp-cart-list{overflow-y:auto;padding:8px 20px;flex:1;min-height:80px;}
+  .wp-ci{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-soft);flex-wrap:wrap;}
+  .wp-ci:last-child{border-bottom:none;}
+  .wp-ci__fmt{flex:none;font-size:.64rem;font-weight:800;text-transform:uppercase;letter-spacing:.02em;
+    color:var(--green-d);background:var(--green-tint);border-radius:99px;padding:3px 9px;white-space:nowrap;}
+  .wp-ci__body{flex:1 1 150px;min-width:0;}
+  .wp-ci__name{font-size:.85rem;font-weight:700;line-height:1.25;}
+  .wp-ci__meta{font-size:.72rem;color:var(--muted);}
+  .wp-ci__ctrl{display:flex;align-items:center;gap:6px;margin-left:auto;flex:none;}
+  .wp-ci__x{flex:none;background:none;border:none;color:var(--muted);cursor:pointer;padding:6px;}
+  .wp-ci__x:hover{color:var(--red);}
+  @media (max-width:560px){
+    .wp-ci__ctrl{flex:1 1 100%;justify-content:flex-end;margin-left:0;}
+  }
+  .wp-cart-empty{text-align:center;color:var(--muted);padding:30px 10px;}
+  .wp-cart-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    padding:14px 20px;border-top:1px solid var(--border-soft);}
+  .wp-cart-total{font-weight:800;color:var(--green-d);font-size:.9rem;}
+  .wp-cart-acts{display:flex;gap:8px;}
+  .wp-cart-acts .btn[hidden]{display:none;}
+
+  .wp-progress{width:100%;height:8px;border-radius:99px;background:var(--border-soft);overflow:hidden;margin-top:12px;}
+  .wp-progress__bar{height:100%;width:0;background:var(--green);border-radius:99px;transition:width .35s ease;}
+  .wp-progress--sm{height:5px;margin-top:6px;}
+
+  .wp-spinner svg{width:100%;height:100%;display:block;}
+  .wp-spinner--lg{width:60px;height:64px;}
+  .wp-spinner--sm{width:24px;height:26px;flex:none;margin-top:1px;}
+  .wp-leaf{animation:wpLeafPulse 1.2s ease-in-out infinite;}
+  .wp-leaf--1{animation-delay:0s;}
+  .wp-leaf--4{animation-delay:.3s;}
+  .wp-leaf--3{animation-delay:.6s;}
+  .wp-leaf--2{animation-delay:.9s;}
+  @keyframes wpLeafPulse{
+    0%,75%,100%{opacity:.22;}
+    25%{opacity:1;}
+  }
+
+  .wp-toast{position:fixed;top:calc(var(--header-h) + 14px);right:20px;z-index:400;
+    display:flex;align-items:flex-start;gap:11px;background:var(--card);border:1px solid var(--border);
+    border-radius:var(--radius-lg);box-shadow:var(--shadow-md);padding:12px 12px 12px 14px;
+    max-width:300px;width:calc(100vw - 40px);}
+  .wp-toast[hidden]{display:none;}
+  .wp-toast__body{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;}
+  .wp-toast__body strong{font-size:.84rem;color:var(--text);}
+  .wp-toast__msg{font-size:.75rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .wp-toast__reopen{background:none;border:none;color:var(--muted);cursor:pointer;padding:3px 4px;flex:none;}
+  .wp-toast__reopen:hover{color:var(--text);}
+
+  /* Meldingen (modal + toast) op mobiel */
+  @media (max-width:560px){
+    .wp-modal{align-items:flex-end;}                 /* modal onderaan = beter met duim bereikbaar */
+    .wp-modal__box{width:100%;max-width:none;border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+      padding:24px 18px calc(20px + env(safe-area-inset-bottom));}
+    .wp-modal__acts{flex-direction:column;width:100%;}
+    .wp-modal__acts .btn{width:100%;justify-content:center;white-space:normal;}
+    .wp-toast{top:auto;bottom:14px;right:12px;left:12px;width:auto;max-width:none;}
+  }
+</style>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function(){
+  var CART_KEY = 'wp_cart_v1';
+
+  function loadCart(){
+    try { return JSON.parse(localStorage.getItem(CART_KEY) || '[]'); } catch(e){ return []; }
+  }
+  function saveCart(){ localStorage.setItem(CART_KEY, JSON.stringify(Array.from(cart))); }
+
+  var cart     = new Set(loadCart());
+  // Aantal afdrukken per kaart (docId -> aantal>1). Los van de selectie-Set.
+  var QTY_KEY = 'wp_qty_v1';
+  function loadQtys(){ try { return JSON.parse(localStorage.getItem(QTY_KEY) || '{}'); } catch(e){ return {}; } }
+  function saveQtys(){ localStorage.setItem(QTY_KEY, JSON.stringify(qtys)); }
+  var qtys = loadQtys();
+  function qtyOf(id){ return Math.max(1, Math.min(99, parseInt(qtys[id]) || 1)); }
+  function setQty(id, q){ q = Math.max(1, Math.min(99, q || 1)); if(q <= 1) delete qtys[id]; else qtys[id] = q; saveQtys(); }
+  function paintQty(span){ var id = span.dataset.doc, q = qtyOf(id); span.querySelector('.wp-qty__n').value = q; span.classList.toggle('multi', q > 1); }
+  function getQuantities(){ var o = {}; cart.forEach(function(id){ var q = qtyOf(id); if(q > 1) o[id] = q; }); return o; }
+  var form     = document.getElementById('wpCartForm');
+  var boxes    = [].slice.call(document.querySelectorAll('.wp-cb'));
+  var barEl    = document.getElementById('wpCountBar');
+  var submit   = document.getElementById('wpSubmit');
+  var printBtn = document.getElementById('wpPrint');
+  // Bij 'alleen printen': de downloadknop komt terug zodra een print mislukt (printer offline/fout).
+  function revealDownload(){
+    if(submit && submit.classList.contains('wp-dl-hidden')){
+      submit.classList.remove('wp-dl-hidden');
+      var bar = document.querySelector('.wp-actionbar__info small');
+      if(bar) bar.textContent = 'Printen lukte niet — je kunt de kaarten nu downloaden en zelf printen.';
+    }
+  }
+  var toggle   = document.getElementById('wpToggleAll');
+  var clearBtn = document.getElementById('wpClearCart');
+  var search   = document.getElementById('wpSearch');
+  var fmtSel   = document.getElementById('wpFormaatFilter');
+  var visCount = document.getElementById('wpVisibleCount');
+  var noMatch  = document.getElementById('wpNoMatch');
+
+  function visibleCards(){
+    return [].slice.call(document.querySelectorAll('.wp-kaart')).filter(function(c){
+      return c.style.display !== 'none';
+    });
+  }
+  function visibleBoxes(){
+    return visibleCards().map(function(c){ return c.querySelector('.wp-cb'); }).filter(Boolean);
+  }
+
+  var WP_PRINTER_READY = {{ 'true' if (store_printer and store_printer.ready) else 'false' }};
+  function refresh(){
+    if(barEl)   barEl.textContent = cart.size;
+    if(submit)  submit.disabled   = (cart.size === 0);
+    if(printBtn) printBtn.disabled = (cart.size === 0) || !WP_PRINTER_READY;
+    if(toggle){
+      var vis = visibleBoxes();
+      var allChecked = vis.length > 0 && vis.every(function(b){ return cart.has(b.value); });
+      toggle.innerHTML = allChecked
+        ? '<i class="fa fa-xmark"></i> Alles deselecteren'
+        : '<i class="fa fa-check-double"></i> Alles selecteren';
+    }
+  }
+
+  // Vink kaarten aan die al in het mandje zitten (bv. na navigeren naar een andere afdeling/week).
+  boxes.forEach(function(b){ b.checked = cart.has(b.value); });
+  refresh();
+
+  boxes.forEach(function(b){
+    b.addEventListener('change', function(){
+      if(b.checked) cart.add(b.value); else cart.delete(b.value);
+      saveCart(); refresh();
+    });
+  });
+
+  // Aantal-steppers per kaart bedienen (aantal>1 selecteert de kaart automatisch).
+  function ensureSelected(id){
+    if(cart.has(id)) return;
+    cart.add(id); saveCart();
+    var cb = document.getElementById('wp-' + id); if(cb) cb.checked = true;
+    refresh();
+  }
+  [].slice.call(document.querySelectorAll('.wp-qty')).forEach(function(span){
+    var id = span.dataset.doc; paintQty(span);
+    span.querySelectorAll('.wp-qty__b').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var q = qtyOf(id) + parseInt(btn.dataset.d); setQty(id, q); paintQty(span);
+        if(qtyOf(id) > 1) ensureSelected(id);
+      });
+    });
+    var n = span.querySelector('.wp-qty__n');
+    n.addEventListener('input', function(){ setQty(id, parseInt(n.value.replace(/\D/g, '')) || 1); span.classList.toggle('multi', qtyOf(id) > 1); if(qtyOf(id) > 1) ensureSelected(id); });
+    n.addEventListener('blur', function(){ paintQty(span); });
+  });
+
+  if(toggle){
+    toggle.addEventListener('click', function(){
+      var vis = visibleBoxes();
+      var allChecked = vis.length > 0 && vis.every(function(b){ return cart.has(b.value); });
+      vis.forEach(function(b){
+        b.checked = !allChecked;
+        if(b.checked) cart.add(b.value); else cart.delete(b.value);
+      });
+      saveCart(); refresh();
+    });
+  }
+
+  if(clearBtn){
+    clearBtn.addEventListener('click', function(){
+      if(!cart.size) return;
+      if(!confirm('Mandje legen? Alle ' + cart.size + ' geselecteerde kaart(en) worden gedeselecteerd.')) return;
+      cart.clear(); saveCart();
+      boxes.forEach(function(b){ b.checked = false; });
+      refresh();
+    });
+  }
+
+  function applyFilters(){
+    var q   = (search && search.value || '').trim().toLowerCase();
+    var fmt = (fmtSel && fmtSel.value) || '';
+    var shown = 0;
+    document.querySelectorAll('.wp-kaart').forEach(function(card){
+      var naam    = card.getAttribute('data-naam') || '';
+      var formaat = card.getAttribute('data-formaat') || '';
+      var show = (!q || naam.indexOf(q) !== -1) && (!fmt || formaat === fmt);
+      card.style.display = show ? '' : 'none';
+      if(show) shown++;
+    });
+    if(visCount) visCount.textContent = shown;
+    if(noMatch)  noMatch.style.display = (shown === 0) ? '' : 'none';
+    refresh();
+  }
+  if(search) search.addEventListener('input', applyFilters);
+  if(fmtSel) fmtSel.addEventListener('change', applyFilters);
+
+  // Briljant-varianten tonen/verbergen: server-side (herlaadt met ?briljant=1) zodat de
+  // verborgen kaarten ook echt niet in de selectie/telling meedoen.
+  var briljantToggle = document.getElementById('wpBriljantToggle');
+  if(briljantToggle){
+    briljantToggle.addEventListener('change', function(){
+      var url = new URL(window.location.href);
+      if(briljantToggle.checked) url.searchParams.set('briljant', '1');
+      else url.searchParams.delete('briljant');
+      window.location.href = url.toString();
+    });
+  }
+
+  // --- Download op de achtergrond: modal met voortgang + PLUS-blaadjes spinner ------------
+  var JOB_KEY      = 'wp_job_v1';
+  var startUrl     = form && form.getAttribute('data-start-url');
+  var progressTpl  = form && form.getAttribute('data-progress-url');
+  var fileTpl      = form && form.getAttribute('data-file-url');
+
+  var modal      = document.getElementById('wpModal');
+  var modalMsg   = document.getElementById('wpModalMsg');
+  var modalBar   = document.getElementById('wpModalBar');
+  var modalBg    = document.getElementById('wpModalBg');
+  var modalClose = document.getElementById('wpModalClose');
+  var toast      = document.getElementById('wpToast');
+  var toastTitle = document.getElementById('wpToastTitle');
+  var toastMsg   = document.getElementById('wpToastMsg');
+  var toastBar   = document.getElementById('wpToastBar');
+  var toastReopen= document.getElementById('wpToastReopen');
+
+  var pollTimer = null;
+
+  function setBars(percent, message){
+    var p = Math.max(0, Math.min(100, percent || 0)) + '%';
+    if(modalBar) modalBar.style.width = p;
+    if(toastBar) toastBar.style.width = p;
+    if(modalMsg) modalMsg.textContent = message || '';
+    if(toastMsg) toastMsg.textContent = message || '';
+  }
+
+  function showModal(){ if(modal) modal.hidden = false; if(toast) toast.hidden = true; }
+  function showToast(){ if(toast) toast.hidden = false; if(modal) modal.hidden = true; }
+  function hideAll(){ if(modal) modal.hidden = true; if(toast) toast.hidden = true; }
+
+  function triggerFileDownload(jobId){
+    var a = document.createElement('a');
+    a.href = fileTpl.replace('__JOB__', jobId);
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){ a.remove(); }, 1500);
+  }
+
+  function stopPolling(){
+    if(pollTimer){ clearInterval(pollTimer); pollTimer = null; }
+  }
+
+  function finishJob(jobId){
+    localStorage.removeItem(JOB_KEY);
+    stopPolling();
+    setBars(100, 'Klaar! Bestand wordt gedownload…');
+    triggerFileDownload(jobId);
+    // Mandje legen: deze kaarten zijn nu gedownload, dus de selectie is niet meer nodig.
+    cart.clear(); saveCart();
+    boxes.forEach(function(b){ b.checked = false; });
+    refresh();
+    setTimeout(hideAll, 1400);
+  }
+
+  function failJob(message){
+    localStorage.removeItem(JOB_KEY);
+    stopPolling();
+    setBars(100, message || 'Downloaden mislukt.');
+    if(modalBg)    modalBg.hidden = true;
+    if(modalClose) modalClose.hidden = false;
+    showModal();
+  }
+
+  function pollJob(jobId){
+    stopPolling();
+    pollTimer = setInterval(function(){
+      fetch(progressTpl.replace('__JOB__', jobId))
+        .then(function(r){ if(!r.ok) throw new Error('job niet gevonden'); return r.json(); })
+        .then(function(p){
+          if(p.status === 'done'){ finishJob(jobId); }
+          else if(p.status === 'error'){ failJob(p.error || 'Downloaden mislukt.'); }
+          else { setBars(p.percent, p.message); }
+        })
+        .catch(function(){ failJob('Verbinding met de server verloren.'); });
+    }, 1000);
+  }
+
+  function startJob(ids){
+    if(modalBg)    modalBg.hidden = false;
+    if(modalClose) modalClose.hidden = true;
+    setBars(2, 'Bezig met starten…');
+    showModal();
+    var fd = new FormData();
+    ids.forEach(function(id){ fd.append('doc_ids', id); });
+    fd.append('quantities', JSON.stringify(getQuantities()));
+    fetch(startUrl, {method: 'POST', body: fd})
+      .then(function(r){ return r.json().then(function(data){ return {ok: r.ok, data: data}; }); })
+      .then(function(res){
+        if(!res.ok || res.data.error){ failJob(res.data.error || 'Downloaden mislukt.'); return; }
+        localStorage.setItem(JOB_KEY, JSON.stringify({job_id: res.data.job_id, started_at: Date.now()}));
+        pollJob(res.data.job_id);
+      })
+      .catch(function(){ failJob('Verbinding met de server mislukt.'); });
+  }
+
+  if(modalBg) modalBg.addEventListener('click', showToast);
+  if(toastReopen) toastReopen.addEventListener('click', showModal);
+  if(modalClose) modalClose.addEventListener('click', hideAll);
+
+  // Mandje volledig legen (selectie + aantallen) — meteen bij downloaden/printen.
+  function clearCartUI(){
+    cart.clear(); qtys = {}; saveCart(); saveQtys();
+    boxes.forEach(function(b){ b.checked = false; });
+    [].slice.call(document.querySelectorAll('.wp-kaart .wp-qty')).forEach(paintQty);
+    refresh();
+  }
+  var printUrl = form && form.getAttribute('data-print-url');
+  function doDownload(){
+    var ids = Array.from(cart); if(!ids.length) return;
+    startJob(ids);            // bouwt fd (incl. aantallen) en start meteen
+    clearCartUI(); closeCartModal();
+  }
+  function doPrint(){
+    var ids = Array.from(cart); if(!ids.length) return;
+    var fd = new FormData();
+    ids.forEach(function(id){ fd.append('doc_ids', id); });
+    fd.append('quantities', JSON.stringify(getQuantities()));
+    window.PlusPrint.start({ startUrl: printUrl, body: fd,
+      title: ids.length + ' winkelpakket-kaart(en) printen',
+      onError: function(){ revealDownload(); } });
+    clearCartUI(); closeCartModal();
+  }
+  if(form) form.addEventListener('submit', function(ev){ ev.preventDefault(); doDownload(); });
+  if(printBtn) printBtn.addEventListener('click', doPrint);
+
+  // ── Winkelmandje-overzicht ────────────────────────────────────────────────
+  function esc(s){ return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+  var cartModal = document.getElementById('wpCartModal');
+  function closeCartModal(){ if(cartModal) cartModal.hidden = true; }
+  function updateCartTotal(items){
+    var inCart = items.filter(function(it){ return cart.has(String(it.id)); });
+    var total = inCart.reduce(function(s,it){ return s + qtyOf(String(it.id)); }, 0);
+    document.getElementById('wpCartTotal').textContent = inCart.length + ' kaart(en) · ' + total + ' afdruk(ken)';
+  }
+  function syncPageQty(id){ var sp = document.querySelector('.wp-kaart .wp-qty[data-doc="'+id+'"]'); if(sp) paintQty(sp); }
+  function renderCart(items){
+    var list = document.getElementById('wpCartList');
+    items = items.filter(function(it){ return cart.has(String(it.id)); });
+    if(!items.length){ list.innerHTML = '<div class="wp-cart-empty">Je mandje is leeg.</div>'; updateCartTotal(items); return; }
+    list.innerHTML = items.map(function(it){
+      var q = qtyOf(String(it.id));
+      return '<div class="wp-ci" data-id="'+it.id+'">'+
+        '<span class="wp-ci__fmt">'+esc(it.formaat)+'</span>'+
+        '<div class="wp-ci__body"><div class="wp-ci__name">'+esc(it.naam)+'</div>'+
+        '<div class="wp-ci__meta">'+esc(it.week)+(it.afdeling ? ' · '+esc(it.afdeling) : '')+'</div></div>'+
+        '<div class="wp-ci__ctrl">'+
+          '<span class="wp-qty'+(q>1?' multi':'')+'" data-doc="'+it.id+'">'+
+            '<button type="button" class="wp-qty__b" data-d="-1">&minus;</button>'+
+            '<input type="text" class="wp-qty__n" value="'+q+'" inputmode="numeric">'+
+            '<button type="button" class="wp-qty__b" data-d="1">+</button></span>'+
+          '<button type="button" class="wp-ci__x" data-rm="'+it.id+'" title="Verwijderen"><i class="fa fa-xmark"></i></button>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+    list.querySelectorAll('.wp-ci .wp-qty').forEach(function(span){
+      var id = span.dataset.doc;
+      span.querySelectorAll('.wp-qty__b').forEach(function(btn){ btn.addEventListener('click', function(){ setQty(id, qtyOf(id)+parseInt(btn.dataset.d)); paintQty(span); syncPageQty(id); updateCartTotal(items); }); });
+      var n = span.querySelector('.wp-qty__n'); n.addEventListener('input', function(){ setQty(id, parseInt(n.value.replace(/\D/g,''))||1); span.classList.toggle('multi', qtyOf(id)>1); syncPageQty(id); updateCartTotal(items); });
+      n.addEventListener('blur', function(){ paintQty(span); });
+    });
+    list.querySelectorAll('[data-rm]').forEach(function(x){ x.addEventListener('click', function(){
+      var id = String(x.dataset.rm); cart.delete(id); delete qtys[id]; saveCart(); saveQtys();
+      var cb = document.getElementById('wp-'+id); if(cb) cb.checked = false; syncPageQty(id); refresh();
+      x.closest('.wp-ci').remove(); updateCartTotal(items);
+      if(!document.querySelector('.wp-ci')) document.getElementById('wpCartList').innerHTML = '<div class="wp-cart-empty">Je mandje is leeg.</div>';
+    }); });
+    updateCartTotal(items);
+  }
+  function openCart(){
+    if(!cartModal) return;
+    var list = document.getElementById('wpCartList');
+    cartModal.hidden = false;
+    var ids = Array.from(cart);
+    if(!ids.length){ list.innerHTML = '<div class="wp-cart-empty">Je mandje is leeg.</div>'; document.getElementById('wpCartTotal').textContent = ''; return; }
+    list.innerHTML = '<div class="wp-cart-empty"><i class="fa fa-spinner fa-spin"></i> Mandje laden…</div>';
+    var fd = new FormData(); ids.forEach(function(id){ fd.append('doc_ids', id); });
+    fetch('{{ url_for("winkelpakketten_cart_info") }}', {method:'POST', body:fd})
+      .then(function(r){ return r.json(); }).then(renderCart)
+      .catch(function(){ list.innerHTML = '<div class="wp-cart-empty">Kon het mandje niet laden.</div>'; });
+  }
+  var viewCart = document.getElementById('wpViewCart');
+  if(viewCart) viewCart.addEventListener('click', openCart);
+  var cc = document.getElementById('wpCartClose'); if(cc) cc.addEventListener('click', closeCartModal);
+  var cbg = document.getElementById('wpCartBackdrop'); if(cbg) cbg.addEventListener('click', closeCartModal);
+  var cd = document.getElementById('wpCartDownload'); if(cd) cd.addEventListener('click', doDownload);
+  var cp = document.getElementById('wpCartPrint'); if(cp) cp.addEventListener('click', doPrint);
+
+  // Als er van een vorige pagina nog een download-job liep, hervat de melding (mini-toast).
+  (function resumeJob(){
+    var raw = null;
+    try { raw = JSON.parse(localStorage.getItem(JOB_KEY) || 'null'); } catch(e){ raw = null; }
+    if(!raw || !raw.job_id) return;
+    if(Date.now() - (raw.started_at || 0) > 30 * 60 * 1000){ localStorage.removeItem(JOB_KEY); return; }
+    if(modalBg)    modalBg.hidden = false;
+    if(modalClose) modalClose.hidden = true;
+    setBars(5, 'Bezig…');
+    showToast();
+    pollJob(raw.job_id);
+  })();
+})();
+
+// --- Synchroniseren-knoppen (cache-sync + download-sync): zelfde pop-up-patroon ----------------
+var WP_STAT_LABELS = {
+  groups_done: null,  // meegenomen in de "X/Y afdelingen"-tekst hieronder, geen eigen label
+  groups_total: null,
+  docs_found: 'kaarten gevonden',
+  new_docs: 'nieuw',
+  pdfs_cached: "PDF's gecached",
+  skipped: 'al gecached, overgeslagen'
+};
+function wpFormatStats(stats){
+  if(!stats) return '';
+  var parts = [];
+  if(stats.groups_total){ parts.push((stats.groups_done || 0) + '/' + stats.groups_total + ' afdelingen'); }
+  ['docs_found', 'new_docs', 'pdfs_cached', 'skipped'].forEach(function(k){
+    if(stats[k] !== undefined && stats[k] !== null){ parts.push(stats[k] + ' ' + WP_STAT_LABELS[k]); }
+  });
+  return parts.join(' · ');
+}
+
+function initSyncWidget(formId, prefix, doneMessage){
+  var form = document.getElementById(formId);
+  if(!form) return;
+  var progressUrl = form.getAttribute('data-progress-url');
+  var btn        = form.querySelector('button[type=submit]');
+  var modal      = document.getElementById(prefix + 'Modal');
+  var modalMsg   = document.getElementById(prefix + 'ModalMsg');
+  var modalBar   = document.getElementById(prefix + 'ModalBar');
+  var modalStats  = document.getElementById(prefix + 'ModalStats');
+  var modalDetail = document.getElementById(prefix + 'ModalDetail');
+  var modalBg    = document.getElementById(prefix + 'ModalBg');
+  var modalClose = document.getElementById(prefix + 'ModalClose');
+  var toast      = document.getElementById(prefix + 'Toast');
+  var toastMsg   = document.getElementById(prefix + 'ToastMsg');
+  var toastBar   = document.getElementById(prefix + 'ToastBar');
+  var toastReopen= document.getElementById(prefix + 'ToastReopen');
+  var pollTimer  = null;
+
+  function setBars(percent, message, stats, detail){
+    var p = Math.max(0, Math.min(100, percent || 0)) + '%';
+    if(modalBar) modalBar.style.width = p;
+    if(toastBar) toastBar.style.width = p;
+    if(modalMsg) modalMsg.textContent = message || '';
+    if(toastMsg) toastMsg.textContent = message || '';
+    if(modalStats) modalStats.textContent = wpFormatStats(stats);
+    if(modalDetail) modalDetail.textContent = detail ? ('→ ' + detail) : '';
+  }
+  function showModal(){ modal.hidden = false; toast.hidden = true; }
+  function showToast(){ toast.hidden = false; modal.hidden = true; }
+  function hideAll(){ modal.hidden = true; toast.hidden = true; if(btn) btn.disabled = false; }
+  function stopPolling(){ if(pollTimer){ clearInterval(pollTimer); pollTimer = null; } }
+
+  function poll(){
+    stopPolling();
+    pollTimer = setInterval(function(){
+      fetch(progressUrl).then(function(r){ return r.json(); }).then(function(p){
+        if(p.status === 'running'){
+          setBars(p.percent, p.message, p.stats, p.detail);
+        } else if(p.status === 'done'){
+          stopPolling();
+          setBars(100, doneMessage, p.stats, null);
+          setTimeout(function(){ window.location.reload(); }, 1400);
+        } else if(p.status === 'error'){
+          stopPolling();
+          setBars(100, p.error || 'Mislukt.', p.stats, null);
+          if(modalBg)    modalBg.hidden = true;
+          if(modalClose) modalClose.hidden = false;
+          showModal();
+        }
+      }).catch(function(){ /* even geen verbinding, volgende tik opnieuw proberen */ });
+    }, 1500);
+  }
+
+  if(modalBg)     modalBg.addEventListener('click', showToast);
+  if(toastReopen) toastReopen.addEventListener('click', showModal);
+  if(modalClose)  modalClose.addEventListener('click', hideAll);
+
+  form.addEventListener('submit', function(ev){
+    ev.preventDefault();
+    if(btn) btn.disabled = true;
+    if(modalBg)    modalBg.hidden = false;
+    if(modalClose) modalClose.hidden = true;
+    setBars(1, 'Bezig met starten…', null, null);
+    showModal();
+    fetch(form.action, {method: 'POST', body: new FormData(form)})
+      .then(function(){ poll(); })
+      .catch(function(){ setBars(0, 'Starten mislukt.', null, null); });
+  });
+
+  // Als deze sync al liep (bv. na herladen van de pagina), meteen hervatten.
+  fetch(progressUrl).then(function(r){ return r.json(); }).then(function(p){
+    if(p.status === 'running'){
+      if(btn) btn.disabled = true;
+      setBars(p.percent, p.message, p.stats, p.detail);
+      showToast();
+      poll();
+    }
+  }).catch(function(){});
+}
+initSyncWidget('wpMetaSyncForm', 'wpMetaSync', 'Klaar! Pagina wordt ververst…');
+initSyncWidget('wpPdfSyncForm', 'wpPdfSync', 'Klaar! Pagina wordt ververst…');
+</script>
+{% endblock %}

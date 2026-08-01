@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ art.title }} – Kennisbank{% endblock %}
+{% block content %}
+<div class="kb-article-wrap">
+  <a href="{{ url_for('kb_index') }}" class="backlink"><i class="fa fa-arrow-left"></i> Alle onderwerpen</a>
+
+  <div class="flex" style="align-items:flex-start;margin-top:10px;">
+    <article class="panel kb-article" style="flex:1;min-width:320px;">
+      <div class="panel__body">
+        <div class="kb-article__head">
+          <div class="kb-article__ic"><i class="fa {{ art.icon or 'fa-book' }}"></i></div>
+          <div>
+            {% if art.category %}<div class="kb-article__cat">{{ art.category }}</div>{% endif %}
+            <h1 class="kb-article__title">{{ art.title }}</h1>
+          </div>
+        </div>
+        <div class="kb-content">
+          {{ render_markdown(art.body) }}
+        </div>
+        <div class="kb-article__foot">
+          Laatst bijgewerkt {{ art.updated_at.strftime('%d-%m-%Y') }}{% if art.updated_by %} · {{ art.updated_by }}{% endif %}
+          {% if user and user.role=='admin' %} · <a href="{{ url_for('kb_edit', aid=art.id) }}"><i class="fa fa-pen"></i> Bewerken</a>{% endif %}
+        </div>
+      </div>
+    </article>
+
+    {% if others %}
+    <aside style="flex:0 0 260px;min-width:220px;">
+      <div class="panel">
+        <div class="panel__head"><i class="fa fa-layer-group"></i><h3>{{ art.category }}</h3></div>
+        <div class="panel__body" style="padding:6px;">
+          <nav class="kb-side">
+            {% for o in others %}
+            <a href="{{ url_for('kb_article', slug=o.slug) }}"><i class="fa {{ o.icon or 'fa-book' }}"></i> {{ o.title }}</a>
+            {% endfor %}
+          </nav>
+        </div>
+      </div>
+    </aside>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

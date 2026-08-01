@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Filiaal {{ f.nummer }} – PLUSLokaal{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <a href="{{ url_for('filialen') }}" class="btn btn-ghost btn-sm"><i class="fa fa-arrow-left"></i> Terug</a>
+    <div>
+      <h1 class="page-title">PLUS {{ f.naam or f.nummer }} <span class="muted" style="font-weight:500;">({{ f.nummer }})</span></h1>
+      <p class="page-sub">{{ ucount }} gebruiker(s) · winkelprinter voor labels</p>
+    </div>
+  </div>
+</div>
+
+<div class="flex">
+  <div class="panel" style="flex:1 1 480px;max-width:600px;">
+    <div class="panel__head"><i class="fa fa-store"></i><h3>Filiaal &amp; winkelprinter</h3></div>
+    <div class="panel__body">
+      <form method="post">
+        <input type="hidden" name="section" value="label">
+        <div class="field"><label>Naam</label><input type="text" name="naam" value="{{ f.naam or '' }}" placeholder="Centrum"></div>
+        <div style="border-top:1px solid var(--border,#e9ecef);margin:16px 0 14px;"></div>
+        <div class="sec__h" style="margin-bottom:12px;"><i class="fa fa-print"></i> Winkelprinter (direct printen, TCP 9100)</div>
+        <div class="grid cols-2">
+          <div class="field"><label>Printernaam</label><input type="text" name="printer_name" value="{{ f.printer_name or '' }}" placeholder="LW650XL PRO"></div>
+          <div class="field"><label>Printer-IP</label><input type="text" name="printer_ip" value="{{ f.printer_ip or '' }}" placeholder="10.0.0.50"></div>
+          <div class="field"><label>Poort</label><input type="number" name="printer_port" value="{{ f.printer_port or 9100 }}"></div>
+          <div class="field"><label>Printertaal</label>
+            <select name="printer_protocol">
+              {% for p in ['tspl','zpl','epl','text'] %}<option value="{{ p }}" {{ 'selected' if f.printer_protocol==p }}>{{ p|upper }}</option>{% endfor %}
+            </select></div>
+          <div class="field"><label>DPI</label><input type="number" name="printer_dpi" value="{{ f.printer_dpi or 300 }}"></div>
+          <div class="field"><label>Label b×h (mm)</label>
+            <span style="display:flex;gap:6px;"><input type="number" step="0.5" name="printer_label_w" value="{{ f.printer_label_w or 45 }}" style="max-width:80px;"> ×
+            <input type="number" step="0.5" name="printer_label_h" value="{{ f.printer_label_h or 40 }}" style="max-width:80px;"></span></div>
+        </div>
+        <div class="field"><label>Toegestane IP's <span class="muted small">(publiek, voor IP-printbeleid; komma-gescheiden)</span></label>
+          <input type="text" name="allowed_ips" value="{{ f.allowed_ips or '' }}" placeholder="84.28.10.20, 84.28.10.21"></div>
+        <div class="field"><label>Inlog-hint bij dit winkel-IP <span class="muted small">(getoond op de inlogpagina als het inloggen mislukt vanaf een van bovenstaande IP's)</span></label>
+          <textarea name="login_hint" rows="2" placeholder="bijv. Wachtwoord vergeten? Vraag het aan je ondernemer, of gebruik ‘Wachtwoord vergeten’.">{{ f.login_hint or '' }}</textarea></div>
+        <button type="submit" class="btn btn-primary"><i class="fa fa-floppy-disk"></i> Opslaan</button>
+      </form>
+      <form method="post" style="margin-top:10px;">
+        <input type="hidden" name="action" value="test">
+        <button type="submit" class="btn btn-outline"><i class="fa fa-vial"></i> Testlabel printen</button>
+      </form>
+    </div>
+  </div>
+  <div class="panel" style="flex:1 1 480px;max-width:600px;">
+    <div class="panel__head"><i class="fa fa-print"></i><h3>Winkelprinter (schapkaarten &amp; scankaarten)</h3></div>
+    <div class="panel__body">
+      <form method="post">
+        <input type="hidden" name="section" value="doc">
+        <div class="grid cols-2">
+          <div class="field"><label>Printernaam</label><input type="text" name="doc_printer_name" value="{{ f.doc_printer_name or '' }}" placeholder="Toshiba e-STUDIO3515AC"></div>
+          <div class="field"><label>Printer-IP</label><input type="text" name="doc_printer_ip" value="{{ f.doc_printer_ip or '' }}" placeholder="10.0.0.51"></div>
+          <div class="field"><label>Poort (IPP)</label><input type="number" name="doc_printer_port" value="{{ f.doc_printer_port or 631 }}"></div>
+        </div>
+        <label class="lbl-chk" style="display:flex;align-items:flex-start;gap:8px;font-weight:600;font-size:.85rem;margin:4px 0 6px;cursor:pointer;">
+          <input type="checkbox" name="print_only" style="width:18px;height:18px;accent-color:var(--green);margin-top:1px;" {{ 'checked' if f.print_only }}>
+          <span>Alleen printen <span class="muted small">(verberg de knop “Samenvoegen &amp; downloaden” voor deze winkel). Lukt printen niet — printer offline of een fout — dan komt de downloadknop automatisch terug.</span></span></label>
+        <div style="border-top:1px solid var(--border,#e9ecef);margin:16px 0 14px;"></div>
+        <div class="sec__h" style="margin-bottom:12px;"><i class="fa fa-inbox"></i> Papierlade per formaat</div>
+        <div class="grid cols-2">
+          {% for fmt in doc_formats %}
+          <div class="field"><label>{{ formaat_labels.get(fmt, fmt) }}</label>
+            <select name="tray_{{ fmt }}">
+              {% for t,label in [('auto','Automatisch'),('tray-1','Lade 1'),('tray-2','Lade 2'),('tray-3','Lade 3'),('tray-4','Lade 4'),('by-pass-tray','Bypass')] %}
+              <option value="{{ t }}" {{ 'selected' if doc_trays.get(fmt)==t }}>{{ label }}</option>
+              {% endfor %}
+            </select></div>
+          {% endfor %}
+        </div>
+        <button type="submit" class="btn btn-primary" style="margin-top:6px;"><i class="fa fa-floppy-disk"></i> Opslaan</button>
+      </form>
+      <form method="post" style="margin-top:10px;display:flex;gap:8px;align-items:end;flex-wrap:wrap;">
+        <input type="hidden" name="action" value="test_doc">
+        <div class="field" style="margin:0;"><label>Testformaat</label>
+          <select name="test_fmt">
+            {% for fmt in doc_formats %}<option value="{{ fmt }}" {{ 'selected' if fmt=='sk_maxi' }}>{{ formaat_labels.get(fmt, fmt) }}</option>{% endfor %}
+          </select></div>
+        <button type="submit" class="btn btn-outline"><i class="fa fa-vial"></i> Testpagina printen</button>
+      </form>
+    </div>
+  </div>
+  <div class="panel" style="flex:0 1 300px;">
+    <div class="panel__head"><i class="fa fa-circle-info"></i><h3>Uitleg</h3></div>
+    <div class="panel__body">
+      <p class="muted small" style="line-height:1.6;">Direct printen stuurt labels als <b>{{ (f.printer_protocol or 'tspl')|upper }}</b> rechtstreeks naar <b>{{ f.printer_ip or '— geen IP —' }}:{{ f.printer_port or 9100 }}</b>. TSPL print het volledige ontwerp (logo + barcode) als bitmap. De server verstuurt de print, dus de printer moet vanaf de server bereikbaar zijn. Komt er niets uit, kies dan een andere printertaal of gebruik browserprint.</p>
+      <p class="muted small" style="line-height:1.6;margin-top:10px;">De <b>winkelprinter</b> is de gewone kantoorprinter/copier (bv. Toshiba e-STUDIO) waar schapkaarten en scankaarten op afgedrukt worden, via <b>IPP</b> (poort 631) — geen apart stuurprogramma nodig. Kies per formaat welke papierlade gebruikt wordt; SK Mini en SK Middel zijn te klein voor deze printer en gebruiken altijd browserprint.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

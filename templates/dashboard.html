@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Schapkaarten – PLUSLokaal{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Schapkaarten</h1>
+    <p class="page-sub">{{ cards|length }} kaart{{ '' if cards|length==1 else 'en' }}{% if user.role != 'admin' %} · PLUS Filiaal {{ user.filiaal }}{% endif %}</p>
+  </div>
+  <div class="toolbar">
+    <div class="search">
+      <i class="fa fa-search"></i>
+      <input type="text" id="cardSearch" placeholder="Zoek op titel…" autocomplete="off">
+    </div>
+    <a href="{{ url_for('winkelpakketten') }}" class="btn btn-outline"><i class="fa fa-folder-open"></i> Printbare winkelpakketten</a>
+    <a href="{{ url_for('kaart_editor') }}" class="btn btn-primary"><i class="fa fa-plus"></i> Nieuwe kaart</a>
+  </div>
+</div>
+
+{% if cards %}
+<div class="kaart-grid" id="kaartGrid">
+  {% for card in cards %}
+  <div class="kaart" data-title="{{ card.title|lower }}"
+       data-card-id="{{ card.id }}" data-card-title="{{ card.title }}"
+       data-card-download="{{ url_for('static',filename='export/'+card.image.rsplit('.',1)[0]+'.pdf') }}"
+       data-printer-ready="{{ '1' if printers.get(card.filiaal, {}).get('ready') else '0' }}"
+       data-printer-name="{{ printers.get(card.filiaal, {}).get('name', '') }}">
+    <label class="card-select" title="Selecteren"><input type="checkbox" class="card-cb"><i class="fa fa-check"></i></label>
+    <div class="kaart__prev">
+      <img src="{{ url_for('static',filename='export/'+card.image) }}" alt="{{ card.title }}"
+           loading="lazy" onerror="this.parentElement.style.background='#f1f1ee'">
+    </div>
+    <div class="kaart__body">
+      <div class="kaart__title">{{ card.title }}</div>
+      <div class="kaart__meta">
+        <span><i class="fa fa-file-lines fa-fw"></i> {{ card.formaat or 'A3 liggend' }}</span>
+        <span><i class="fa fa-clock fa-fw"></i> {{ card.timestamp.strftime('%d-%m-%Y %H:%M') }}</span>
+        {% if user.role == 'admin' %}<span><i class="fa fa-store fa-fw"></i> {{ filiaal_display(card.filiaal, card.filiaal_naam) }}</span>{% endif %}
+      </div>
+      <div class="kaart__acts">
+        <a href="{{ url_for('kaart_editor', edit=card.id) }}" class="iconbtn is-edit" title="Bewerken"><i class="fa fa-pen"></i></a>
+        <button type="button" class="iconbtn is-print card-print-btn" title="Printen"><i class="fa fa-print"></i></button>
+        <form method="post" action="{{ url_for('delete_card',card_id=card.id) }}" onsubmit="return confirm('Kaart “{{ card.title }}” verwijderen?')" style="margin-left:auto;">
+          <button type="submit" class="iconbtn is-danger" title="Verwijderen"><i class="fa fa-trash"></i></button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+<div class="empty" id="noResults" style="display:none;">
+  <i class="fa fa-magnifying-glass"></i>
+  <p>Geen kaarten gevonden voor je zoekopdracht.</p>
+</div>
+{% else %}
+<div class="empty">
+  <i class="fa fa-tags"></i>
+  <p>Nog geen schapkaarten. Maak je eerste actiekaart aan.</p>
+  <a href="{{ url_for('kaart_editor') }}" class="btn btn-primary"><i class="fa fa-plus"></i> Eerste kaart aanmaken</a>
+</div>
+{% endif %}
+
+{% include '_cardselect.html' %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function(){
+  var s=document.getElementById('cardSearch');
+  if(!s) return;
+  s.addEventListener('input',function(){
+    var q=this.value.toLowerCase().trim(), shown=0;
+    document.querySelectorAll('.kaart').forEach(function(c){
+      var hit=c.dataset.title.indexOf(q)>-1;
+      c.style.display=hit?'':'none'; if(hit)shown++;
+    });
+    var nr=document.getElementById('noResults');
+    if(nr) nr.style.display=shown?'none':'flex';
+  });
+})();
+</script>
+{% endblock %}

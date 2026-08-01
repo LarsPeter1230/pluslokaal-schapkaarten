@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Producten – Labels – PLUSLokaal{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <a href="{{ url_for('labels_dashboard') }}" class="btn btn-ghost btn-sm"><i class="fa fa-arrow-left"></i> Terug</a>
+    <div><h1 class="page-title">Producten</h1><p class="page-sub">Catalogus voor labels</p></div>
+  </div>
+</div>
+<div class="flex">
+  <div class="panel" style="flex:0 1 340px;">
+    <div class="panel__head"><i class="fa fa-plus"></i><h3>Product toevoegen</h3></div>
+    <div class="panel__body">
+      <form method="post">
+        <div class="field"><label>Naam</label><input type="text" name="name" required></div>
+        <div class="field"><label>Barcode</label><input type="text" name="barcode" placeholder="EAN13/EAN8/CODE128"></div>
+        <div class="field"><label>Type</label>
+          <select name="barcode_type"><option value="ean13">EAN-13</option><option value="ean8">EAN-8</option><option value="code128">CODE128</option></select></div>
+        <div class="field"><label>Prijs €</label><input type="text" name="price" placeholder="1.49"></div>
+        <button type="submit" class="btn btn-primary btn-block"><i class="fa fa-floppy-disk"></i> Toevoegen</button>
+      </form>
+    </div>
+  </div>
+  <div class="panel" style="flex:1 1 420px;">
+    <div class="panel__head"><i class="fa fa-box"></i><h3>Catalogus</h3></div>
+    <div class="panel__body">
+      <form method="get" class="search" style="margin-bottom:14px;"><i class="fa fa-search"></i>
+        <input type="text" name="q" value="{{ q }}" placeholder="Zoek naam of barcode…"></form>
+      {% if products %}
+      <div class="prod-head"><span>Naam</span><span>Barcode</span><span>Type</span><span>Prijs €</span><span></span></div>
+      {% for p in products %}
+      <div class="prod-row">
+        <form method="post" class="prod-form" title="Wijzig en klik op opslaan">
+          <input type="hidden" name="action" value="edit"><input type="hidden" name="id" value="{{ p.id }}">
+          <input type="text" name="name" value="{{ p.name }}" required>
+          <input type="text" name="barcode" value="{{ p.barcode or '' }}" placeholder="barcode">
+          <select name="barcode_type">
+            {% for t in ['ean13','ean8','code128'] %}<option value="{{ t }}" {{ 'selected' if p.barcode_type==t }}>{{ t|upper }}</option>{% endfor %}
+          </select>
+          <input type="text" name="price" value="{{ '%.2f'|format(p.price) if p.price is not none else '' }}" placeholder="—">
+          <button class="iconbtn is-edit" title="Opslaan"><i class="fa fa-floppy-disk"></i></button>
+        </form>
+        <form method="post" onsubmit="return confirm('“{{ p.name }}” verwijderen?')" style="margin:0;">
+          <input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ p.id }}">
+          <button class="iconbtn is-danger" title="Verwijderen"><i class="fa fa-trash"></i></button>
+        </form>
+      </div>
+      {% endfor %}
+      {% else %}<p class="muted">Nog geen producten{{ ' voor deze zoekopdracht' if q }}.</p>{% endif %}
+      <style>
+        .prod-head{display:grid;grid-template-columns:1.6fr 1.2fr .8fr .7fr auto;gap:8px;padding:0 4px 6px;font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--muted);}
+        .prod-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f0f0f0;}
+        .prod-form{display:grid;grid-template-columns:1.6fr 1.2fr .8fr .7fr auto;gap:8px;align-items:center;flex:1;margin:0;min-width:0;}
+        .prod-form input,.prod-form select{height:36px;padding:0 8px;border:1px solid #e2e5e0;border-radius:6px;font-size:.82rem;min-width:0;width:100%;box-sizing:border-box;}
+      </style>
+    </div>
+  </div>
+</div>
+{% endblock %}

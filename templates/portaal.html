@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+{% block title %}Portaal – PLUSLokaal{% endblock %}
+
+{% block head %}
+<style>
+  /* Alleen de gekoppelde (iframe-)weergave op volledige breedte (de standaard .page is max 1180px)
+     zodat de nav op één rij past en de brede pluslokaal.nl-content ruim staat. Het koppelscherm
+     (zonder .portaal-wrap) houdt z'n normale padding. */
+  .page:has(.portaal-wrap){max-width:none;padding:0;}
+  .page:has(.portaal-wrap) ~ .app-footer{display:none;}
+  .portaal-wrap{display:flex;flex-direction:column;height:calc(100vh - var(--header-h));}
+  /* Categorie-nav in ons design (witte balk, PLUS-groene links). Eén rij die NOOIT wrapt: de
+     categorieën kunnen bij weinig ruimte horizontaal scrollen, terwijl de iconen + het zoekveld
+     rechts altijd op hun plek blijven (dus zoeken komt nooit op een tweede regel). */
+  .portaal-nav{position:relative;display:flex;align-items:stretch;flex-wrap:nowrap;
+    padding:0 6px 0 8px;background:#fff;border-bottom:1px solid var(--border-soft);
+    min-height:50px;z-index:30;--pn-top:110px;}
+  .pn-cats{display:flex;align-items:stretch;flex:1 1 auto;min-width:0;
+    overflow-x:auto;overflow-y:hidden;scrollbar-width:none;}
+  .pn-cats::-webkit-scrollbar{height:0;}
+  .pn-right{display:flex;align-items:center;flex:0 0 auto;gap:1px;padding-left:6px;background:#fff;}
+  .portaal-nav a.pn-item{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;
+    padding:14px 11px;color:var(--green-d);font-weight:700;font-size:.92rem;
+    border-bottom:3px solid transparent;cursor:pointer;}
+  .portaal-nav a.pn-item:hover{color:var(--green-dh);text-decoration:none;}
+  .portaal-nav a.pn-home{display:inline-flex;align-items:center;flex:0 0 auto;
+    color:var(--green-d);padding:14px 10px;font-size:1.05rem;}
+  .pn-caret{font-size:.6rem;opacity:.6;transition:transform .15s;}
+  /* Categorie met mega-menu (fixed → nooit afgeknipt door de scroll-container) */
+  .pn-cat{position:static;display:flex;align-items:stretch;flex:0 0 auto;}
+  .pn-cat:hover > .pn-item{border-bottom-color:var(--green);background:var(--green-tint2);}
+  .pn-cat:hover > .pn-item .pn-caret{transform:rotate(180deg);}
+  .pn-mega{position:fixed;left:0;right:0;top:var(--pn-top);background:#fff;
+    box-shadow:0 14px 30px rgba(0,0,0,.15);border-top:1px solid var(--border-soft);
+    padding:22px 26px;display:none;max-height:calc(100vh - var(--pn-top));overflow-y:auto;z-index:40;}
+  .pn-cat:hover > .pn-mega{display:block;}
+  .portaal-nav.pn-busy .pn-mega{display:none !important;}
+  .pn-mega__inner{column-count:4;column-gap:26px;max-width:var(--maxw);margin:0 auto;}
+  .pn-col{break-inside:avoid;display:inline-block;width:100%;margin-bottom:16px;vertical-align:top;}
+  .pn-mega a{display:block;text-decoration:none;}
+  .pn-sec{color:var(--green-d);font-weight:800;font-size:.95rem;padding:2px 0 6px;
+    border-bottom:2px solid var(--green-tint);margin-bottom:5px;}
+  .pn-sec:hover{color:var(--green-dh);}
+  .pn-sub{color:var(--text);font-size:.86rem;padding:4px 0 4px 2px;line-height:1.25;}
+  .pn-sub:hover{color:var(--green-d);}
+  /* Icoon-links (winkelmandje / bestelgeschiedenis / actieoverzicht) + mandje-badge */
+  .portaal-nav a.pn-icon{position:relative;color:var(--green-d);padding:10px 9px;font-size:1.05rem;
+    border-radius:8px;display:inline-flex;align-items:center;}
+  .portaal-nav a.pn-icon:hover{background:var(--green-tint2);color:var(--green-dh);}
+  .pn-badge{position:absolute;top:2px;right:0;min-width:16px;height:16px;padding:0 4px;
+    background:var(--red);color:#fff;font-size:.66rem;font-weight:800;line-height:16px;
+    border-radius:9px;text-align:center;box-shadow:0 0 0 2px #fff;}
+  /* Zoekveld — vaste breedte, krimpt/wrapt nooit */
+  .pn-search{display:flex;align-items:center;flex:0 0 auto;margin-left:5px;}
+  .pn-search input{border:1px solid var(--border);border-radius:20px 20px 20px 4px;
+    padding:8px 32px 8px 13px;font-size:.88rem;width:170px;outline:none;background:var(--bg);}
+  .pn-search input:focus{border-color:var(--green-d);}
+  .pn-search button{margin-left:-32px;background:none;border:none;color:var(--green-d);
+    cursor:pointer;padding:6px 9px;font-size:1rem;}
+  /* Iframe + laad-overlay (spinner ALTIJD op de voorgrond, ook boven de uitgeklapte menu's) */
+  .portaal-frame-wrap{position:relative;flex:1 1 auto;min-height:0;}
+  .portaal-frame{position:absolute;inset:0;width:100%;height:100%;border:0;background:#f4f5f3;}
+  .portaal-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(244,245,243,.9);z-index:60;}
+  .portaal-loading[hidden]{display:none;}
+  .pl-spinner{width:64px;height:68px;}
+  .pl-spinner svg{width:100%;height:100%;display:block;}
+  .pl-leaf{fill:var(--green);animation:plLeafPulse 1.2s ease-in-out infinite;}
+  .pl-leaf--1{animation-delay:0s;} .pl-leaf--4{animation-delay:.3s;}
+  .pl-leaf--3{animation-delay:.6s;} .pl-leaf--2{animation-delay:.9s;}
+  @keyframes plLeafPulse{0%,75%,100%{opacity:.22;}25%{opacity:1;}}
+  /* Hamburger (alleen mobiel) + mobiel menu */
+  .pn-burger{display:none;flex:0 0 auto;background:none;border:none;color:var(--green-d);
+    font-size:1.25rem;padding:10px 12px;cursor:pointer;}
+  .pn-backdrop{display:none;position:fixed;inset:0;background:rgba(20,26,20,.45);z-index:1000;}
+  .pn-mobile{position:fixed;top:0;left:0;bottom:0;width:min(86vw,340px);background:#fff;z-index:1001;
+    transform:translateX(-100%);transition:transform .25s ease;overflow-y:auto;
+    box-shadow:0 0 40px rgba(0,0,0,.25);-webkit-overflow-scrolling:touch;}
+  .pn-mobile.open{transform:none;} .pn-backdrop.open{display:block;}
+  .pnm-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;
+    background:var(--green);color:#fff;font-weight:800;font-size:1.05rem;}
+  .pnm-close{background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;padding:2px 6px;}
+  .pnm-search{display:flex;padding:12px 14px;border-bottom:1px solid var(--border-soft);}
+  .pnm-search input{flex:1;border:1px solid var(--border);border-radius:20px 20px 20px 4px;
+    padding:9px 14px;font-size:.95rem;outline:none;background:var(--bg);}
+  .pnm-search button{background:none;border:none;color:var(--green-d);font-size:1.05rem;padding:0 8px;cursor:pointer;}
+  .pnm-cat{border-bottom:1px solid var(--border-soft);}
+  .pnm-row{display:flex;align-items:center;}
+  .pnm-link{flex:1;display:block;padding:13px 16px;color:var(--green-d);font-weight:700;
+    font-size:1rem;text-decoration:none;}
+  .pnm-link:hover{background:var(--green-tint2);text-decoration:none;}
+  .pnm-home{border-bottom:1px solid var(--border-soft);}
+  .pnm-toggle{background:none;border:none;color:var(--green-d);font-size:.85rem;padding:13px 18px;
+    cursor:pointer;transition:transform .15s;}
+  .pnm-cat.open .pnm-toggle{transform:rotate(180deg);}
+  .pnm-sub{display:none;padding:2px 0 8px;background:var(--green-tint2);}
+  .pnm-cat.open .pnm-sub{display:block;}
+  .pnm-sec{display:block;padding:8px 16px;color:var(--green-d);font-weight:800;font-size:.9rem;text-decoration:none;}
+  .pnm-kid{display:block;padding:6px 16px 6px 28px;color:var(--text);font-size:.88rem;text-decoration:none;}
+  .pnm-sec:hover,.pnm-kid:hover{background:#fff;}
+  .pnm-icons{padding:6px 0 20px;border-top:1px solid var(--border-soft);margin-top:4px;}
+  .pnm-icons .pnm-link{display:flex;align-items:center;}
+
+  @media (max-width:820px){
+    .pn-burger{display:inline-flex;align-items:center;}
+    .pn-cats{display:none;}
+    .pn-home{display:none;}
+    .pn-search{display:none;}
+    .pn-right a.pn-icon:not(:first-child){display:none;}   /* alleen winkelmandje in de balk */
+    .portaal-nav{justify-content:space-between;}
+    .pn-right{margin-left:auto;}
+  }
+  /* Koppelscherm */
+  .portaal-koppel{max-width:520px;margin:0 auto;}
+</style>
+{% endblock %}
+
+{% block content %}
+{% if linked %}
+  <div class="portaal-wrap">
+    <nav class="portaal-nav" id="pNav">
+      <button class="pn-burger" type="button" onclick="toggleMobile()" aria-label="Menu"><i class="fa fa-bars"></i></button>
+      <a class="pn-home" href="{{ url_for('portaal_view', sub='') }}" onclick="return pgo(this.href)" title="Portaal home">
+        <i class="fa fa-house"></i>
+      </a>
+      <div class="pn-cats">
+        {% for cat in portaal_menu %}
+          {% if cat.sections %}
+          <div class="pn-cat">
+            <a class="pn-item" href="{{ url_for('portaal_view', sub=cat.href.lstrip('/')) }}" onclick="return pgo(this.href)">
+              {{ cat.label }} <i class="fa fa-chevron-down pn-caret"></i>
+            </a>
+            <div class="pn-mega">
+              <div class="pn-mega__inner">
+                {% for sec in cat.sections %}
+                <div class="pn-col">
+                  <a class="pn-sec" href="{{ url_for('portaal_view', sub=sec.href.lstrip('/')) }}" onclick="return pgo(this.href)">{{ sec.label }}</a>
+                  {% for kid in sec.children %}
+                  <a class="pn-sub" href="{{ url_for('portaal_view', sub=kid.href.lstrip('/')) }}" onclick="return pgo(this.href)">{{ kid.label }}</a>
+                  {% endfor %}
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <a class="pn-item" href="{{ url_for('portaal_view', sub=cat.href.lstrip('/')) }}" onclick="return pgo(this.href)">{{ cat.label }}</a>
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      <div class="pn-right">
+        {% for label, path, icon in portaal_icons %}
+        <a class="pn-icon" href="{{ url_for('portaal_view', sub=path) }}" onclick="return pgo(this.href)" title="{{ label }}">
+          <i class="fa {{ icon }}"></i>
+          {% if label == 'Winkelmandje' %}
+          <span class="pn-badge" id="pBasketBadge" {% if not (portaal_basket and portaal_basket > 0) %}hidden{% endif %}>{{ portaal_basket if (portaal_basket and portaal_basket < 100) else ('99+' if portaal_basket else '') }}</span>
+          {% endif %}
+        </a>
+        {% endfor %}
+        <form class="pn-search" onsubmit="return psearch(this)">
+          <input type="search" name="s" placeholder="Zoeken op pluslokaal.nl" autocomplete="off">
+          <button type="submit" title="Zoeken"><i class="fa fa-magnifying-glass"></i></button>
+        </form>
+      </div>
+    </nav>
+
+    <!-- Mobiel menu (hamburger) -->
+    <div class="pn-backdrop" id="pmBackdrop" onclick="closeMobile()"></div>
+    <aside class="pn-mobile" id="pMobile" aria-label="Portaalmenu">
+      <div class="pnm-head">
+        <span><i class="fa fa-globe"></i> Portaal</span>
+        <button type="button" class="pnm-close" onclick="closeMobile()" aria-label="Sluiten"><i class="fa fa-xmark"></i></button>
+      </div>
+      <form class="pnm-search" onsubmit="return psearch(this)">
+        <input type="search" name="s" placeholder="Zoeken op pluslokaal.nl" autocomplete="off">
+        <button type="submit" title="Zoeken"><i class="fa fa-magnifying-glass"></i></button>
+      </form>
+      <a class="pnm-link pnm-home" href="{{ url_for('portaal_view', sub='') }}" onclick="return pgo(this.href)"><i class="fa fa-house"></i> Home</a>
+      {% for cat in portaal_menu %}
+        <div class="pnm-cat">
+          <div class="pnm-row">
+            <a class="pnm-link" href="{{ url_for('portaal_view', sub=cat.href.lstrip('/')) }}" onclick="return pgo(this.href)">{{ cat.label }}</a>
+            {% if cat.sections %}
+            <button type="button" class="pnm-toggle" onclick="this.closest('.pnm-cat').classList.toggle('open');return false;" aria-label="Toon submenu"><i class="fa fa-chevron-down"></i></button>
+            {% endif %}
+          </div>
+          {% if cat.sections %}
+          <div class="pnm-sub">
+            {% for sec in cat.sections %}
+            <a class="pnm-sec" href="{{ url_for('portaal_view', sub=sec.href.lstrip('/')) }}" onclick="return pgo(this.href)">{{ sec.label }}</a>
+            {% for kid in sec.children %}
+            <a class="pnm-kid" href="{{ url_for('portaal_view', sub=kid.href.lstrip('/')) }}" onclick="return pgo(this.href)">{{ kid.label }}</a>
+            {% endfor %}
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+      <div class="pnm-icons">
+        {% for label, path, icon in portaal_icons %}
+        <a class="pnm-link" href="{{ url_for('portaal_view', sub=path) }}" onclick="return pgo(this.href)">
+          <i class="fa {{ icon }}" style="width:20px;text-align:center;"></i> {{ label }}
+          {% if label == 'Winkelmandje' %}
+          <span class="pn-badge" id="pBasketBadgeM" style="position:static;margin-left:6px;box-shadow:none;" {% if not (portaal_basket and portaal_basket > 0) %}hidden{% endif %}>{{ portaal_basket if (portaal_basket and portaal_basket < 100) else ('99+' if portaal_basket else '') }}</span>
+          {% endif %}
+        </a>
+        {% endfor %}
+      </div>
+    </aside>
+
+    <div class="portaal-frame-wrap">
+      <iframe id="pframe" name="pframe" class="portaal-frame" src="{{ url_for('portaal_view', sub='') }}"
+              title="pluslokaal.nl"></iframe>
+      <div class="portaal-loading" id="pLoad">
+        <div class="pl-spinner" aria-hidden="true">
+          <svg viewBox="0 0 132 140">
+            <path class="pl-leaf pl-leaf--1" d="M61.2,32.8 L61.2,54.8 C61.2,60.8 56.8,65.6 50.8,65.6 L30.4,65.6 C13.6,65.6 0,51.2 0,33.2 C0,15.6 13.6,0.8 30.4,0.8 C47.6,0.8 61.2,15.2 61.2,32.8 L61.2,32.8 Z"/>
+            <path class="pl-leaf pl-leaf--2" d="M61.2,107.2 L61.2,85.6 C61.2,79.6 56.8,74.8 50.8,74.8 L30.4,74.8 C13.6,74.8 0,89.2 0,107.2 C0,125.2 13.6,139.6 30.4,139.6 C47.6,139.6 61.2,125.2 61.2,107.2 L61.2,107.2 Z"/>
+            <path class="pl-leaf pl-leaf--3" d="M69.6,107.2 L69.6,85.6 C69.6,79.6 74,74.8 80,74.8 L100.4,74.8 C117.2,74.8 131.2,89.2 131.2,107.2 C131.2,125.2 117.2,139.6 100.4,139.6 C83.6,139.6 69.6,125.2 69.6,107.2 L69.6,107.2 Z"/>
+            <path class="pl-leaf pl-leaf--4" d="M70,32.8 L70,54.8 C70,60.8 74.4,65.6 80,65.6 L100.4,65.6 C117.6,65.6 131.2,51.2 131.2,33.2 C131.2,15.6 117.6,0.8 100.4,0.8 C83.6,0.8 70,15.2 70,32.8 L70,32.8 Z"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function(){
+      var pf=document.getElementById('pframe'), pl=document.getElementById('pLoad'),
+          nav=document.getElementById('pNav'), t=null;
+      // Mega-menu's als 'fixed' precies onder de nav plaatsen (top = onderkant nav).
+      function fixTop(){ nav.style.setProperty('--pn-top', Math.round(nav.getBoundingClientRect().bottom)+'px'); }
+      fixTop(); window.addEventListener('resize', fixTop);
+      window.showLoad=function(){ pl.hidden=false; clearTimeout(t); t=setTimeout(function(){pl.hidden=true;},20000); };
+      window.hideLoad=function(){ pl.hidden=true; clearTimeout(t); };
+      // Winkelmandje-badge live bijwerken na elke navigatie (bv. na iets uit het mandje halen).
+      function setBasket(n){
+        ['pBasketBadge','pBasketBadgeM'].forEach(function(id){
+          var b=document.getElementById(id); if(!b) return;
+          if(n>0){ b.textContent=(n<100?n:'99+'); b.hidden=false; b.style.display=''; }
+          else { b.hidden=true; b.style.display='none'; }
+        });
+      }
+      window.refreshBasket=function(){
+        fetch('{{ url_for("portaal_basket_count_api") }}',{credentials:'same-origin'})
+          .then(function(r){return r.json();})
+          .then(function(d){ if(d&&typeof d.count==='number') setBasket(d.count); }).catch(function(){});
+      };
+      pf.addEventListener('load', function(){ hideLoad(); refreshBasket(); });
+      // Bij navigatie de uitgeklapte menu's meteen sluiten (spinner staat er sowieso al boven).
+      window.closeMega=function(){ nav.classList.add('pn-busy'); };
+      nav.addEventListener('mouseleave', function(){ nav.classList.remove('pn-busy'); });
+      // Al klaar geladen voordat dit script draaide? Verberg de spinner dan meteen.
+      try{ if(pf.contentDocument && pf.contentDocument.readyState==='complete') hideLoad(); }catch(e){}
+    })();
+    function toggleMobile(){
+      var m=document.getElementById('pMobile'), b=document.getElementById('pmBackdrop');
+      var open=m.classList.toggle('open'); b.classList.toggle('open', open);
+    }
+    function closeMobile(){
+      document.getElementById('pMobile').classList.remove('open');
+      document.getElementById('pmBackdrop').classList.remove('open');
+    }
+    function pgo(url){ showLoad(); closeMega(); closeMobile(); document.getElementById('pframe').src = url; return false; }
+    function psearch(f){
+      var q = (f.s.value||'').trim();
+      pgo('{{ url_for('portaal_view', sub='search/') }}' + (q ? ('?s=' + encodeURIComponent(q)) : ''));
+      return false;
+    }
+  </script>
+{% else %}
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Portaal</h1>
+      <p class="page-sub">Bekijk pluslokaal.nl binnen PLUSLokaal — in ons jasje, automatisch ingelogd</p>
+    </div>
+  </div>
+
+  <div class="portaal-koppel">
+    <div class="panel">
+      <div class="panel__head"><i class="fa fa-globe"></i><h3>Koppel je pluslokaal.nl-account</h3></div>
+      <div class="panel__body stack">
+        <p class="muted" style="margin:0 0 6px;">
+          Vul eenmalig je pluslokaal.nl-inloggegevens in. We loggen daarna <b>automatisch op de achtergrond</b>
+          voor je in, zodat je de jaarkalender, tarieven, campagnes en formulieren gewoon hier kunt gebruiken.
+          Je wachtwoord wordt <b>versleuteld</b> bewaard en nooit getoond.
+        </p>
+        {% if portaal_status == 'fout' %}
+        <div style="background:var(--amber-tint);color:var(--amber);border-left:3px solid var(--amber);
+             border-radius:6px;padding:10px 12px;font-weight:600;font-size:.9rem;">
+          <i class="fa fa-triangle-exclamation"></i> De vorige koppeling werkte niet meer. Koppel opnieuw.</div>
+        {% endif %}
+        <form method="post" action="{{ url_for('portaal_koppel') }}" class="stack">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <div class="field">
+            <label>pluslokaal.nl gebruikersnaam</label>
+            <input type="text" name="portaal_user" placeholder="bv. 110ond" autocomplete="username" required>
+          </div>
+          <div class="field">
+            <label>pluslokaal.nl wachtwoord</label>
+            <input type="password" name="portaal_pass" placeholder="••••••••" autocomplete="current-password" required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block"><i class="fa fa-link"></i> Koppelen &amp; inloggen</button>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

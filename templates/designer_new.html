@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Nieuw ontwerp – Designer{% endblock %}
+{% block head %}
+<style>
+  .dn-wrap{max-width:640px;margin:0 auto;}
+  .dn-tabs{display:flex;gap:10px;margin-bottom:18px;}
+  .dn-tab{flex:1;border:2px solid var(--border);border-radius:var(--radius-lg);padding:16px;cursor:pointer;
+    text-align:center;background:#fff;transition:border-color .15s,background .15s;}
+  .dn-tab.active{border-color:var(--green);background:var(--green-tint2);}
+  .dn-tab i{font-size:1.5rem;color:var(--green);} .dn-tab b{display:block;margin-top:6px;color:var(--green-d);}
+  .dn-tab span{font-size:.8rem;color:var(--muted);}
+  .dn-panel{display:none;} .dn-panel.active{display:block;}
+  .orient{display:flex;gap:10px;}
+  .orient label{flex:1;border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center;cursor:pointer;}
+  .orient input{display:none;} .orient input:checked + span{color:var(--green-d);font-weight:800;}
+  .orient label:has(input:checked){border-color:var(--green);background:var(--green-tint2);}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1 class="page-title">Nieuw ontwerp</h1>
+  <p class="page-sub">Waar wil je op ontwerpen?</p></div></div>
+
+<div class="dn-wrap">
+  <form method="post" action="{{ url_for('designer_new') }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="kind" id="kindField" value="paper">
+
+    <div class="dn-tabs">
+      <div class="dn-tab active" data-kind="paper" onclick="pickKind('paper')">
+        <i class="fa fa-file"></i><b>Papier</b><span>Kaart of poster — kies formaat</span></div>
+      <div class="dn-tab" data-kind="label" onclick="pickKind('label')">
+        <i class="fa fa-tag"></i><b>Label</b><span>Op de labelprinter</span></div>
+    </div>
+
+    <div class="panel"><div class="panel__body stack">
+      <div class="field"><label>Naam van het ontwerp</label>
+        <input type="text" name="title" placeholder="Bijv. Aanbieding poster" value="Naamloos ontwerp"></div>
+
+      <div class="dn-panel active" id="panel-paper">
+        <div class="field"><label>Formaat</label>
+          <select name="paper_format">
+            {% for label, w, h in paper %}<option value="{{ loop.index0 }}" {{ 'selected' if loop.index0==2 }}>{{ label }} mm</option>{% endfor %}
+          </select></div>
+        <div class="field"><label>Oriëntatie</label>
+          <div class="orient">
+            <label><input type="radio" name="orientation" value="portrait" checked><span><i class="fa fa-image-portrait"></i> Staand</span></label>
+            <label><input type="radio" name="orientation" value="landscape"><span><i class="fa fa-panorama"></i> Liggend</span></label>
+          </div></div>
+      </div>
+
+      <div class="dn-panel" id="panel-label">
+        <div class="field"><label>Labelformaat</label>
+          <select name="label_format">
+            {% for f in label_formats %}<option value="{{ f.id }}">{{ f.name }} — {{ '%g × %g mm'|format(f.width_mm, f.height_mm) }}</option>{% endfor %}
+          </select>
+          {% if not label_formats %}<p class="hint">Nog geen labelformaten. Voeg ze toe onder <b>Labels</b>.</p>{% endif %}
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block"><i class="fa fa-pen-ruler"></i> Beginnen met ontwerpen</button>
+    </div></div>
+  </form>
+</div>
+
+<script>
+function pickKind(k){
+  document.getElementById('kindField').value=k;
+  document.querySelectorAll('.dn-tab').forEach(function(t){t.classList.toggle('active', t.dataset.kind===k);});
+  document.getElementById('panel-paper').classList.toggle('active', k==='paper');
+  document.getElementById('panel-label').classList.toggle('active', k==='label');
+}
+</script>
+{% endblock %}

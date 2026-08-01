@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Mailinstellingen – PLUSLokaal{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Mailinstellingen</h1>
+    <p class="page-sub">SMTP-server voor welkomst- en reset-mails</p>
+  </div>
+</div>
+
+<div class="flex">
+  <div class="panel" style="flex:1 1 460px;max-width:560px;">
+    <div class="panel__head"><i class="fa fa-envelope"></i><h3>SMTP-server</h3></div>
+    <div class="panel__body">
+      <form method="post">
+        <label style="display:flex;align-items:center;gap:10px;font-weight:600;color:var(--text);margin-bottom:16px;cursor:pointer;">
+          <input type="checkbox" name="mail_enabled" style="width:18px;height:18px;accent-color:var(--green);" {{ 'checked' if cfg.mail_enabled }}>
+          E-mail versturen inschakelen
+        </label>
+        <div class="grid cols-2">
+          <div class="field"><label>SMTP-host</label><input type="text" name="smtp_host" value="{{ cfg.smtp_host }}" placeholder="smtp.resend.com"></div>
+          <div class="field"><label>Poort</label><input type="number" name="smtp_port" value="{{ cfg.smtp_port }}" placeholder="587"></div>
+          <div class="field"><label>Gebruikersnaam</label><input type="text" name="smtp_user" value="{{ cfg.smtp_user }}" placeholder="resend"></div>
+          <div class="field"><label>Wachtwoord / API-key</label><input type="password" name="smtp_pass" value="" autocomplete="new-password" placeholder="{{ '•••••••• (ingesteld — laat leeg om te behouden)' if cfg.smtp_pass_set else 're_...' }}"><span class="muted small">Om veiligheidsredenen wordt de bestaande sleutel niet getoond. Laat leeg om hem te behouden; vul een nieuwe in om te wijzigen.</span></div>
+          <div class="field"><label>Afzender (e-mail)</label><input type="text" name="smtp_from" value="{{ cfg.smtp_from }}" placeholder="noreply@mail.pluslokaal.com"></div>
+          <div class="field"><label>Afzendernaam</label><input type="text" name="smtp_from_name" value="{{ cfg.smtp_from_name }}" placeholder="PLUSLokaal"></div>
+        </div>
+        <div class="field"><label>App-URL <span class="muted small">(voor de inloglink in mails, optioneel)</span></label><input type="text" name="app_url" value="{{ cfg.app_url }}" placeholder="https://schapkaarten.pluslokaal.com/login"></div>
+        <button type="submit" class="btn btn-primary"><i class="fa fa-floppy-disk"></i> Opslaan</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="panel" style="flex:0 1 320px;">
+    <div class="panel__head"><i class="fa fa-paper-plane"></i><h3>Testmail</h3></div>
+    <div class="panel__body">
+      <form method="post">
+        <input type="hidden" name="action" value="test">
+        <div class="field"><label>Stuur test naar</label><input type="email" name="test_to" placeholder="{{ user.email or 'jij@voorbeeld.nl' }}"></div>
+        <button type="submit" class="btn btn-outline btn-block"><i class="fa fa-paper-plane"></i> Testmail versturen</button>
+        <p class="hint" style="margin-top:12px;">Sla eerst je instellingen op voordat je test.</p>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

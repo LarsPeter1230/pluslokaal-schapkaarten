@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Gebruikers – PLUSLokaal{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Gebruikersbeheer</h1>
+    <p class="page-sub">{{ users|length }} gebruiker{{ '' if users|length==1 else 's' }}</p>
+  </div>
+  <div class="toolbar">
+    <div class="search">
+      <input type="text" id="userSearch" placeholder="Zoek gebruiker of filiaal…" autocomplete="off">
+      <i class="fa fa-search"></i>
+    </div>
+  </div>
+</div>
+
+<div class="flex">
+  <!-- Nieuwe gebruiker -->
+  <div class="panel" style="flex:0 0 320px;">
+    <div class="panel__head"><i class="fa fa-user-plus"></i><h3>Nieuwe gebruiker</h3></div>
+    <div class="panel__body">
+      <form method="post">
+        <div class="field"><label>Naam</label><input type="text" name="username" placeholder="bijv. Jan Jansen" required></div>
+        <div class="field"><label>E-mailadres <span class="muted small">(inlogadres)</span></label><input type="email" name="email" placeholder="naam@voorbeeld.nl" required></div>
+        <div class="field" style="background:#eef6e1;border-radius:8px;padding:11px 13px;">
+          <span class="muted small" style="line-height:1.5;display:block;"><i class="fa fa-wand-magic-sparkles"></i>
+          Je hoeft geen wachtwoord in te stellen. De gebruiker krijgt automatisch een <b>uitnodiging met een
+          tijdelijk wachtwoord</b> gemaild en kiest bij de eerste aanmelding een eigen wachtwoord. Lukt de mail
+          niet, dan tonen we het tijdelijke wachtwoord zodat je het zelf kunt doorgeven.</span>
+        </div>
+        <div class="field">
+          <label>Rol</label>
+          <select name="role">
+            {% for r in roles %}<option value="{{ r.name }}" {{ 'selected' if r.name=='medewerker' }}>{{ r.label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>Filiaal</label>
+          {% if current_user.role=='admin' %}
+          <select name="filiaal" required>
+            {% for f in filialen %}
+            <option value="{{ f.nummer }}">{{ f.nummer }}{% if f.naam %} — PLUS {{ f.naam }}{% endif %}</option>
+            {% endfor %}
+          </select>
+          {% else %}
+          <input type="number" name="filiaal" value="{{ current_user.filiaal }}" readonly>
+          {% endif %}
+        </div>
+        <button type="submit" class="btn btn-primary btn-block"><i class="fa fa-user-plus"></i> Gebruiker aanmaken</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Lijst -->
+  <div style="flex:1;min-width:320px;">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Gebruiker</th><th>Rol</th><th>Filiaal</th><th></th></tr></thead>
+        <tbody id="userRows">
+          {% for u in users %}
+          {% set can_reset = current_user.role=='admin' or (current_user.role=='ondernemer' and u.filiaal==current_user.filiaal and u.role!='admin') %}
+          <tr data-s="{{ u.username|lower }} {{ u.role }} {{ u.filiaal }} {{ (u.filiaal_naam or '')|lower }}" class="row-link" onclick="location.href='{{ url_for('edit_user',user_id=u.id) }}'">
+            <td>
+              <a href="{{ url_for('edit_user',user_id=u.id) }}" style="font-weight:800;color:var(--green-d);">{{ u.username }}</a>
+              {% if u.email %}<div class="small muted">{{ u.email }}</div>{% endif %}
+            </td>
+            <td><span class="badge badge-{{ u.role }}">{{ role_labels.get(u.role, u.role) }}</span></td>
+            <td>{{ filiaal_display(u.filiaal, u.filiaal_naam) }}</td>
+            <td style="text-align:right;white-space:nowrap;">
+              <a href="{{ url_for('edit_user',user_id=u.id) }}" class="iconbtn" title="Openen / bewerken"><i class="fa fa-chevron-right"></i></a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="empty" id="userEmpty" style="display:none;margin-top:14px;">
+      <i class="fa fa-magnifying-glass"></i><p>Geen gebruikers gevonden.</p>
+    </div>
+  </div>
+</div>
+
+<form id="resetForm" method="post" style="display:none;"><input type="hidden" name="new_password" id="resetPwVal"></form>
+
+<script>
+function resetPw(id,name){
+  var pw=prompt('Nieuw wachtwoord voor "'+name+'":');
+  if(pw===null) return;
+  if(pw.trim().length<4){alert('Minimaal 4 tekens.');return;}
+  var f=document.getElementById('resetForm');
+  f.action='/reset_password/'+id;
+  document.getElementById('resetPwVal').value=pw;
+  f.submit();
+}
+(function(){
+  var s=document.getElementById('userSearch');
+  s.addEventListener('input',function(){
+    var q=this.value.toLowerCase().trim(),shown=0;
+    document.querySelectorAll('#userRows tr').forEach(function(r){
+      var hit=r.dataset.s.indexOf(q)>-1; r.style.display=hit?'':'none'; if(hit)shown++;
+    });
+    document.getElementById('userEmpty').style.display=shown?'none':'flex';
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Filialen – PLUSLokaal{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Filialen</h1>
+    <p class="page-sub">{{ filialen|length }} filia{{ 'al' if filialen|length==1 else 'len' }}</p>
+  </div>
+  <div class="toolbar">
+    <div class="search">
+      <input type="text" id="filiaalSearch" placeholder="Zoek op winkelnummer of naam…" autocomplete="off">
+      <i class="fa fa-search"></i>
+    </div>
+  </div>
+</div>
+
+<div class="flex">
+  <!-- Nieuw filiaal -->
+  <div class="panel" style="flex:0 0 320px;">
+    <div class="panel__head"><i class="fa fa-store"></i><h3>Nieuw filiaal</h3></div>
+    <div class="panel__body">
+      <form method="post">
+        <div class="field">
+          <label>Winkelnummer</label>
+          <input type="number" name="nummer" placeholder="bijv. 0001" required>
+        </div>
+        <div class="field">
+          <label>Naam <span class="muted small">(optioneel)</span></label>
+          <input type="text" name="naam" placeholder="bijv. Centrum">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block"><i class="fa fa-plus"></i> Filiaal aanmaken</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Lijst -->
+  <div style="flex:1;min-width:300px;">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Winkelnr.</th><th>Naam</th><th>Gebruikers</th><th></th></tr></thead>
+        <tbody id="filiaalRows">
+          {% for f in filialen %}
+          <tr data-s="{{ f.nummer }} {{ (f.naam or '')|lower }}" style="cursor:pointer;" onclick="if(!event.target.closest('form,button,a'))location.href='{{ url_for('filiaal_detail', nummer=f.nummer) }}'">
+            <td><strong>{{ f.nummer }}</strong></td>
+            <td><a href="{{ url_for('filiaal_detail', nummer=f.nummer) }}" style="color:inherit;text-decoration:none;">{{ ('PLUS ' + f.naam) if f.naam else '—' }}</a>
+              {% if f.printer_ip %}<span class="badge" style="margin-left:8px;background:#eaf6df;color:#2c6b0f;font-size:.72rem;padding:2px 7px;border-radius:99px;"><i class="fa fa-print"></i> printer</span>{% endif %}</td>
+            <td>{{ counts.get(f.nummer, 0) }}</td>
+            <td style="text-align:right;white-space:nowrap;">
+              <a href="{{ url_for('filiaal_detail', nummer=f.nummer) }}" class="iconbtn is-edit" title="Instellingen / printer"><i class="fa fa-gear"></i></a>
+              {% if counts.get(f.nummer, 0) == 0 %}
+              <form method="post" action="{{ url_for('delete_filiaal',fid=f.id) }}" style="display:inline;" onsubmit="return confirm('Filiaal {{ f.nummer }} verwijderen?')">
+                <button type="submit" class="iconbtn is-danger" title="Verwijderen"><i class="fa fa-trash"></i></button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="empty" id="filiaalEmpty" style="display:none;margin-top:14px;">
+      <i class="fa fa-magnifying-glass"></i><p>Geen filialen gevonden.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var s=document.getElementById('filiaalSearch');
+  s.addEventListener('input',function(){
+    var q=this.value.toLowerCase().trim(),shown=0;
+    document.querySelectorAll('#filiaalRows tr').forEach(function(r){
+      var hit=r.dataset.s.indexOf(q)>-1; r.style.display=hit?'':'none'; if(hit)shown++;
+    });
+    document.getElementById('filiaalEmpty').style.display=shown?'none':'flex';
+  });
+})();
+</script>
+{% endblock %}

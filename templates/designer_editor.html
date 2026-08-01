@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% block title %}{{ design.title }} – Designer{% endblock %}
+{% block head %}
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<style>
+  @font-face{font-family:'GothicA1';src:url('{{ url_for('static', filename='fonts/gothica1/GothicA1-Regular.ttf') }}') format('truetype');font-weight:400;}
+  @font-face{font-family:'GothicA1';src:url('{{ url_for('static', filename='fonts/gothica1/GothicA1-Bold.ttf') }}') format('truetype');font-weight:700;}
+  .page:has(.dz-editor){max-width:none;padding:0;}
+  .page:has(.dz-editor) ~ .app-footer{display:none;}
+  .dz-editor{display:flex;flex-direction:column;height:calc(100vh - var(--header-h));background:#e9ebe6;overflow:hidden;}
+  /* Bovenbalk */
+  .dz-top{display:flex;align-items:center;gap:8px;padding:7px 12px;background:#fff;border-bottom:1px solid var(--border-soft);flex-wrap:wrap;}
+  .dz-title{border:1px solid transparent;border-radius:6px;padding:5px 9px;font-weight:800;font-size:.98rem;color:var(--green-d);min-width:150px;max-width:280px;}
+  .dz-title:hover,.dz-title:focus{border-color:var(--border);outline:none;}
+  .dz-top .sp{flex:1 1 auto;}
+  .dz-savestate{font-size:.76rem;color:var(--muted);min-width:66px;}
+  .dz-tb{display:inline-flex;align-items:center;gap:2px;background:var(--bg);border-radius:8px;padding:2px;}
+  .dz-ib{border:none;background:none;cursor:pointer;color:var(--green-d);padding:6px 9px;border-radius:6px;font-size:.9rem;}
+  .dz-ib:hover{background:#fff;} .dz-ib:disabled{opacity:.35;cursor:default;}
+  .dz-zoom{font-size:.8rem;color:var(--muted);min-width:42px;text-align:center;}
+  /* Midden */
+  .dz-main{flex:1 1 auto;display:flex;min-height:0;}
+  .dz-rail{width:70px;background:#fff;border-right:1px solid var(--border-soft);display:flex;flex-direction:column;gap:2px;padding:8px 6px;overflow-y:auto;}
+  .dz-railbtn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 2px;border:none;background:none;cursor:pointer;border-radius:8px;color:var(--muted);font-size:.6rem;font-weight:700;}
+  .dz-railbtn i{font-size:1.15rem;}
+  .dz-railbtn:hover{background:var(--green-tint2);color:var(--green-d);}
+  .dz-railbtn.on{background:var(--green-tint);color:var(--green-d);}
+  .dz-panel{width:280px;background:#fff;border-right:1px solid var(--border-soft);overflow-y:auto;padding:14px;}
+  .dz-panel[hidden]{display:none;}
+  .dz-pane{display:none;} .dz-pane.on{display:block;}
+  .dz-pane h4{font-size:.72rem;font-weight:800;color:var(--green-d);text-transform:uppercase;letter-spacing:.04em;margin:14px 0 8px;}
+  .dz-pane h4:first-child{margin-top:0;}
+  .preset{width:100%;text-align:left;border:1px solid var(--border);background:#fff;border-radius:8px;padding:10px 12px;margin-bottom:8px;cursor:pointer;color:var(--text);}
+  .preset:hover{border-color:var(--green);background:var(--green-tint2);}
+  .preset.big{font-size:1.5rem;font-weight:900;color:var(--green-d);} .preset.mid{font-size:1.1rem;font-weight:800;} .preset.sm{font-size:.9rem;}
+  .grid6{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}
+  .grid6 button{aspect-ratio:1;border:1px solid var(--border);background:#fff;border-radius:8px;cursor:pointer;color:var(--green-d);font-size:1.2rem;display:flex;align-items:center;justify-content:center;overflow:hidden;min-width:0;padding:0;}
+  .grid6 button:hover{background:var(--green-tint2);border-color:var(--green);}
+  .grid6 .material-icons{font-size:22px;line-height:1;overflow:hidden;max-width:100%;}
+  #dzMsGrid{grid-template-columns:repeat(5,minmax(0,1fr));}
+  .swatches{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;}
+  .swatches button{aspect-ratio:1;border:1px solid rgba(0,0,0,.1);border-radius:6px;cursor:pointer;}
+  .dz-gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px;}
+  .dz-gallery img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid var(--border-soft);}
+  /* PLUS-zoek */
+  .dz-plus-search{display:flex;gap:6px;} .dz-plus-search input{flex:1;border:1px solid var(--border);border-radius:20px 20px 20px 4px;padding:8px 12px;font-size:.88rem;outline:none;}
+  .dz-plus-search input:focus{border-color:var(--green-d);}
+  .dz-plus-res{margin-top:12px;display:flex;flex-direction:column;gap:10px;}
+  .dz-pr{border:1px solid var(--border-soft);border-radius:10px;padding:10px;}
+  .dz-pr__top{display:flex;gap:10px;}
+  .dz-pr__img{width:56px;height:56px;object-fit:contain;border-radius:6px;background:#f4f5f3;flex:none;}
+  .dz-pr__name{font-size:.82rem;font-weight:700;line-height:1.25;}
+  .dz-pr__price{font-size:.8rem;color:var(--green-d);font-weight:800;margin-top:2px;}
+  .dz-pr__opts{display:flex;gap:12px;margin:8px 0 6px;flex-wrap:wrap;font-size:.76rem;}
+  .dz-pr__opts label{display:flex;align-items:center;gap:4px;cursor:pointer;}
+  /* Canvas */
+  .dz-stagewrap{flex:1 1 auto;overflow:auto;background:#e9ebe6;position:relative;}
+  .dz-canvaswrap{position:absolute;transform-origin:0 0;}
+  .dz-stage{position:relative;background:#fff;box-shadow:0 6px 26px rgba(0,0,0,.18);}
+  .dz-guides{position:absolute;inset:0;pointer-events:none;overflow:visible;}
+  .el{position:absolute;box-sizing:border-box;cursor:move;}
+  .el.sel{outline:1.5px solid var(--green);}
+  .el.locked{cursor:default;}
+  .el.editing{outline:2px solid var(--green-d);cursor:text;}
+  .el.editing td:focus{outline:2px solid var(--green);outline-offset:-2px;background:#fbfef5;}
+  .el .etext{width:100%;height:100%;overflow:hidden;display:flex;flex-direction:column;white-space:pre-wrap;word-break:break-word;line-height:1.15;}
+  .el img,.el .ebc{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;}
+  .el .eshape{width:100%;height:100%;}
+  .el-imgwrap{width:100%;height:100%;position:relative;}
+  .el-spin{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(244,245,243,.6);}
+  .el-leaves{width:34px;height:36px;max-width:60%;max-height:60%;}
+  .el-leaf{fill:var(--green);animation:plLeafPulse 1.2s ease-in-out infinite;}
+  .el-leaf--1{animation-delay:0s;} .el-leaf--4{animation-delay:.3s;} .el-leaf--3{animation-delay:.6s;} .el-leaf--2{animation-delay:.9s;}
+  @keyframes plLeafPulse{0%,75%,100%{opacity:.22;}25%{opacity:1;}}
+  .handle{position:absolute;width:12px;height:12px;background:#fff;border:1.5px solid var(--green);border-radius:50%;z-index:5;}
+  .handle.nw{left:-6px;top:-6px;cursor:nwse-resize;} .handle.ne{right:-6px;top:-6px;cursor:nesw-resize;}
+  .handle.sw{left:-6px;bottom:-6px;cursor:nesw-resize;} .handle.se{right:-6px;bottom:-6px;cursor:nwse-resize;}
+  .handle.rot{left:50%;top:-32px;transform:translateX(-50%);width:22px;height:22px;cursor:grab;background:#fff;border:1.5px solid var(--green);color:var(--green-d);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+  .handle.rot::before{content:'';position:absolute;left:50%;top:100%;width:1.5px;height:12px;background:var(--green);transform:translateX(-50%);}
+  /* Props */
+  .dz-props{width:270px;background:#fff;border-left:1px solid var(--border-soft);overflow-y:auto;padding:14px;}
+  .dz-props h4{font-size:.72rem;font-weight:800;color:var(--green-d);text-transform:uppercase;letter-spacing:.04em;margin:15px 0 8px;}
+  .dz-props h4:first-child{margin-top:0;}
+  .dz-row{display:flex;gap:8px;margin-bottom:8px;} .dz-f{flex:1;}
+  .dz-f label{display:block;font-size:.68rem;color:var(--muted);font-weight:700;margin-bottom:3px;}
+  .dz-f input,.dz-f select,.dz-f textarea{width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:.84rem;outline:none;}
+  .dz-f input:focus,.dz-f select:focus,.dz-f textarea:focus{border-color:var(--green-d);}
+  .dz-f input[type=color]{padding:2px;height:32px;} .dz-f input[type=range]{padding:0;}
+  .dz-btnrow{display:flex;gap:6px;flex-wrap:wrap;}
+  .dz-mini{flex:1;border:1px solid var(--border);background:#fff;border-radius:6px;padding:7px;cursor:pointer;font-size:.8rem;color:var(--text);min-width:0;}
+  .dz-mini:hover{background:var(--green-tint2);border-color:var(--green);color:var(--green-d);} .dz-mini.on{background:var(--green);border-color:var(--green);color:#fff;}
+  .dz-empty{color:var(--muted);font-size:.85rem;text-align:center;padding:26px 10px;}
+  /* Pagina-balk */
+  .dz-pages{display:flex;align-items:center;gap:8px;padding:6px 12px;background:#fff;border-top:1px solid var(--border-soft);overflow-x:auto;}
+  .dz-page{flex:none;width:52px;height:70px;border:2px solid var(--border);border-radius:6px;background:#fff center/cover no-repeat;cursor:pointer;position:relative;font-size:.6rem;color:var(--muted);display:flex;align-items:flex-end;justify-content:center;padding-bottom:2px;}
+  .dz-page.on{border-color:var(--green);box-shadow:0 0 0 2px var(--green-tint);}
+  .dz-page .pgnum{position:absolute;top:2px;left:4px;font-weight:800;}
+  .dz-addpage{flex:none;width:52px;height:70px;border:2px dashed var(--border);border-radius:6px;background:#fff;cursor:pointer;color:var(--green);font-size:1.1rem;}
+  .dz-addpage:hover{border-color:var(--green);background:var(--green-tint2);}
+  .dz-modal{position:fixed;inset:0;background:rgba(20,26,20,.5);z-index:500;display:none;align-items:center;justify-content:center;}
+  .dz-modal.open{display:flex;}
+</style>
+{% endblock %}
+{% block content %}
+<div class="dz-editor" data-id="{{ design.id }}" data-kind="{{ design.kind }}" data-w="{{ design.w_mm }}" data-h="{{ design.h_mm }}">
+  <div class="dz-top">
+    <a href="{{ url_for('designer_dashboard') }}" class="btn btn-ghost btn-sm"><i class="fa fa-arrow-left"></i></a>
+    <span class="dz-title" id="dzTitle" contenteditable="true">{{ design.title }}</span>
+    <span class="dz-savestate" id="dzSaveState"></span>
+    <div class="dz-tb">
+      <button class="dz-ib" id="dzUndo" title="Ongedaan maken (Ctrl+Z)" onclick="DZ.undo()"><i class="fa fa-rotate-left"></i></button>
+      <button class="dz-ib" id="dzRedo" title="Opnieuw (Ctrl+Y)" onclick="DZ.redo()"><i class="fa fa-rotate-right"></i></button>
+    </div>
+    <div class="dz-tb">
+      <button class="dz-ib" onclick="DZ.zoomBy(-.1)" title="Uitzoomen"><i class="fa fa-magnifying-glass-minus"></i></button>
+      <span class="dz-zoom" id="dzZoomLbl">100%</span>
+      <button class="dz-ib" onclick="DZ.zoomBy(.1)" title="Inzoomen"><i class="fa fa-magnifying-glass-plus"></i></button>
+      <button class="dz-ib" onclick="DZ.zoomFit()" title="Passend"><i class="fa fa-expand"></i></button>
+    </div>
+    <span class="sp"></span>
+    <button class="btn btn-ghost btn-sm" onclick="DZ.preview()"><i class="fa fa-eye"></i> Voorbeeld</button>
+    {% if design.kind == 'label' %}
+    <button class="btn btn-primary btn-sm" onclick="DZ.printLabel()"><i class="fa fa-print"></i> Print label</button>
+    {% else %}
+    <a class="btn btn-outline btn-sm" href="{{ url_for('designer_pdf', design_id=design.id) }}"><i class="fa fa-file-pdf"></i> PDF</a>
+    {% endif %}
+    <button class="btn btn-primary btn-sm" onclick="DZ.save(true)"><i class="fa fa-floppy-disk"></i> Opslaan</button>
+  </div>
+
+  <div class="dz-main">
+    <div class="dz-rail" id="dzRail">
+      <button class="dz-railbtn on" data-panel="tekst"><i class="fa fa-font"></i>Tekst</button>
+      <button class="dz-railbtn" data-panel="elem"><i class="fa fa-shapes"></i>Elementen</button>
+      <button class="dz-railbtn" data-panel="upload"><i class="fa fa-cloud-arrow-up"></i>Uploads</button>
+      <button class="dz-railbtn" data-panel="plus"><i class="fa fa-magnifying-glass"></i>PLUS-zoek</button>
+      <button class="dz-railbtn" data-panel="bg"><i class="fa fa-fill-drip"></i>Achtergrond</button>
+    </div>
+
+    <div class="dz-panel" id="dzPanel">
+      <!-- TEKST -->
+      <div class="dz-pane on" data-pane="tekst">
+        <p class="hint" style="margin:0 0 10px;">Klik om toe te voegen, of sleep naar het blad.</p>
+        <h4>Tekst toevoegen</h4>
+        <button class="preset big" data-drag='{"t":"text","k":"kop"}' onclick="DZ.addText('kop')">Kop toevoegen</button>
+        <button class="preset mid" data-drag='{"t":"text","k":"sub"}' onclick="DZ.addText('sub')">Subkop toevoegen</button>
+        <button class="preset sm" data-drag='{"t":"text","k":"body"}' onclick="DZ.addText('body')">Een stukje bodytekst</button>
+        <button class="preset sm" style="border-style:dashed;text-align:center;" data-drag='{"t":"barcode"}' onclick="DZ.addBarcode()"><i class="fa fa-barcode"></i> Barcode toevoegen</button>
+      </div>
+      <!-- ELEMENTEN -->
+      <div class="dz-pane" data-pane="elem">
+        <p class="hint" style="margin:0 0 10px;">Klik of sleep naar het blad.</p>
+        <h4>Vormen</h4>
+        <div class="grid6">
+          <button data-drag='{"t":"shape","s":"rect"}' onclick="DZ.addShape('rect')"><i class="fa fa-square"></i></button>
+          <button data-drag='{"t":"shape","s":"ellipse"}' onclick="DZ.addShape('ellipse')"><i class="fa fa-circle"></i></button>
+          <button data-drag='{"t":"shape","s":"triangle"}' onclick="DZ.addShape('triangle')"><i class="fa fa-play" style="transform:rotate(-90deg)"></i></button>
+          <button data-drag='{"t":"shape","s":"star"}' onclick="DZ.addShape('star')"><i class="fa fa-star"></i></button>
+          <button data-drag='{"t":"shape","s":"line"}' onclick="DZ.addShape('line')"><i class="fa fa-minus"></i></button>
+          <button data-drag='{"t":"shape","s":"arrow"}' onclick="DZ.addShape('arrow')"><i class="fa fa-arrow-right-long"></i></button>
+        </div>
+        <h4>Tabel</h4>
+        <button class="preset sm" style="text-align:center;" data-drag='{"t":"table"}' onclick="DZ.addTable()"><i class="fa fa-table-cells"></i> Tabel toevoegen</button>
+        <h4>Iconen</h4>
+        <div class="grid6">
+          {% for ic in icons %}<button data-drag='{"t":"icon","name":"{{ ic }}"}' onclick="DZ.addIcon('{{ ic }}')" title="{{ ic }}"><i class="fa fa-{{ ic }}"></i></button>{% endfor %}
+        </div>
+        <h4>Material icons</h4>
+        <form class="dz-plus-search" onsubmit="return DZ.msSearch()" style="margin-bottom:8px;">
+          <input type="search" id="dzMsQ" oninput="DZ.msSearch()" placeholder="Zoek icoon…" autocomplete="off">
+        </form>
+        <div class="grid6" id="dzMsGrid"></div>
+      </div>
+      <!-- UPLOADS -->
+      <div class="dz-pane" data-pane="upload">
+        <h4>Foto's</h4>
+        <button class="btn btn-outline btn-block btn-sm" onclick="document.getElementById('dzFile').click()"><i class="fa fa-upload"></i> Foto uploaden</button>
+        <div class="dz-gallery" id="dzGallery"></div>
+      </div>
+      <!-- PLUS-ZOEK -->
+      <div class="dz-pane" data-pane="plus">
+        <h4>Zoek op plus.nl</h4>
+        <form class="dz-plus-search" onsubmit="return DZ.plusSearch()">
+          <input type="search" id="dzPlusQ" placeholder="Bijv. gehakt, kaas…" autocomplete="off">
+          <button type="submit" class="btn btn-primary btn-sm"><i class="fa fa-magnifying-glass"></i></button>
+        </form>
+        <p class="hint" style="margin:8px 0 0;">Vink aan wat je wilt overnemen (foto, naam, prijs) en klik Toevoegen.</p>
+        <div class="dz-plus-res" id="dzPlusRes"></div>
+      </div>
+      <!-- ACHTERGROND -->
+      <div class="dz-pane" data-pane="bg">
+        <h4>Achtergrondkleur</h4>
+        <input type="color" id="dzBgColor" style="width:100%;height:40px;border:1px solid var(--border);border-radius:8px;">
+        <div class="swatches" style="margin-top:10px;">
+          {% for col in ['#ffffff','#f4f5f3','#80bd1d','#115013','#eef6e1','#dd350d','#231f20','#ffd400','#1d6fd0','#e94e77','#ff8a00','#00a19a'] %}
+          <button style="background:{{ col }};" onclick="DZ.setBg('{{ col }}')"></button>{% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="dz-stagewrap" id="dzStageWrap">
+      <div class="dz-canvaswrap" id="dzCanvasWrap">
+        <div class="dz-stage" id="dzStage"></div>
+        <svg class="dz-guides" id="dzGuides"></svg>
+      </div>
+    </div>
+
+    <div class="dz-props" id="dzProps"></div>
+  </div>
+
+  <div class="dz-pages" id="dzPages"></div>
+</div>
+
+<input type="file" id="dzFile" accept="image/*" hidden>
+<script>
+  window.DZ_INIT = {
+    id: {{ design.id }}, kind: "{{ design.kind }}",
+    w_mm: {{ design.w_mm }}, h_mm: {{ design.h_mm }},
+    data: {{ design.data_json | safe }},
+    fonts: {{ fonts | tojson }},
+    csrf: "{{ csrf_token() }}",
+    saveUrl: "{{ url_for('designer_save', design_id=design.id) }}",
+    barcodeUrl: "{{ url_for('designer_barcode') }}",
+    previewUrl: "{{ url_for('designer_preview', design_id=design.id) }}",
+    printLabelUrl: "{{ url_for('designer_print_label', design_id=design.id) }}",
+    plusUrl: "{{ url_for('api_plus_zoek') }}"
+  };
+</script>
+<script src="{{ url_for('static', filename='js/html2canvas.min.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='js/designer.js', v=app_version) }}"></script>
+{% endblock %}

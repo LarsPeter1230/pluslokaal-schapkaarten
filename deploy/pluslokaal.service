@@ -1,0 +1,14 @@
+[Unit]
+Description=PLUSLokaal Schapkaarten
+After=network.target
+
+[Service]
+# Pas het pad aan naar waar je de repo hebt staan:
+WorkingDirectory=/opt/pluslokaal
+# Gebruik het venv-python als je een virtualenv gebruikt (bv. /opt/pluslokaal/.venv/bin/python):
+ExecStart=/usr/bin/python3 -m gunicorn -c /opt/pluslokaal/gunicorn_conf.py app:app
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

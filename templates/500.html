@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Er ging iets mis – PLUSLokaal</title>
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static',filename='img/favicon.svg') }}">
+<style>
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+    font-family:'Open Sans',system-ui,Arial,sans-serif;background:#f4f5f3;color:#333;padding:20px;}
+  .box{background:#fff;border:1px solid #eaeae7;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.08);
+    max-width:440px;width:100%;text-align:center;padding:40px 32px;}
+  .code{font-size:3.2rem;font-weight:800;color:#dd350d;line-height:1;}
+  h1{font-size:1.25rem;color:#115013;margin:12px 0 6px;}
+  p{color:#6c6c6c;font-size:.95rem;line-height:1.6;margin:0 0 22px;}
+  a.btn{display:inline-block;background:#80bd1d;color:#fff;text-decoration:none;font-weight:700;
+    padding:11px 22px;border-radius:999px;font-size:.92rem;}
+  a.btn:hover{background:#77b01a;}
+</style>
+</head>
+<body>
+  <div class="box">
+    <div class="code">500</div>
+    <h1>Er ging iets mis</h1>
+    <p>Er is een onverwachte fout opgetreden. Probeer het opnieuw; blijft het misgaan, meld het dan via het&nbsp;?-knopje.</p>
+    <a class="btn" href="{{ url_for('dashboard') }}">Terug naar het dashboard</a>
+  </div>
+</body>
+</html>

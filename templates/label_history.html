@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Labelgeschiedenis – PLUSLokaal{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <a href="{{ url_for('labels_dashboard') }}" class="btn btn-ghost btn-sm"><i class="fa fa-arrow-left"></i> Terug</a>
+    <div><h1 class="page-title">Labelgeschiedenis</h1><p class="page-sub">{{ jobs|length }} batch(es)</p></div>
+  </div>
+</div>
+<div class="panel"><div class="panel__body">
+  {% if jobs %}
+  <table class="tbl" style="width:100%;">
+    <thead><tr><th>Naam</th><th>Producten</th><th>Datum</th><th></th></tr></thead>
+    <tbody>
+    {% for j in jobs %}
+    <tr>
+      <td>{{ j.name }}</td>
+      <td>{{ j.items_json|from_json|length }}</td>
+      <td class="muted">{{ j.created_at.strftime('%d-%m-%Y %H:%M') }}</td>
+      <td style="text-align:right;"><a href="{{ url_for('label_view', job_id=j.id) }}" class="btn btn-ghost btn-sm"><i class="fa fa-eye"></i> Bekijken</a></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<p class="muted">Nog geen labels gemaakt.</p>{% endif %}
+</div></div>
+{% endblock %}

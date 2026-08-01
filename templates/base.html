@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}PLUSLokaal Schapkaarten{% endblock %}</title>
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static',filename='img/favicon.svg') }}">
+<link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static',filename='img/favicon-32.png') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static',filename='img/favicon-180.png') }}">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="{{ url_for('static',filename='css/plus.css', v=app_version) }}">
+{% include '_csrf.html' %}
+<style>
+  .winkelkiezer{margin-right:4px;}
+  .winkelkiezer__btn{display:inline-flex;align-items:center;gap:7px;max-width:210px;}
+  .winkelkiezer__lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px;}
+  .winkelkiezer__btn.is-none{outline:2px solid rgba(255,255,255,.65);outline-offset:1px;}
+  @media (max-width:900px){ .winkelkiezer__lbl{max-width:80px;} }
+  .winkelkiezer__menu{min-width:280px;padding-top:8px;}
+  .wk-search{position:relative;padding:4px 10px 8px;border-bottom:1px solid var(--border-soft,#eee);margin-bottom:6px;}
+  .wk-search i{position:absolute;left:22px;top:50%;transform:translateY(-50%);color:var(--placeholder,#999);font-size:.82rem;}
+  .wk-search__input{width:100%;height:38px;padding:0 12px 0 32px;border:1px solid var(--border,#ccc);
+    border-radius:8px;font-size:.9rem;color:var(--text);background:#fff;outline:none;}
+  .wk-search__input:focus{border-color:var(--green,#4a9b28);}
+  .wk-list{max-height:300px;overflow:auto;}
+  .wk-list a[hidden]{display:none;}
+  .wk-empty{padding:10px 14px;color:var(--muted,#777);font-size:.85rem;}
+  .wk-empty[hidden]{display:none;}
+</style>
+{% block head %}{% endblock %}
+</head>
+<body data-ep="{{ request.endpoint }}">
+{% set ep = request.endpoint %}
+<header class="app-header">
+  <div class="app-header__inner">
+    <a href="{{ url_for('dashboard') }}" class="brand" title="PLUSLokaal">
+      <img src="{{ url_for('static',filename='img/plus-logo.svg') }}" alt="PLUS"
+           onerror="this.outerHTML='<span style=\'color:#fff;font-weight:800;font-size:1.3rem;letter-spacing:1px\'>PLUS</span>'">
+      <span class="brand__sub">Lokaal</span>
+    </a>
+
+    {% set beheer = ep in ['register','rollen','team','filialen','filiaal_detail','mail_settings','opslag','w2p_accounts','demo_account','logs_view','feedback_list','feedback_detail','kb_manage','kb_edit'] %}
+    <nav class="nav">
+      <a href="{{ url_for('dashboard') }}" class="{{ 'active' if ep in ['dashboard','kaart_editor'] }}">
+        <i class="fa fa-tags"></i> Schapkaarten
+      </a>
+      <a href="{{ url_for('scankaarten') }}" class="{{ 'active' if ep in ['scankaarten','scankaart_new'] }}">
+        <i class="fa fa-barcode"></i> Scankaarten
+      </a>
+      {% if can(user,'labels_make') %}
+      <a href="{{ url_for('labels_dashboard') }}" class="{{ 'active' if ep in ['labels_dashboard','label_new','label_view','label_products','label_history'] }}">
+        <i class="fa fa-tag"></i> Labels
+      </a>
+      {% endif %}
+      <a href="{{ url_for('portaal') }}" class="{{ 'active' if ep in ['portaal','portaal_view'] }}">
+        <i class="fa fa-globe"></i> Portaal
+      </a>
+      <a href="{{ url_for('designer_dashboard') }}" class="{{ 'active' if ep in ['designer_dashboard','designer_new','designer_editor'] }}">
+        <i class="fa fa-pen-ruler"></i> Designer <span class="beta-tag">Bèta</span>
+      </a>
+      {% if user and user.role in ['admin','ondernemer'] %}
+      <div class="dropdown" data-dd>
+        <button class="nav-btn {{ 'active' if beheer }}" data-dd-toggle>
+          <i class="fa fa-sliders"></i> Beheer
+          {% if feedback_unread and user.role=='admin' %}<span class="nav-badge" title="{{ feedback_unread }} ongelezen meldingen">{{ feedback_unread if feedback_unread < 100 else '99+' }}</span>{% endif %}
+          <i class="fa fa-chevron-down nav-chevron"></i>
+        </button>
+        <div class="dropdown-menu">
+          {% if can(user,'team') and user.role != 'admin' %}
+          <a href="{{ url_for('team') }}" class="{{ 'active' if ep=='team' }}"><i class="fa fa-users"></i> Mijn team</a>
+          {% endif %}
+          {% if user.role == 'admin' %}
+          <a href="{{ url_for('register') }}" class="{{ 'active' if ep=='register' }}"><i class="fa fa-users"></i> Gebruikers</a>
+          <a href="{{ url_for('rollen') }}" class="{{ 'active' if ep=='rollen' }}"><i class="fa fa-user-shield"></i> Rollen &amp; rechten</a>
+          <a href="{{ url_for('filialen') }}" class="{{ 'active' if ep=='filialen' }}"><i class="fa fa-store"></i> Filialen</a>
+          <a href="{{ url_for('feedback_list') }}" class="{{ 'active' if ep in ['feedback_list','feedback_detail'] }}">
+            <i class="fa fa-inbox"></i> Feedback
+            {% if feedback_unread %}<span class="menu-badge">{{ feedback_unread if feedback_unread < 100 else '99+' }}</span>{% endif %}
+          </a>
+          <a href="{{ url_for('kb_manage') }}" class="{{ 'active' if ep in ['kb_manage','kb_edit'] }}"><i class="fa fa-book-open"></i> Kennisbank</a>
+          <a href="{{ url_for('logs_view') }}" class="{{ 'active' if ep=='logs_view' }}"><i class="fa fa-clipboard-list"></i> Logs</a>
+          <a href="{{ url_for('mail_settings') }}" class="{{ 'active' if ep=='mail_settings' }}"><i class="fa fa-envelope"></i> Mailinstellingen</a>
+          <a href="{{ url_for('opslag') }}" class="{{ 'active' if ep=='opslag' }}"><i class="fa fa-hard-drive"></i> Opslag</a>
+          <a href="{{ url_for('w2p_accounts') }}" class="{{ 'active' if ep=='w2p_accounts' }}"><i class="fa fa-box-open"></i> Winkelpakket-accounts</a>
+          <a href="{{ url_for('demo_account') }}" class="{{ 'active' if ep=='demo_account' }}"><i class="fa fa-flask"></i> Demo-account</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </nav>
+
+    <div class="header-actions">
+      {% if winkelkiezer %}
+      <div class="dropdown dropdown-right winkelkiezer" data-dd>
+        <button class="nav-btn winkelkiezer__btn {{ 'is-none' if not winkelkiezer.current }}" data-dd-toggle title="Kies de winkel waarin je werkt">
+          <i class="fa fa-store"></i>
+          <span class="winkelkiezer__lbl">{% if winkelkiezer.current %}{{ winkelkiezer.current.naam or winkelkiezer.current.nummer }}{% else %}Kies winkel{% endif %}</span>
+          <i class="fa fa-chevron-down nav-chevron"></i>
+        </button>
+        <div class="dropdown-menu winkelkiezer__menu" onclick="event.stopPropagation()">
+          <div class="wk-search">
+            <i class="fa fa-magnifying-glass"></i>
+            <input type="text" class="wk-search__input" placeholder="Zoek op naam of winkelnummer…" autocomplete="off" data-wk-search>
+          </div>
+          <div class="wk-list">
+            <a href="{{ url_for('kies_winkel', nummer=0) }}" data-wk-opt data-search="alle winkels overzicht"
+               class="{{ 'active' if not winkelkiezer.current }}"><i class="fa fa-layer-group"></i> Alle winkels (overzicht)</a>
+            {% for s in winkelkiezer.stores %}
+            <a href="{{ url_for('kies_winkel', nummer=s.nummer) }}" data-wk-opt
+               data-search="{{ (s.naam or '')|lower }} {{ s.nummer }}"
+               class="{{ 'active' if winkelkiezer.current and winkelkiezer.current.nummer==s.nummer }}">
+              <i class="fa fa-store"></i> {{ s.naam or s.nummer }} <span class="muted">({{ s.nummer }})</span>{% if not s.doc_printer_ip %} <span class="muted">· geen printer</span>{% endif %}
+            </a>
+            {% endfor %}
+            <div class="wk-empty" data-wk-empty hidden>Geen winkel gevonden.</div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      {% if user %}
+      <div class="dropdown dropdown-right" data-dd>
+        <button class="who {{ 'active' if ep=='profile' }}" data-dd-toggle title="Mijn account">
+          <div class="who__avatar">
+            {% if user.avatar %}<img src="{{ user.avatar }}" alt="">{% else %}{{ user.username[:2] }}{% endif %}
+          </div>
+          <div class="who__txt">
+            <div class="who__name">{{ user.username }}</div>
+            <div class="who__role">{{ user.role }}</div>
+          </div>
+          <i class="fa fa-chevron-down nav-chevron" style="color:#fff;"></i>
+        </button>
+        <div class="dropdown-menu">
+          <a href="{{ url_for('profile') }}" class="{{ 'active' if ep=='profile' }}"><i class="fa fa-circle-user"></i> Mijn profiel</a>
+          <a href="{{ url_for('logout') }}" class="danger"><i class="fa fa-right-from-bracket"></i> Uitloggen</a>
+        </div>
+      </div>
+      {% endif %}
+      <button class="hamburger" id="hamburger" aria-label="Menu" onclick="document.getElementById('mobileNav').classList.toggle('open')">
+        <i class="fa fa-bars"></i>
+      </button>
+    </div>
+  </div>
+
+  <nav class="mobile-nav" id="mobileNav">
+    <a href="{{ url_for('dashboard') }}" class="{{ 'active' if ep in ['dashboard','kaart_editor'] }}"><i class="fa fa-tags"></i> Schapkaarten</a>
+    <a href="{{ url_for('scankaarten') }}" class="{{ 'active' if ep in ['scankaarten','scankaart_new'] }}"><i class="fa fa-barcode"></i> Scankaarten</a>
+    <a href="{{ url_for('labels_dashboard') }}" class="{{ 'active' if ep in ['labels_dashboard','label_new','label_view','label_products','label_history'] }}"><i class="fa fa-tag"></i> Labels</a>
+    <a href="{{ url_for('portaal') }}" class="{{ 'active' if ep in ['portaal','portaal_view'] }}"><i class="fa fa-globe"></i> Portaal</a>
+    <a href="{{ url_for('designer_dashboard') }}" class="{{ 'active' if ep in ['designer_dashboard','designer_new','designer_editor'] }}"><i class="fa fa-pen-ruler"></i> Designer <span class="beta-tag">Bèta</span></a>
+    {% if user and can(user,'team') and user.role != 'admin' %}
+    <a href="{{ url_for('team') }}" class="{{ 'active' if ep=='team' }}"><i class="fa fa-users"></i> Mijn team</a>
+    {% endif %}
+    {% if user and user.role == 'admin' %}
+    <a href="{{ url_for('register') }}" class="{{ 'active' if ep=='register' }}"><i class="fa fa-users"></i> Gebruikers</a>
+    <a href="{{ url_for('rollen') }}" class="{{ 'active' if ep=='rollen' }}"><i class="fa fa-user-shield"></i> Rollen &amp; rechten</a>
+    <a href="{{ url_for('filialen') }}" class="{{ 'active' if ep=='filialen' }}"><i class="fa fa-store"></i> Filialen</a>
+    <a href="{{ url_for('feedback_list') }}" class="{{ 'active' if ep in ['feedback_list','feedback_detail'] }}"><i class="fa fa-inbox"></i> Feedback{% if feedback_unread %} <span class="menu-badge">{{ feedback_unread if feedback_unread < 100 else '99+' }}</span>{% endif %}</a>
+    <a href="{{ url_for('kb_manage') }}" class="{{ 'active' if ep in ['kb_manage','kb_edit'] }}"><i class="fa fa-book-open"></i> Kennisbank</a>
+    <a href="{{ url_for('logs_view') }}" class="{{ 'active' if ep=='logs_view' }}"><i class="fa fa-clipboard-list"></i> Logs</a>
+    <a href="{{ url_for('mail_settings') }}" class="{{ 'active' if ep=='mail_settings' }}"><i class="fa fa-envelope"></i> Mailinstellingen</a>
+    <a href="{{ url_for('opslag') }}" class="{{ 'active' if ep=='opslag' }}"><i class="fa fa-hard-drive"></i> Opslag</a>
+    <a href="{{ url_for('demo_account') }}" class="{{ 'active' if ep=='demo_account' }}"><i class="fa fa-flask"></i> Demo-account</a>
+    {% endif %}
+    <a href="{{ url_for('kb_index') }}" class="{{ 'active' if ep in ['kb_index','kb_article'] }}"><i class="fa fa-circle-question"></i> Hulp &amp; kennisbank</a>
+    <a href="{{ url_for('profile') }}" class="{{ 'active' if ep=='profile' }}"><i class="fa fa-circle-user"></i> Mijn profiel</a>
+    <a href="{{ url_for('logout') }}" class="danger"><i class="fa fa-right-from-bracket"></i> Uitloggen</a>
+  </nav>
+</header>
+
+{% with messages=get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-wrap" id="flashWrap">
+    {% for cat,msg in messages %}
+    <div class="flash {{ cat }}">
+      <i class="fa {% if cat=='success' %}fa-circle-check{% else %}fa-circle-exclamation{% endif %}"></i>
+      <span>{{ msg }}</span>
+      <button class="flash__close" onclick="this.parentElement.remove()" aria-label="Sluiten"><i class="fa fa-xmark"></i></button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endwith %}
+
+<main class="page">
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="app-footer">
+  <span class="app-footer__copy">© {{ now_year or 2026 }} PLUSLokaal</span>
+  <span class="app-footer__sep">·</span>
+  {% if changelog_visible %}
+  <a class="app-footer__version" href="{{ url_for('changelog') }}" title="Bekijk wat er nieuw is">
+    <i class="fa fa-code-branch"></i> versie {{ app_version }}
+  </a>
+  {% else %}
+  <span class="app-footer__version is-static"><i class="fa fa-code-branch"></i> versie {{ app_version }}</span>
+  {% endif %}
+</footer>
+
+<!-- App-brede PLUS-laadspinner (blaadjes), zelfde look als op het portaal. Tonen met plusLoader.show('…'). -->
+<div class="plus-loader" id="plusLoader" hidden aria-live="polite" role="status">
+  <div class="plus-loader__box">
+    <div class="pl-spinner" aria-hidden="true">
+      <svg viewBox="0 0 132 140">
+        <path class="pl-leaf pl-leaf--1" d="M61.2,32.8 L61.2,54.8 C61.2,60.8 56.8,65.6 50.8,65.6 L30.4,65.6 C13.6,65.6 0,51.2 0,33.2 C0,15.6 13.6,0.8 30.4,0.8 C47.6,0.8 61.2,15.2 61.2,32.8 L61.2,32.8 Z"/>
+        <path class="pl-leaf pl-leaf--2" d="M61.2,107.2 L61.2,85.6 C61.2,79.6 56.8,74.8 50.8,74.8 L30.4,74.8 C13.6,74.8 0,89.2 0,107.2 C0,125.2 13.6,139.6 30.4,139.6 C47.6,139.6 61.2,125.2 61.2,107.2 L61.2,107.2 Z"/>
+        <path class="pl-leaf pl-leaf--3" d="M69.6,107.2 L69.6,85.6 C69.6,79.6 74,74.8 80,74.8 L100.4,74.8 C117.2,74.8 131.2,89.2 131.2,107.2 C131.2,125.2 117.2,139.6 100.4,139.6 C83.6,139.6 69.6,125.2 69.6,107.2 L69.6,107.2 Z"/>
+        <path class="pl-leaf pl-leaf--4" d="M70,32.8 L70,54.8 C70,60.8 74.4,65.6 80,65.6 L100.4,65.6 C117.6,65.6 131.2,51.2 131.2,33.2 C131.2,15.6 117.6,0.8 100.4,0.8 C83.6,0.8 70,15.2 70,32.8 L70,32.8 Z"/>
+      </svg>
+    </div>
+    <div class="plus-loader__txt" id="plusLoaderTxt">Even geduld…</div>
+  </div>
+</div>
+<script>
+// Kleine, app-brede API voor de PLUS-laadspinner (fullscreen overlay).
+window.plusLoader = {
+  show: function(msg){ var el=document.getElementById('plusLoader'); if(!el) return;
+    var t=document.getElementById('plusLoaderTxt'); if(t) t.textContent = msg || 'Even geduld…';
+    el.hidden=false; },
+  hide: function(){ var el=document.getElementById('plusLoader'); if(el) el.hidden=true; }
+};
+// Bij terug-navigatie (bfcache) de spinner nooit laten blijven hangen.
+window.addEventListener('pageshow', function(){ window.plusLoader.hide(); });
+</script>
+
+<script>
+// Flash auto-dismiss
+(function(){
+  var fw=document.getElementById('flashWrap');
+  if(fw){setTimeout(function(){fw.style.transition='opacity .5s';fw.style.opacity='0';setTimeout(function(){fw.remove();},500);},4500);}
+})();
+// Header dropdown-submenu's
+(function(){
+  var dds=[].slice.call(document.querySelectorAll('[data-dd]'));
+  dds.forEach(function(dd){
+    var btn=dd.querySelector('[data-dd-toggle]');
+    if(!btn)return;
+    btn.addEventListener('click',function(e){
+      e.stopPropagation();
+      var wasOpen=dd.classList.contains('open');
+      dds.forEach(function(d){d.classList.remove('open');});
+      if(!wasOpen)dd.classList.add('open');
+    });
+  });
+  document.addEventListener('click',function(){dds.forEach(function(d){d.classList.remove('open');});});
+})();
+// Winkelkiezer: zoeken op naam of winkelnummer
+(function(){
+  var input=document.querySelector('[data-wk-search]');
+  if(!input) return;
+  var wrap=input.closest('[data-dd]');
+  var opts=[].slice.call(document.querySelectorAll('[data-wk-opt]'));
+  var empty=document.querySelector('[data-wk-empty]');
+  function filter(){
+    var q=input.value.toLowerCase().trim(), shown=0;
+    opts.forEach(function(o){
+      var always=o.getAttribute('data-search').indexOf('overzicht')>-1;   // "Alle winkels" altijd tonen
+      var hit=always || !q || o.getAttribute('data-search').indexOf(q)>-1;
+      o.hidden=!hit; if(hit && !always) shown++;
+    });
+    if(empty) empty.hidden = (shown>0) || !q;
+  }
+  input.addEventListener('input', filter);
+  input.addEventListener('keydown', function(e){ if(e.key==='Escape'){ if(wrap) wrap.classList.remove('open'); } });
+  // Focus de zoekbalk zodra de dropdown opent
+  if(wrap){
+    var btn=wrap.querySelector('[data-dd-toggle]');
+    if(btn) btn.addEventListener('click', function(){
+      setTimeout(function(){ if(wrap.classList.contains('open')){ input.value=''; filter(); input.focus(); } }, 30);
+    });
+  }
+})();
+</script>
+{% if user %}{% include '_printqueue.html' %}{% endif %}
+{% if user %}{% include '_feedback.html' %}{% endif %}
+{% if user and user.show_tour %}{% include '_tour.html' %}{% endif %}
+
+{% if user and w2p_busy %}
+<div class="w2p-notice" id="w2pNotice" role="dialog" aria-live="polite" hidden>
+  <div class="w2p-notice__box">
+    <div class="w2p-notice__icon"><i class="fa fa-truck-fast"></i></div>
+    <h3>Winkelpakketten worden aangevuld</h3>
+    <p>Op de achtergrond worden nieuwe winkelpakketten opgehaald. Hierdoor kunnen <b>sommige acties
+       tijdelijk iets trager reageren</b>. Je kunt gewoon doorwerken.</p>
+    <button class="btn btn-primary btn-sm" onclick="document.getElementById('w2pNotice').hidden=true">Begrepen</button>
+  </div>
+</div>
+<style>
+  .w2p-notice{position:fixed;inset:0;z-index:600;display:flex;align-items:center;justify-content:center;
+    background:rgba(20,26,20,.45);}
+  .w2p-notice[hidden]{display:none;}
+  .w2p-notice__box{background:#fff;border-radius:var(--radius-lg);box-shadow:var(--shadow-md);
+    padding:26px 28px;max-width:380px;width:92vw;text-align:center;}
+  .w2p-notice__icon{width:56px;height:56px;border-radius:50%;background:var(--green-tint);color:var(--green-d);
+    display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin:0 auto 12px;}
+  .w2p-notice__box h3{color:var(--green-d);font-size:1.1rem;font-weight:800;margin:0 0 8px;}
+  .w2p-notice__box p{color:var(--muted);font-size:.9rem;margin:0 0 18px;line-height:1.5;}
+</style>
+<script>
+  (function(){
+    // Toon de melding één keer per browsersessie (bv. direct na inloggen).
+    if(!sessionStorage.getItem('w2pNoticeSeen')){
+      sessionStorage.setItem('w2pNoticeSeen','1');
+      var n=document.getElementById('w2pNotice'); if(n) n.hidden=false;
+    }
+  })();
+</script>
+{% endif %}
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

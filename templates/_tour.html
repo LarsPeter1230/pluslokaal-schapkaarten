@@ -1,0 +1,98 @@
+{# Rondleiding (onboarding). Alleen ingeladen als de gebruiker 'Rondleiding tonen' aan heeft staan. #}
+<div class="plt-modal" id="pltWelcome">
+  <div class="plt-modal__card">
+    <div class="plt-modal__hero">
+      <button class="plt-modal__x" data-plt="welcome-close" aria-label="Sluiten">&times;</button>
+      <div class="plt-modal__ic"><i class="fa fa-hand-sparkles"></i></div>
+      <div class="plt-modal__t">Welkom bij het nieuwe PLUSLokaal</div>
+    </div>
+    <div class="plt-modal__body">
+      <p style="margin:0 0 10px;color:var(--muted);font-size:.92rem;">De omgeving is vernieuwd. In het kort:</p>
+      <ul>
+        <li><i class="fa fa-bolt fa-fw"></i><span><strong>Sneller</strong> — alles op één plek, blijvend ingelogd en mobielvriendelijk.</span></li>
+        <li><i class="fa fa-wand-magic-sparkles fa-fw"></i><span><strong>Gemakkelijk</strong> — kaarten maken met live voorbeeld en artikelinfo van plus.nl.</span></li>
+        <li><i class="fa fa-print fa-fw"></i><span><strong>Direct printen</strong> — naar de winkelprinter, zonder een lade te kiezen.</span></li>
+      </ul>
+      <p style="margin:8px 0 0;color:var(--muted);font-size:.88rem;">Nieuw hier? We leiden je in een paar stappen rond.</p>
+    </div>
+    <div class="plt-modal__foot">
+      <button class="plt-btn plt-btn--ghost" data-plt="welcome-close">Later</button>
+      <button class="plt-btn plt-btn--primary" data-plt="start"><i class="fa fa-route"></i> Rondleiding starten</button>
+    </div>
+  </div>
+</div>
+
+<div class="plt-modal" id="pltEnd">
+  <div class="plt-modal__card">
+    <div class="plt-modal__hero">
+      <div class="plt-modal__ic"><i class="fa fa-circle-check"></i></div>
+      <div class="plt-modal__t">Klaar! Je kent nu de basis</div>
+    </div>
+    <div class="plt-modal__body">
+      <p style="margin:0;font-size:.94rem;">Je weet nu hoe je schapkaarten maakt, print en winkelpakketten gebruikt.
+      Kom je er niet uit? Klik rechtsonder op de <strong>?</strong> voor de kennisbank, of geef feedback.</p>
+    </div>
+    <div class="plt-modal__foot">
+      <button class="plt-btn plt-btn--primary" data-plt="end-close">Aan de slag</button>
+    </div>
+  </div>
+</div>
+
+<script>
+window.PLT_DONE_URL="{{ url_for('tour_done') }}";
+window.PLT_WELCOME={{ 'true' if plt_welcome else 'false' }};
+window.PLT_STEPS=[
+  { ep:'dashboard', sel:'a.btn-primary[href*="kaart_editor"]', nav:true, place:'bottom',
+    title:'We maken een schapkaart',
+    body:'We beginnen met een <strong>schapkaart</strong>. Klik hier op <strong>Nieuwe kaart</strong> om de editor te openen.' },
+
+  { ep:'kaart_editor', sel:'#kt-actie', place:'right',
+    title:'1. Kies het type',
+    body:'Kies eerst het kaarttype: een <strong>Actiekaart</strong> (met prijs/korting) of een <strong>Tip-kaart</strong>.' },
+
+  { ep:'kaart_editor', sel:'#f-formaat', place:'right',
+    title:'2. Kies het formaat',
+    body:'Kies hier het kaartformaat. Selecteer voor nu <strong>SK Maxi</strong> (4 kaarten op één A4).' },
+
+  { ep:'kaart_editor', sel:'#pz-q', place:'right',
+    title:'3. Zoek op plus.nl',
+    body:'Typ hier een artikelnaam en klik op zoeken. Je krijgt de artikelen van <strong>plus.nl</strong> te zien.' },
+
+  { ep:'kaart_editor', sel:'#pz-results', place:'right',
+    title:'4. Neem de gegevens over',
+    body:'Bij het juiste resultaat <strong>vink je aan</strong> welke gegevens je wilt gebruiken en klik je op <strong>Overnemen</strong>. De velden op de kaart vullen zich dan vanzelf.' },
+
+  { ep:'kaart_editor', sel:'#pz-results', place:'right',
+    title:'5. Zet de foto op de kaart',
+    body:'Wil je ook de productfoto? <strong>Sleep de foto</strong> uit de zoekresultaten naar het voorbeeld rechts. Daarna kun je ’m verplaatsen en schalen.' },
+
+  { ep:'kaart_editor', sel:'.editor__preview', place:'left',
+    title:'6. Of typ het zelf',
+    body:'Je kunt ook <strong>direct in de kaart typen</strong>. Staat een artikel niet op plus.nl? Vul dan links de gegevens in — ze verschijnen <strong>live</strong> op de kaart.' },
+
+  { ep:'kaart_editor', sel:'button[onclick="saveCard()"]', nav:true, place:'top',
+    title:'7. Sla de kaart op',
+    body:'Klaar met invullen? Klik op <strong>Kaart opslaan</strong>. Je komt dan terug op het overzicht.' },
+
+  { ep:'dashboard', sel:'.card-print-btn', place:'left',
+    title:'8. Printen of downloaden',
+    body:'Print de kaart met deze knop <strong>direct op de winkelprinter</strong> — je hoeft <strong>geen lade</strong> te kiezen, het juiste papier komt vanzelf. Liever zelf printen? Dan kun je ’m ook downloaden.' },
+
+  { ep:'dashboard', sel:'a[href*="winkelpakketten"]', nav:true, place:'bottom',
+    title:'9. Naar de winkelpakketten',
+    body:'Nu de kant-en-klare <strong>winkelpakketten</strong>. Klik hier om ze te openen.' },
+
+  { ep:'winkelpakketten', sel:'.wp-tree', place:'right',
+    title:'10. Kies de nieuwste week',
+    body:'Open hier links de <strong>nieuwste week</strong> en kies een afdeling. Je ziet dan de kaarten van die week verschijnen.' },
+
+  { ep:'winkelpakketten', sel:'#wpFormaatFilter', place:'bottom',
+    title:'11. Selecteer kaarten',
+    body:'Vink nu <strong>3 SK Maxi</strong>-kaarten en <strong>1 A3 liggend</strong> aan (het vinkje “In winkelmandje” bij elke kaart).' },
+
+  { ep:'winkelpakketten', sel:'#wpPrint', place:'top',
+    title:'12. In één keer printen',
+    body:'Print alles in één keer op de winkelprinter — <strong>elk formaat komt automatisch uit de juiste lade</strong>. Je kunt ze ook <strong>downloaden</strong> naar je computer, maar dat hoeft niet.' }
+];
+</script>
+<script src="{{ url_for('static', filename='js/tour.js', v=app_version) }}"></script>

@@ -1,0 +1,152 @@
+<!-- Multi-select + bulk printen/downloaden voor gemaakte schap-/scankaarten.
+     Verwacht kaarten met: <div class="kaart" data-card-id data-card-title data-card-download>
+     met daarin een <input class="card-cb" type="checkbox"> en een knop .card-print-btn. -->
+<div class="cardbulk" id="cardBulkBar" hidden>
+  <div class="cardbulk__info">
+    <strong><span id="cardSelCount">0</span> kaart(en) geselecteerd</strong>
+    <span class="muted"><small>Elk formaat wordt uit de juiste lade geprint. Na printen/downloaden wordt de selectie gewist.</small></span>
+  </div>
+  <div class="cardbulk__btns">
+    <button type="button" class="btn btn-ghost btn-sm" id="cardSelClear"><i class="fa fa-xmark"></i> Selectie wissen</button>
+    <button type="button" class="btn btn-outline {{ 'wp-dl-hidden' if store_printer and store_printer.print_only and store_printer.ready }}" id="cardSelDownload"><i class="fa fa-download"></i> Downloaden</button>
+    <button type="button" class="btn btn-primary" id="cardSelPrint"><i class="fa fa-print"></i> <span class="pr-label">Printen</span></button>
+  </div>
+</div>
+
+<style>
+  .card-select{position:absolute;top:8px;left:8px;z-index:3;width:26px;height:26px;border-radius:7px;
+    background:rgba(255,255,255,.92);border:2px solid var(--border,#d5d5d5);display:flex;align-items:center;
+    justify-content:center;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.12);}
+  .card-select input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer;}
+  .card-select i{font-size:.72rem;color:#fff;opacity:0;transition:opacity .12s;}
+  .kaart{position:relative;}
+  .kaart.is-selected{outline:2px solid var(--green,#4a9b28);outline-offset:1px;}
+  .kaart.is-selected .card-select{background:var(--green,#4a9b28);border-color:var(--green,#4a9b28);}
+  .kaart.is-selected .card-select i{opacity:1;}
+
+  .cardbulk{position:sticky;bottom:16px;margin-top:18px;z-index:30;display:flex;align-items:center;
+    justify-content:space-between;gap:16px;flex-wrap:wrap;background:var(--card,#fff);
+    border:1px solid var(--border,#e6e6e6);border-radius:var(--radius-lg,16px);
+    box-shadow:0 10px 34px rgba(0,0,0,.14);padding:14px 18px;}
+  .cardbulk[hidden]{display:none;}
+  .cardbulk__info{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .cardbulk__info strong{color:var(--green-d,#2c6b0f);font-size:.95rem;}
+  .cardbulk__btns{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .cardbulk__btns .btn{white-space:normal;line-height:1.2;text-align:center;max-width:340px;}
+  .cardbulk__btns .btn[disabled]{opacity:.55;cursor:not-allowed;}
+  @media (max-width:640px){
+    .cardbulk{flex-direction:column;align-items:stretch;bottom:8px;}
+    .cardbulk__btns{width:100%;}
+    .cardbulk__btns .btn{flex:1;justify-content:center;}
+  }
+</style>
+
+<script>
+(function(){
+  var bar    = document.getElementById('cardBulkBar');
+  if(!bar) return;
+  var countEl= document.getElementById('cardSelCount');
+  var clearBtn = document.getElementById('cardSelClear');
+  var dlBtn  = document.getElementById('cardSelDownload');
+  var prBtn  = document.getElementById('cardSelPrint');
+  var PRINT_URL = "{{ url_for('cards_print_network') }}";
+  var DL_URL    = "{{ url_for('cards_download') }}";
+  var prLabelSpan = prBtn ? prBtn.querySelector('.pr-label') : null;
+
+  var sel = new Set();
+
+  function cards(){ return [].slice.call(document.querySelectorAll('.kaart[data-card-id]')); }
+  function cardById(id){ return document.querySelector('.kaart[data-card-id="'+id+'"]'); }
+  function cardReady(c){ return c && c.getAttribute('data-printer-ready') === '1'; }
+
+  function updatePrintBtn(){
+    if(!prBtn) return;
+    var names = {}, readyCount = 0;
+    sel.forEach(function(id){
+      var c = cardById(id);
+      if(cardReady(c)){ readyCount++; names[c.getAttribute('data-printer-name')] = 1; }
+    });
+    var uniq = Object.keys(names);
+    if(readyCount === 0){
+      prBtn.disabled = true;
+      if(prLabelSpan) prLabelSpan.textContent = 'Geen printer ingesteld';
+    } else {
+      prBtn.disabled = false;
+      if(prLabelSpan) prLabelSpan.textContent = (uniq.length === 1) ? ('Printen op ' + uniq[0]) : 'Printen';
+    }
+  }
+  function refresh(){
+    countEl.textContent = sel.size;
+    bar.hidden = (sel.size === 0);
+    cards().forEach(function(c){
+      var on = sel.has(c.getAttribute('data-card-id'));
+      c.classList.toggle('is-selected', on);
+      var cb = c.querySelector('.card-cb'); if(cb) cb.checked = on;
+    });
+    updatePrintBtn();
+  }
+  function deselectAll(){ sel.clear(); refresh(); }
+
+  cards().forEach(function(c){
+    var id = c.getAttribute('data-card-id');
+    var cb = c.querySelector('.card-cb');
+    if(cb){
+      cb.addEventListener('change', function(e){
+        e.stopPropagation();
+        if(cb.checked) sel.add(id); else sel.delete(id);
+        refresh();
+      });
+    }
+    // Per-kaart printknop → keuze-popup (printen/downloaden/annuleren) — printer van DEZE kaart z'n winkel
+    var pbtn = c.querySelector('.card-print-btn');
+    if(pbtn){
+      pbtn.addEventListener('click', function(){
+        window.PlusPrint.chooseCard({
+          title: c.getAttribute('data-card-title'),
+          printUrl: "{{ url_for('card_print_network', card_id=0) }}".replace(/0$/, '') + id,
+          downloadUrl: c.getAttribute('data-card-download'),
+          printerName: c.getAttribute('data-printer-name'),
+          canPrint: cardReady(c)
+        });
+      });
+    }
+  });
+
+  if(clearBtn) clearBtn.addEventListener('click', deselectAll);
+
+  function revealCardDownload(){ if(dlBtn) dlBtn.classList.remove('wp-dl-hidden'); }
+
+  if(prBtn) prBtn.addEventListener('click', function(){
+    if(!sel.size) return;
+    var fd = new FormData();
+    sel.forEach(function(id){ fd.append('card_ids', id); });
+    window.PlusPrint.start({
+      startUrl: PRINT_URL, body: fd,
+      title: sel.size + ' kaart(en) printen',
+      onDone: deselectAll,
+      onError: revealCardDownload   // printer offline/fout → download alsnog aanbieden
+    });
+  });
+
+  if(dlBtn) dlBtn.addEventListener('click', function(){
+    if(!sel.size) return;
+    var fd = new FormData();
+    sel.forEach(function(id){ fd.append('card_ids', id); });
+    dlBtn.disabled = true;
+    fetch(DL_URL, {method:'POST', body:fd})
+      .then(function(r){ if(!r.ok) throw 0;
+        var cd = r.headers.get('Content-Disposition') || '';
+        var m = cd.match(/filename="?([^"]+)"?/);
+        return r.blob().then(function(b){ return {b:b, name: m ? m[1] : 'kaarten.pdf'}; }); })
+      .then(function(res){
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(res.b); a.download = res.name;
+        document.body.appendChild(a); a.click();
+        setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+        deselectAll();
+      })
+      .catch(function(){ alert('Downloaden mislukt.'); })
+      .then(function(){ dlBtn.disabled = false; });
+  });
+})();
+</script>
