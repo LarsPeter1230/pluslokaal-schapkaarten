@@ -9,18 +9,72 @@ gebruikers-/winkelbeheer, e-mail en printen. UI en kaartteksten zijn in het Nede
 
 ---
 
-## Schermafbeeldingen
+## Functies
 
-**Dashboard — je schapkaarten**
+> De schermafbeeldingen hieronder gebruiken **voorbeeld-/anonieme data** (fictieve gebruikers en winkels).
+
+### Schapkaarten — dashboard & editor
+
+Overzicht van je kaarten per winkel; zoeken, bewerken, printen, of nieuwe maken.
+
 ![Dashboard](docs/screenshots/dashboard.png)
 
-**Kaart-editor — live voorbeeld + artikelinfo overnemen van plus.nl**
+De **editor** heeft een **live voorbeeld dat exact de afdruk (PDF) is**. Je kunt overal direct in de preview
+typen. Met **Zoek op plus.nl** neem je met vinkjes de **naam/merk, verpakking, prijs/actie én de foto** over.
+Ondersteunde formaten: SK Mini/Middel/**Maxi (4-up)**, A5/A4/A3 (staand) en A3 liggend. Kaarttypes:
+**actiekaart** (prijs, 2e halve prijs, %/€ korting, X+Y gratis, X=Y, X halen Y betalen) en **tip-kaart** —
+op een SK Maxi kun je die zelfs **mixen** (bv. 3 actie + 1 tip op één vel).
+
 ![Kaart-editor](docs/screenshots/editor.png)
 
-**Winkelpakketten (W2P) — kant-en-klare weekpakket-kaarten**
+### Winkelpakketten (W2P)
+
+Kant-en-klare weekpakket-schapkaarten per afdeling, rechtstreeks van pluslokaal.nl: **downloaden** (samengevoegd
+per formaat) of **direct printen** op de winkelprinter. Verdwenen kaarten worden als **"niet meer beschikbaar"**
+getoond en netjes overgeslagen.
+
 ![Winkelpakketten](docs/screenshots/winkelpakketten.png)
 
-**Inloggen**
+### Scankaarten, Designer & Portaal
+
+- **Scankaarten** — kaarten met scanbare barcodes (EAN-8/13).
+- **Designer (Bèta)** — een Canva-achtige editor op label of papier (tekst, vormen, iconen, foto's, PLUS-zoek).
+- **Portaal** — de oude pluslokaal.nl (jaarkalender, tarieven, campagnes) **binnen** de app, in eigen stijl.
+
+<p>
+<img src="docs/screenshots/scankaarten.png" width="49%"> <img src="docs/screenshots/designer.png" width="49%">
+</p>
+
+### Beheer (superadmin)
+
+- **Gebruikers** — medewerkers/ondernemers per winkel; uitnodigen (welkomstmail), rol wijzigen, wachtwoord resetten.
+
+  ![Gebruikers](docs/screenshots/beheer-gebruikers.png)
+
+- **Filialen** — winkels + **winkelprinters** (IPP, per formaat de juiste lade).
+
+  ![Filialen](docs/screenshots/beheer-filialen.png)
+
+- **Winkelpakket-accounts** — de pluslokaal.nl-accounts (max. **6**) voor W2P-downloads; **meer accounts = sneller**
+  (parallel). Plus per superadmin: **mail bij een mislukte sync/download** aan/uit.
+
+  ![Winkelpakket-accounts](docs/screenshots/beheer-winkelpakket-accounts.png)
+
+- **Rollen & rechten** — bepaal per rol wat mag.
+
+  ![Rollen](docs/screenshots/beheer-rollen.png)
+
+- **Opslag** — beheer de W2P-cache (weken bekijken/verwijderen, ruimte vrijmaken).
+
+  ![Opslag](docs/screenshots/beheer-opslag.png)
+
+- Verder: **Mailinstellingen** (SMTP + testmail), **Demo-account** (aan/uit), **Logs**, **Feedback** en **Kennisbank**.
+
+### Inloggen & beveiliging
+
+Inloggen met e-mailadres of naam. Je blijft **een maand** ingelogd (overleeft het sluiten van de browser).
+Voor **superadmins is 2FA (TOTP) verplicht**. Rollen: `admin` (superadmin), `ondernemer`, `medewerker`.
+
 ![Inloggen](docs/screenshots/login.png)
 
 ---
