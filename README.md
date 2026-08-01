@@ -25,19 +25,31 @@ gebruikers-/winkelbeheer, e-mail en printen. UI en kaartteksten zijn in het Nede
 
 ---
 
-## Snel starten (ontwikkeling)
+## Vereisten
 
-Vereist: **Python 3.10+**.
+- **Python 3.10+**
+- **Linux** aanbevolen (getest op Ubuntu/Debian). Werkt ook op macOS/Windows voor ontwikkeling.
+- Voor de **plus.nl-zoek** en **Winkelpakketten** draait een headless **Chromium** (via Playwright) —
+  `install.sh` regelt dit, inclusief de benodigde systeembibliotheken.
+- Voor **printen** naar winkelprinters is een netwerkprinter met **IPP** nodig (optioneel).
+
+## Snel starten (ontwikkeling)
 
 ```bash
 git clone <deze-repo> pluslokaal
 cd pluslokaal
+bash install.sh          # venv + pakketten + Chromium (+ systeem-deps)
 
+source .venv/bin/activate
+python app.py            # start op http://localhost:5000
+```
+
+Handmatig (zonder script) komt neer op:
+```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-playwright install chromium          # headless browser voor plus.nl-zoek + Winkelpakketten
-
-python3 app.py                       # start op http://localhost:5000
+python -m playwright install chromium && python -m playwright install-deps chromium
+python app.py
 ```
 
 Bij de **eerste start** gebeurt automatisch:
