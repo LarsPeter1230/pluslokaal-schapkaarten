@@ -205,4 +205,3 @@ Het **Portaal** koppel je per gebruiker via het profiel (pluslokaal.nl-account).
 | `docs/` | stijlgids, logo's, presentatie, integratie-documenten |
 | `gunicorn_conf.py` | productie-serverconfig |
 
-Zie `CLAUDE.md` voor de uitgebreide ontwikkelaarsgids.
