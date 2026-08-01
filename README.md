@@ -9,6 +9,22 @@ gebruikers-/winkelbeheer, e-mail en printen. UI en kaartteksten zijn in het Nede
 
 ---
 
+## Schermafbeeldingen
+
+**Dashboard — je schapkaarten**
+![Dashboard](docs/screenshots/dashboard.png)
+
+**Kaart-editor — live voorbeeld + artikelinfo overnemen van plus.nl**
+![Kaart-editor](docs/screenshots/editor.png)
+
+**Winkelpakketten (W2P) — kant-en-klare weekpakket-kaarten**
+![Winkelpakketten](docs/screenshots/winkelpakketten.png)
+
+**Inloggen**
+![Inloggen](docs/screenshots/login.png)
+
+---
+
 ## Snel starten (ontwikkeling)
 
 Vereist: **Python 3.10+**.
