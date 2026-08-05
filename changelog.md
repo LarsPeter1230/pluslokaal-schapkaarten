@@ -5,6 +5,12 @@ toegevoegd en verbeterd — de nieuwste bovenaan. Heb je een idee of mis je iets
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.15.1 — Browser-afdrukken toont alleen de kaart · 5 augustus 2026
+
+- **Ook via het browsermenu (⋯ → Afdrukken) of Bestand → Afdrukken** wordt nu alleen de **kaart** afgedrukt,
+  niet de hele webpagina met menu's en velden. Ongeacht hóe je het afdrukken start, je krijgt netjes de kaart.
+- De **pagina-oriëntatie** (staand/liggend) volgt automatisch het gekozen kaartformaat.
+
 ## versie 2.15.0 — Opslaan & printen vanuit de editor · 5 augustus 2026
 
 - **Nieuwe knop "Opslaan & printen"** in de kaart-editor — sla je kaart op én stuur 'm meteen naar de

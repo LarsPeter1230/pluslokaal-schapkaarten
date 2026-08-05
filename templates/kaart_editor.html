@@ -155,7 +155,25 @@
     <div class="kp" id="kp"></div>
   </div>
 </div>
+<!-- Pagina-oriëntatie voor het afdrukken volgt het kaartformaat (staand/liggend); gevuld door onFmt(). -->
+<style id="printPage"></style>
 <style>
+/* ── Afdrukken vanuit de editor: alléén de kaart, niet de pagina ──────────────
+   Vangt élke print-trigger (Ctrl/⌘+P, browsermenu ⋯ → Afdrukken, Bestand → Afdrukken):
+   de hele app wordt verborgen en enkel de live-preview (#kp) wordt afgedrukt. */
+@media print{
+  body *{visibility:hidden !important;}
+  #kp, #kp *{visibility:visible !important;}
+  .editor__preview{position:static !important;}
+  #kp{
+    position:fixed !important; left:0 !important; top:0 !important; right:0 !important;
+    width:100% !important; max-width:none !important; height:auto !important;
+    max-height:none !important; margin:0 !important;
+    box-shadow:none !important; border:0 !important; border-radius:0 !important;
+    print-color-adjust:exact; -webkit-print-color-adjust:exact;
+  }
+  html, body{background:#fff !important;}
+}
 .pz-card{border:1px solid var(--border,#e4e7e2);border-radius:8px;padding:8px;margin-bottom:8px;}
 .pz-info{display:flex;gap:10px;align-items:center;}
 .pz-info img{width:40px;height:40px;object-fit:contain;border-radius:4px;background:#fff;flex:0 0 40px;}
@@ -295,6 +313,9 @@ function onFmt(){
   kp.style.marginInline=isPort(AF)?'auto':'0';
   fi('prevLbl').textContent='Live preview — '+(FMT_LBL[AF]||AF);
   fi('ktabs').classList.toggle('show',AF==='sk_maxi');
+  // Print-pagina meebewegen met het formaat: staand of liggend.
+  var pp=document.getElementById('printPage');
+  if(pp) pp.textContent='@media print{@page{size:'+(isPort(AF)?'portrait':'landscape')+';margin:8mm}}';
   render();
 }
 function onKem(){ KD[AK].kem=fv('f-kem'); fi('row-mix').classList.toggle('hide',fv('f-kem')!=='ja'); sb('kem',fv('f-kem')); }
