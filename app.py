@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie — getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.14.1'
+APP_VERSION = '2.15.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -2976,6 +2976,15 @@ def kaart_editor():
 
     if request.method == 'POST':
         g = lambda k: request.form.get(k,'').strip()
+        # 'Opslaan & printen' / Ctrl+P uit de editor: geen redirect, maar JSON met kaart-id + PDF terug,
+        # zodat de editor de print-keuze (winkelprinter/downloaden) kan tonen zonder de pagina te verlaten.
+        want_print = request.form.get('want') == 'print'
+        def _card_print_json(card):
+            pdf = card_basename(card.image) + '.pdf'
+            if not os.path.exists(os.path.join(app.config['EXPORT_FOLDER'], pdf)):
+                pdf = card.image
+            return jsonify(ok=True, id=card.id, title=card.title,
+                           pdf=url_for('static', filename='export/' + pdf))
         formaat = g('formaat') or 'a3_liggend'
         count = int(g('kaart_count') or '1')
         fields = ['merk','koptekst','subtekst','vbtekst','aanv',
@@ -2992,6 +3001,8 @@ def kaart_editor():
             filename = generate_kaart(kaarten, formaat)
         except Exception as e:
             app.logger.error(f'Kaartgeneratie mislukt: {e}')
+            if want_print:
+                return jsonify(ok=False, error=f'Kaart genereren mislukt: {e}'), 400
             flash(f'Kaart genereren mislukt: {e}', 'error')
             return redirect(url_for('kaart_editor'))
 
@@ -3011,14 +3022,19 @@ def kaart_editor():
                 card.kaart_data = kdata; card.timestamp = datetime.now()
                 card.filiaal_naam = fn
                 db.session.commit()
+                if want_print:
+                    return _card_print_json(card)
                 flash('Kaart bijgewerkt!', 'success')
                 return redirect(url_for('dashboard'))
 
-        db.session.add(Card(title=title, price=actie or '–', image=filename,
-                            formaat=labels.get(formaat,formaat), kaart_data=kdata,
-                            username=user.username, filiaal=user.filiaal,
-                            filiaal_naam=fn))
+        card = Card(title=title, price=actie or '–', image=filename,
+                    formaat=labels.get(formaat,formaat), kaart_data=kdata,
+                    username=user.username, filiaal=user.filiaal,
+                    filiaal_naam=fn)
+        db.session.add(card)
         db.session.commit()
+        if want_print:
+            return _card_print_json(card)
         flash('Kaart aangemaakt!', 'success')
         return redirect(url_for('dashboard'))
 

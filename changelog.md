@@ -5,6 +5,14 @@ toegevoegd en verbeterd — de nieuwste bovenaan. Heb je een idee of mis je iets
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.15.0 — Opslaan & printen vanuit de editor · 5 augustus 2026
+
+- **Nieuwe knop "Opslaan & printen"** in de kaart-editor — sla je kaart op én stuur 'm meteen naar de
+  winkelprinter of download 'm, zonder eerst terug naar het dashboard te hoeven.
+- **Ctrl + P print nu de kaart, niet de webpagina** — druk je in de editor op Ctrl+P (of ⌘+P op een Mac),
+  dan wordt de kaart opgeslagen en verschijnt de vertrouwde printkeuze (winkelprinter of downloaden). Geen
+  rommelige uitdraai van het scherm meer.
+
 ## versie 2.14.1 — Zeldzame 500-fout verholpen · 31 juli 2026
 
 - **Willekeurige "Internal Server Error" opgelost** *(31 juli, 18:39)* — een zeldzame technische race (bij het

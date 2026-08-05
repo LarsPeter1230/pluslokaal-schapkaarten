@@ -138,8 +138,12 @@
     </div>
 
     <button type="button" class="btn btn-primary btn-block" onclick="saveCard()" style="padding:13px;">
-      <i class="fa fa-floppy-disk"></i> {% if edit_card %}Kaart bijwerken{% else %}Kaart opslaan{% endif %}
+      <i class="fa fa-floppy-disk"></i> <span id="saveBtnLabel">{% if edit_card %}Kaart bijwerken{% else %}Kaart opslaan{% endif %}</span>
     </button>
+    <button type="button" class="btn btn-outline btn-block" onclick="saveAndPrint()" style="padding:13px;margin-top:8px;">
+      <i class="fa fa-print"></i> Opslaan &amp; printen
+    </button>
+    <p class="muted small" style="text-align:center;margin:8px 0 0;">Tip: <b>Ctrl</b>+<b>P</b> slaat op en print de kaart.</p>
   </div>
 
   <!-- ══ PREVIEW ══ -->
@@ -773,14 +777,69 @@ function attachCE(){
   });
 }
 
-function saveCard(){
-  if(!KD[0].koptekst&&!KD[0].merk){alert('Vul minimaal een merk of koptekst in voor kaart 1.');return;}
+function _fillHidden(){
   fi('h-formaat').value=AF; fi('h-count').value=AF==='sk_maxi'?4:1;
   for(let i=0;i<4;i++){const d=KD[i];FIELDS.forEach(f=>{const e=fi(`h-${i}-${f}`);if(e)e.value=d[f]||'';});}
+}
+function _cardValid(){
+  if(!KD[0].koptekst&&!KD[0].merk){alert('Vul minimaal een merk of koptekst in voor kaart 1.');return false;}
+  return true;
+}
+
+function saveCard(){
+  if(!_cardValid())return;
+  _fillHidden();
   // PLUS-laadspinner tonen terwijl de kaart op de server wordt opgemaakt (kan onder drukte even duren).
   if(window.plusLoader) plusLoader.show({% if edit_card %}'Kaart wordt bijgewerkt…'{% else %}'Kaart wordt opgeslagen…'{% endif %});
   fi('kaartForm').submit();
 }
+
+// Printer van de actieve winkel + basis-URL voor 'printen op winkelprinter' (zelfde flow als het dashboard).
+var CARD_PRINT_BASE = "{{ url_for('card_print_network', card_id=0) }}".replace(/0$/, '');
+var STORE_PRINTER = {
+  name: {{ (store_printer.name if store_printer else 'de winkelprinter')|tojson }},
+  ready: {{ (store_printer.ready if store_printer and store_printer.ready else False)|tojson }}
+};
+
+// Opslaan én de kaart printen: sla op via fetch (blijf in de editor), krijg kaart-id + PDF terug,
+// en toon dezelfde print-keuze (winkelprinter / downloaden) als op het dashboard.
+function saveAndPrint(){
+  if(!_cardValid())return;
+  _fillHidden();
+  var form = fi('kaartForm');
+  var fd = new FormData(form);        // bevat ook het _csrf-veld (auto-geïnjecteerd)
+  fd.append('want','print');
+  if(window.plusLoader) plusLoader.show('Kaart wordt opgemaakt…');
+  fetch(form.action, {method:'POST', body:fd})   // fetch-wrapper voegt de CSRF-header toe
+    .then(function(r){ return r.json().catch(function(){ throw new Error('Onverwacht antwoord van de server.'); }); })
+    .then(function(d){
+      if(window.plusLoader) plusLoader.hide();
+      if(!d || !d.ok){ alert((d && d.error) || 'Opslaan mislukt.'); return; }
+      // De kaart bestaat nu → volgende keer opslaan wordt bijwerken (voorkomt een dubbele kaart).
+      var eid = form.querySelector('[name=edit_id]'); if(eid) eid.value = d.id;
+      var lbl = document.getElementById('saveBtnLabel'); if(lbl) lbl.textContent = 'Kaart bijwerken';
+      if(window.PlusPrint && window.PlusPrint.chooseCard){
+        window.PlusPrint.chooseCard({
+          title: d.title || 'kaart',
+          printUrl: CARD_PRINT_BASE + d.id,
+          downloadUrl: d.pdf,
+          printerName: STORE_PRINTER.name,
+          canPrint: !!STORE_PRINTER.ready
+        });
+      } else {
+        window.open(d.pdf, '_blank');   // terugval: open de PDF om te printen
+      }
+    })
+    .catch(function(err){ if(window.plusLoader) plusLoader.hide(); alert(err.message || 'Opslaan mislukt.'); });
+}
+
+// In de editor onderschept Ctrl/Cmd+P de browser-print: niet de pagina, maar de kaart (opslaan + printkeuze).
+document.addEventListener('keydown', function(e){
+  if((e.ctrlKey||e.metaKey) && !e.altKey && (e.key==='p'||e.key==='P')){
+    e.preventDefault();
+    saveAndPrint();
+  }
+});
 
 {% if edit_data and edit_data.formaat %}fi('f-formaat').value={{ edit_data.formaat|tojson }};{% endif %}
 onFmt();
