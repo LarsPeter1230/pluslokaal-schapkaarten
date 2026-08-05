@@ -155,25 +155,60 @@
     <div class="kp" id="kp"></div>
   </div>
 </div>
-<!-- Pagina-oriëntatie voor het afdrukken volgt het kaartformaat (staand/liggend); gevuld door onFmt(). -->
-<style id="printPage"></style>
+<!-- Wat er op papier komt als iemand tóch via de browser print (i.p.v. de kaart) -->
+<div id="printGuard" aria-hidden="true">
+  <div class="pg-ic"><i class="fa fa-print"></i></div>
+  <h2>Druk de kaart niet via de browser af</h2>
+  <p>Deze uitdraai geeft niet de juiste kaart. Ga terug naar PLUSLokaal en gebruik in de editor de knop
+     <b>“Opslaan &amp; printen”</b>. Kies daar de <b>winkelprinter</b> of een nette <b>PDF-download</b> —
+     dan krijg je de kaart in het juiste formaat en de juiste kwaliteit.</p>
+</div>
+
+<!-- Hulpvenster: verschijnt bij een browser-print-poging (menu ⋯ / Ctrl+P / Bestand→Afdrukken) -->
+<div id="printHelp" class="phelp" hidden>
+  <div class="phelp__box" role="dialog" aria-modal="true" aria-labelledby="phelpTitle">
+    <div class="phelp__ic"><i class="fa fa-print"></i></div>
+    <h3 id="phelpTitle">Zo druk je de kaart goed af</h3>
+    <p>Afdrukken via het <b>browsermenu</b> of <b>Ctrl+P</b> geeft geen goede kaart. Gebruik de knop
+       <b>“Opslaan &amp; printen”</b> — dan kies je de <b>winkelprinter</b> of een nette
+       <b>PDF-download</b>, in het juiste formaat.</p>
+    <div class="phelp__acts">
+      <button type="button" class="btn btn-primary" onclick="closePrintHelp(); saveAndPrint();"><i class="fa fa-print"></i> Opslaan &amp; printen</button>
+      <button type="button" class="btn btn-ghost" onclick="closePrintHelp()">Sluiten</button>
+    </div>
+  </div>
+</div>
 <style>
-/* ── Afdrukken vanuit de editor: alléén de kaart, niet de pagina ──────────────
-   Vangt élke print-trigger (Ctrl/⌘+P, browsermenu ⋯ → Afdrukken, Bestand → Afdrukken):
-   de hele app wordt verborgen en enkel de live-preview (#kp) wordt afgedrukt. */
+/* ── Browser-afdrukken blokkeren ──────────────────────────────────────────────
+   Afdrukken via het browsermenu / Ctrl+P / Bestand→Afdrukken geeft geen bruikbare
+   kaart. We tonen daarom op papier alleen een korte uitleg (#printGuard) i.p.v. de
+   pagina, en op het scherm een hulpvenster (#printHelp) met de juiste werkwijze. */
 @media print{
   body *{visibility:hidden !important;}
-  #kp, #kp *{visibility:visible !important;}
-  .editor__preview{position:static !important;}
-  #kp{
-    position:fixed !important; left:0 !important; top:0 !important; right:0 !important;
-    width:100% !important; max-width:none !important; height:auto !important;
-    max-height:none !important; margin:0 !important;
-    box-shadow:none !important; border:0 !important; border-radius:0 !important;
-    print-color-adjust:exact; -webkit-print-color-adjust:exact;
-  }
-  html, body{background:#fff !important;}
+  #printGuard, #printGuard *{visibility:visible !important;}
+  #printGuard{display:flex !important; position:fixed; inset:0;}
+  @page{margin:14mm;}
 }
+#printGuard{display:none; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; gap:16px; padding:20mm; font-family:'Montserrat',sans-serif; color:#231f20;}
+#printGuard .pg-ic{font-size:46px; color:#4a9b28;}
+#printGuard h2{font-size:20pt; margin:0; color:#115013;}
+#printGuard p{font-size:12pt; line-height:1.55; max-width:150mm; margin:0;}
+#printGuard b{color:#4a9b28;}
+
+/* Hulpvenster op het scherm (verschijnt bij een browser-print-poging) */
+.phelp{position:fixed; inset:0; z-index:900; display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.45);}
+.phelp[hidden]{display:none;}
+.phelp__box{background:#fff; border-radius:16px; max-width:460px; width:calc(100% - 32px);
+  padding:26px 24px; text-align:center; box-shadow:0 18px 60px rgba(0,0,0,.3);}
+.phelp__ic{width:58px; height:58px; border-radius:50%; background:var(--green-tint,#eef6e1);
+  color:var(--green,#4a9b28); display:flex; align-items:center; justify-content:center;
+  font-size:24px; margin:0 auto 12px;}
+.phelp__box h3{margin:0 0 8px; color:var(--green-d,#115013);}
+.phelp__box p{margin:0 0 18px; color:var(--text,#333); line-height:1.55; font-size:.95rem;}
+.phelp__acts{display:flex; gap:10px; justify-content:center; flex-wrap:wrap;}
+
 .pz-card{border:1px solid var(--border,#e4e7e2);border-radius:8px;padding:8px;margin-bottom:8px;}
 .pz-info{display:flex;gap:10px;align-items:center;}
 .pz-info img{width:40px;height:40px;object-fit:contain;border-radius:4px;background:#fff;flex:0 0 40px;}
@@ -313,9 +348,6 @@ function onFmt(){
   kp.style.marginInline=isPort(AF)?'auto':'0';
   fi('prevLbl').textContent='Live preview — '+(FMT_LBL[AF]||AF);
   fi('ktabs').classList.toggle('show',AF==='sk_maxi');
-  // Print-pagina meebewegen met het formaat: staand of liggend.
-  var pp=document.getElementById('printPage');
-  if(pp) pp.textContent='@media print{@page{size:'+(isPort(AF)?'portrait':'landscape')+';margin:8mm}}';
   render();
 }
 function onKem(){ KD[AK].kem=fv('f-kem'); fi('row-mix').classList.toggle('hide',fv('f-kem')!=='ja'); sb('kem',fv('f-kem')); }
@@ -854,13 +886,22 @@ function saveAndPrint(){
     .catch(function(err){ if(window.plusLoader) plusLoader.hide(); alert(err.message || 'Opslaan mislukt.'); });
 }
 
-// In de editor onderschept Ctrl/Cmd+P de browser-print: niet de pagina, maar de kaart (opslaan + printkeuze).
+// Hulpvenster dat de browser-print blokkeert en de juiste werkwijze uitlegt.
+function closePrintHelp(){ var h=document.getElementById('printHelp'); if(h) h.hidden=true; }
+function showPrintHelp(){ var h=document.getElementById('printHelp'); if(h) h.hidden=false; }
+
+// Ctrl/Cmd+P onderscheppen: geen browser-print, maar de uitleg tonen (met knop naar de juiste flow).
 document.addEventListener('keydown', function(e){
   if((e.ctrlKey||e.metaKey) && !e.altKey && (e.key==='p'||e.key==='P')){
     e.preventDefault();
-    saveAndPrint();
+    showPrintHelp();
   }
 });
+// Het browsermenu (⋯ → Afdrukken) en Bestand→Afdrukken kunnen we niet onderscheppen,
+// maar 'beforeprint' vuurt wel: toon dan het hulpvenster (op papier verschijnt #printGuard).
+window.addEventListener('beforeprint', showPrintHelp);
+// Esc sluit het hulpvenster.
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closePrintHelp(); });
 
 {% if edit_data and edit_data.formaat %}fi('f-formaat').value={{ edit_data.formaat|tojson }};{% endif %}
 onFmt();

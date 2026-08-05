@@ -5,6 +5,14 @@ toegevoegd en verbeterd — de nieuwste bovenaan. Heb je een idee of mis je iets
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.15.2 — Browser-afdrukken netjes geblokkeerd met uitleg · 5 augustus 2026
+
+- **Afdrukken via het browsermenu (⋯ → Afdrukken), Ctrl+P of Bestand → Afdrukken wordt nu tegengehouden.**
+  In plaats van een half-gerenderde kaart verschijnt een **duidelijk hulpvenster** dat uitlegt hoe het wél
+  moet — met een knop **“Opslaan & printen”** die je meteen naar de winkelprinter of PDF-download brengt.
+- Print je toch door de browser heen, dan komt er op papier alleen een **korte instructie** te staan, geen
+  onbruikbare kaart.
+
 ## versie 2.15.1 — Browser-afdrukken toont alleen de kaart · 5 augustus 2026
 
 - **Ook via het browsermenu (⋯ → Afdrukken) of Bestand → Afdrukken** wordt nu alleen de **kaart** afgedrukt,
