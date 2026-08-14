@@ -5,6 +5,11 @@ toegevoegd en verbeterd — de nieuwste bovenaan. Heb je een idee of mis je iets
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.16.0 — Snelkoppeling naar PLUS Kids · 14 augustus 2026
+
+- **Nieuwe link "Kids" in de menubalk** — opent **PLUS Kids** (kids.pluslokaal.com), de speelsite met
+  spelletjes voor kinderen, in een nieuw tabblad. Handig om snel op een winkelscherm te openen.
+
 ## versie 2.15.2 — Browser-afdrukken netjes geblokkeerd met uitleg · 5 augustus 2026
 
 - **Afdrukken via het browsermenu (⋯ → Afdrukken), Ctrl+P of Bestand → Afdrukken wordt nu tegengehouden.**
