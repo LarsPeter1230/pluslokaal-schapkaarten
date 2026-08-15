@@ -17,6 +17,7 @@ import urllib.parse
 import json
 import time
 import socket
+import re
 
 _UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
@@ -149,6 +150,88 @@ async def _search_async(q):
         _pool.put_nowait(page)
 
 
+# ─── EAN ophalen van een productpagina ────────────────────────────────────────
+# plus.nl toont de EAN niet in de HTML, maar wél in de OutSystems-API-call
+# 'DataActionGetProductDetailsAndAgeInfo' (veld ProductOut.Medicine.EAN). We laden de
+# productpagina in de warme browser en onderscheppen die response.
+_ean_cache = {}            # href -> (timestamp, ean|None)
+_ean_cache_lock = threading.Lock()
+
+
+def _valid_ean(code):
+    """True als `code` een geldige EAN-8/EAN-13 is (checksum klopt)."""
+    d = ''.join(c for c in str(code or '') if c.isdigit())
+    if len(d) not in (8, 13):
+        return False
+    digits = [int(c) for c in d]
+    check = digits[-1]
+    body = digits[:-1][::-1]
+    s = sum(n * (3 if i % 2 == 0 else 1) for i, n in enumerate(body))
+    return (10 - s % 10) % 10 == check
+
+
+async def _ean_on(page, url):
+    """Geef ALLE (unieke, geldige) EAN/GTIN-barcodes terug die plus.nl voor dit product opgeeft."""
+    from playwright.async_api import TimeoutError as PWTimeout
+    try:
+        async with page.expect_response(
+                lambda r: 'GetProductDetailsAndAgeInfo' in r.url, timeout=30000) as ri:
+            await page.goto(url, wait_until='domcontentloaded', timeout=40000)
+        resp = await ri.value
+        txt = await resp.text()
+    except PWTimeout:
+        return []
+    except Exception:
+        return []
+    found = []
+    # Alle velden waarvan de naam EAN of GTIN bevat (bv. "EAN", "GTIN", "EANCode", …).
+    for m in re.findall(r'"[^"]*(?:EAN|GTIN|Gtin|gtin)[^"]*"\s*:\s*"?(\d{8,14})"?', txt):
+        d = ''.join(c for c in m if c.isdigit())
+        if _valid_ean(d) and d not in found:
+            found.append(d)
+    return found
+
+
+async def _ean_async(href):
+    page = await _pool.get()
+    try:
+        url = ('https://www.plus.nl' + href) if href.startswith('/') else href
+        return await _ean_on(page, url)
+    except Exception:
+        return []
+    finally:
+        _pool.put_nowait(page)
+
+
+def _ean_cache_get(href):
+    with _ean_cache_lock:
+        hit = _ean_cache.get(href)
+    if hit and time.time() - hit[0] < 86400:      # 1 dag; EAN's veranderen zelden
+        return hit[1]
+    return None
+
+
+def _local_ean(href, timeout=45):
+    import asyncio
+    if not href:
+        return []
+    cached = _ean_cache_get(href)
+    if cached is not None:
+        return cached
+    ensure_started()
+    if not _ready.wait(timeout) or _loop is None:
+        return []
+    try:
+        fut = asyncio.run_coroutine_threadsafe(_ean_async(href), _loop)
+        eans = fut.result(timeout)
+    except Exception:
+        eans = []
+    if isinstance(eans, list):
+        with _ean_cache_lock:
+            _ean_cache[href] = (time.time(), eans)
+    return eans or []
+
+
 def _run_loop():
     import asyncio
     global _loop
@@ -256,6 +339,10 @@ def start_service(port=SERVICE_PORT):
                 if len(q) < 2:
                     self._json([]); return
                 self._json(_local_search(q)); return
+            if u.path == "/ean":
+                href = (parse_qs(u.query).get("href") or [""])[0].strip()
+                eans = _local_ean(href)
+                self._json({"eans": eans, "ean": (eans[0] if eans else None)}); return
             self.send_error(404)
 
         def log_message(self, *a):
@@ -301,3 +388,27 @@ def search(q, timeout=65):
         except Exception:
             pass                                   # service hapert → val terug op in-proces
     return _local_search(q, timeout=timeout)
+
+
+def _service_ean(href, port=SERVICE_PORT, timeout=50):
+    import urllib.request
+    url = f"http://127.0.0.1:{port}/ean?href=" + urllib.parse.quote(href)
+    with urllib.request.urlopen(url, timeout=timeout) as r:
+        return (json.loads(r.read().decode("utf-8")) or {}).get("eans") or []
+
+
+def product_eans(href, timeout=50):
+    """Haal ALLE EAN/GTIN-barcodes op die plus.nl voor dit product opgeeft (uit de product-detail-API).
+    Lege lijst als er niets is. Gebruikt de gedeelde service als die draait; gecachet (1 dag)."""
+    href = (href or "").strip()
+    if not href:
+        return []
+    cached = _ean_cache_get(href)
+    if cached is not None:
+        return cached
+    if _service_reachable():
+        try:
+            return _service_ean(href, timeout=timeout)
+        except Exception:
+            pass
+    return _local_ean(href, timeout=timeout)

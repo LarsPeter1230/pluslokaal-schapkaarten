@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie — getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.19.0'
+APP_VERSION = '2.20.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -5109,10 +5109,25 @@ def api_label_search():
         price = n.get('prijs') or n.get('actie') or None
         hit = cat.get(naam.lower())
         out.append({'name': naam, 'price': price, 'unit': n.get('verpakking') or '',
-                    'img': n.get('img') or '',
+                    'img': n.get('img') or '', 'href': r.get('href') or '',
                     'barcode': (hit.barcode if hit else '') or '',
                     'barcode_type': (hit.barcode_type if hit else 'ean13')})
     return jsonify(out)
+
+@app.route('/api/labels/ean')
+@login_required
+def api_label_ean():
+    """Haal de EAN('s) van een plus.nl-product op (product-detail-API). Leeg als plus.nl niets geeft.
+    Kan meerdere barcodes teruggeven → de gebruiker kiest er dan één."""
+    href = (request.args.get('href') or '').strip()
+    if not href:
+        return jsonify({'eans': []})
+    try:
+        import plus_search
+        eans = plus_search.product_eans(href)
+    except Exception:
+        eans = []
+    return jsonify({'eans': eans})
 
 @app.route('/labels/producten', methods=['GET', 'POST'])
 @login_required

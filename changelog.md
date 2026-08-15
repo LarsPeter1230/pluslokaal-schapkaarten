@@ -5,6 +5,14 @@ toegevoegd en verbeterd — de nieuwste bovenaan. Heb je een idee of mis je iets
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.20.0 — Barcode automatisch van plus.nl · 15 augustus 2026
+
+- **Kies je bij Labels een product uit de plus.nl-zoek, dan wordt nu ook de barcode (EAN) automatisch
+  opgehaald** — naast naam en prijs. De barcode komt uit de officiële product-informatie van plus.nl.
+- **Geeft plus.nl meerdere barcodes voor een product, dan kun je zelf kiezen** welke op het label komt.
+- De barcode blijft gewoon aanpasbaar; controleer 'm bij twijfel met een scan (plus.nl kan een andere
+  verpakking-GTIN vermelden dan die fysiek op het product staat).
+
 ## versie 2.19.0 — Labels maken vernieuwd · 15 augustus 2026
 
 - **Geen batches meer** — je maakt en bewaart een label nu in één keer op deze pagina. De knop "Toevoegen aan

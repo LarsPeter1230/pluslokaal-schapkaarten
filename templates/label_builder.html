@@ -25,6 +25,7 @@
       <div id="l-results" style="max-height:200px;overflow:auto;"></div>
       <div class="frow"><span class="k">Naam</span><input type="text" id="l-name" oninput="preview()"></div>
       <div class="frow"><span class="k">Barcode</span><input type="text" id="l-barcode" placeholder="EAN13/EAN8/CODE128" oninput="preview()"></div>
+      <div id="bc-choice" style="padding:0 0 0 2px;"></div>
       <div class="frow"><span class="k">Prijs €<small>leeg = geen prijs</small></span><input type="text" id="l-price" placeholder="1.49" oninput="preview()"></div>
       <div class="frow"><span class="k">Van-prijs €<small>doorgestreept</small></span><input type="text" id="l-old" placeholder="1.99" oninput="preview()"></div>
       <div class="frow"><span class="k">UC-code<small>uithaalcode, bijv. A35</small></span><input type="text" id="l-uc" placeholder="bijv. A35" maxlength="6" autocomplete="off" oninput="this.value=this.value.toUpperCase();preview()"></div>
@@ -113,12 +114,29 @@ function doSearch(q){ clearTimeout(_s);
   }catch(e){ fi('l-results').innerHTML='<div class="muted small" style="padding:6px 10px;">Zoeken mislukt.</div>'; }
   finally{ fi('l-spin').style.display='none'; }
 },250); }
-function pick(x){
+function setBarcode(v){ fi('l-barcode').value=v; fi('bc-choice').innerHTML=''; preview(); }
+async function pick(x){
   fi('l-name').value=x.name||'';
-  if(x.barcode) fi('l-barcode').value=x.barcode;          // alleen als de eigen catalogus 'm kent
+  if(x.barcode) fi('l-barcode').value=x.barcode;          // uit de eigen catalogus (indien bekend)
   if(x.price!=null&&x.price!=='') fi('l-price').value=x.price;
   if(x.unit) fi('o-unit').value=x.unit;
+  fi('bc-choice').innerHTML='';
   fi('l-results').innerHTML=''; fi('l-search').value=''; preview();
+  // EAN('s) van plus.nl ophalen (product-detail-API) als we nog geen barcode hebben.
+  if(!fi('l-barcode').value.trim() && x.href){
+    const bc=fi('l-barcode'); bc.placeholder='barcode ophalen…';
+    try{
+      const r=await fetch('{{ url_for("api_label_ean") }}?href='+encodeURIComponent(x.href));
+      const d=await r.json(); const eans=(d&&d.eans)||[];
+      if(eans.length===1 && !bc.value.trim()){ bc.value=eans[0]; preview(); }
+      else if(eans.length>1 && !bc.value.trim()){
+        // meerdere barcodes → laat de gebruiker kiezen
+        fi('bc-choice').innerHTML='<div class="muted small" style="margin:2px 0 4px;">plus.nl geeft meerdere barcodes — kies er één:</div>'+
+          eans.map(e=>`<button type="button" class="btn btn-outline btn-sm" style="margin:0 6px 6px 0;" onclick="setBarcode('${e}')">${e}</button>`).join('');
+      }
+    }catch(e){}
+    bc.placeholder='EAN13/EAN8/CODE128';
+  }
 }
 
 async function saveJob(){
