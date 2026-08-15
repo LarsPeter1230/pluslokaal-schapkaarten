@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie — getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.17.0'
+APP_VERSION = '2.18.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -594,7 +594,7 @@ def _draw_product_box(canvas, draw, x, y, w, h, item):
                  (item.get('type') or None))
 
 
-SCAN_GREEN = (114, 198, 46)   # exact PLUS-scankaartgroen (uit de referentie gemeten)
+SCAN_GREEN = GREEN_SCAN        # zelfde PLUS-scankaartgroen als de A3-barcodetegels (127,193,67)
 
 def _scan_hier(canvas, draw, x0, y0, x1, y1, big=False):
     """Scanner-icoon + wit 'Scan hier' — in een cel (grid) of groot links (compact).
@@ -1042,8 +1042,10 @@ def _parse_scans(d):
     return [s for s in (scans or []) if isinstance(s, dict) and str(s.get('code', '')).strip()]
 
 
-def _draw_scans(canvas, draw, d, ox, oy, W, H, land):
-    """Teken de 'Scan hier'-barcodetegels als grid, onderin uitgelijnd. 1:1 met de PLUS-referentie (A3)."""
+def _draw_scans(canvas, draw, d, ox, oy, W, H, land, y_bottom_frac=None):
+    """Teken de 'Scan hier'-barcodetegels als grid. 1:1 met de PLUS-referentie (A3 liggend).
+    Liggend: onderin uitgelijnd. Staand: het prijsblok staat onderaan, dus dan geven de
+    layouts een `y_bottom_frac` mee zodat de tegels net BOVEN het prijsblok eindigen."""
     scans = _parse_scans(d)
     if not scans:
         return
@@ -1051,12 +1053,12 @@ def _draw_scans(canvas, draw, d, ox, oy, W, H, land):
         tw = 0.202 * W; th = 0.128 * H
         cols = 2; stepx = 0.252 * W
         x0 = ox + 0.030 * W
-        y_bottom = oy + 0.935 * H
+        y_bottom = oy + (y_bottom_frac if y_bottom_frac is not None else 0.935) * H
     else:
         tw = 0.42 * W; th = 0.085 * H
         cols = 2; stepx = 0.45 * W
         x0 = ox + 0.03 * W
-        y_bottom = oy + 0.955 * H
+        y_bottom = oy + (y_bottom_frac if y_bottom_frac is not None else 0.955) * H
     scans = scans[:8]
     gap = th * 0.14
     rows = (len(scans) + cols - 1) // cols
@@ -1096,7 +1098,8 @@ def _draw_portrait(canvas, draw, d, ox, oy, W, H):
     # actieblok: onderste helft; breedte/hoogte 1:1 met de PLUS-referentie (A4)
     ax0, ax1 = X(0.186), X(0.812)
     _draw_action(draw, d, ax0, ax1, Y(0.508), Y(0.951), Y(0.582), Y(0.951))
-    _draw_scans(canvas, draw, d, ox, oy, W, H, False)
+    # barcodes staand: net boven het prijsblok (dat onderaan staat) → geen overlap
+    _draw_scans(canvas, draw, d, ox, oy, W, H, False, y_bottom_frac=0.492)
 
 
 # ─── TIP-KAART (groene TIP-banner + zwarte prijs) ─────────────────────────────
@@ -1594,6 +1597,11 @@ def _newtip(canvas, draw, d, ox, oy, W, H):
         _newtip_leftpanel(canvas, draw, d, ox, oy, W, H, cfg)
     else:
         _newtip_topband(canvas, draw, d, ox, oy, W, H, cfg)
+    # Barcodes (net als de actie-kaart, 1:1 de A3-referentie). Liggend: onderin.
+    # Staand: net boven het prijsblok, zodat de tegels het prijsblok niet overlappen.
+    land = W >= H
+    yb = None if land else max(0.30, cfg['pb'][1] - 0.03)
+    _draw_scans(canvas, draw, d, ox, oy, W, H, land, y_bottom_frac=yb)
 
 
 def _prijs_zwart(canvas, draw, d, x0, x1, y0, y1):

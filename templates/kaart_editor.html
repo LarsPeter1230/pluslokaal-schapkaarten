@@ -322,7 +322,7 @@ function applyTypeUI(t){
   document.querySelectorAll('.actie-field').forEach(e=>e.classList.toggle('hide',tip));
   fi('actie-block').classList.toggle('hide',tip);
   fi('actie-type-row').style.display = tip ? 'none' : 'flex';
-  fi('sec-scans').style.display = tip ? 'none' : 'block';
+  fi('sec-scans').style.display = 'block';   // barcodes ook op tip-kaarten (1:1 de A3-referentie)
   fi('row-tipprijs').classList.toggle('hide',!tip);
   fi('sec-price-lbl').textContent=tip?'Prijs':'Actiemechanisme';
 }
@@ -450,6 +450,7 @@ function celHTML(idx){
       </div>
       ${ce('nt-land','land','Land van herkomst')}
       ${ce('nt-aanv','aanv','Aanvullende tekst')}
+      <div class="pv-scans" data-s="scans">${scanTilesHTML(idx)}</div>
     </div>`;
   }
   if(LY==='oud'){

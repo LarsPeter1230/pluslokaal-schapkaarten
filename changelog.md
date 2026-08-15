@@ -5,6 +5,15 @@ toegevoegd en verbeterd — de nieuwste bovenaan. Heb je een idee of mis je iets
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.18.0 — Barcodes & scankaarten 1:1 met PLUS · 15 augustus 2026
+
+- **Barcodes kun je nu ook op tip-kaarten zetten** (voorheen alleen op actiekaarten) — met exact dezelfde
+  "Scan hier"-tegels als op de officiële PLUS A3-kaart.
+- **Barcodes botsen niet meer met het prijsblok op staande kaarten** (A4/A3 staand): de tegels staan nu
+  netjes boven het prijsblok in plaats van eroverheen.
+- **Scankaarten hebben nu exact het PLUS-scankaartgroen** (gelijk aan de barcodetegels en de PLUS SK
+  Maxi-referentie) — voorheen een tikje te fel/limoen.
+
 ## versie 2.17.0 — Kies & Mix-logo op de kaart · 15 augustus 2026
 
 - **Zet je een kaart op "Kies & Mix"? Dan komt nu het echte PLUS "Kies & Mix"-schild rechtsboven op de
