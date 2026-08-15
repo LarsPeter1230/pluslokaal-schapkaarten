@@ -11,27 +11,27 @@ ARTICLES = [
         'body': """# Welkom bij PLUSLokaal
 
 PLUSLokaal is jouw gereedschap om **snel professionele, PLUS-huisstijl materialen** te maken en te
-printen voor in de winkel. Alles zit op één plek en werkt vanuit de browser — je hoeft niets te
+printen voor in de winkel. Alles zit op één plek en werkt vanuit de browser - je hoeft niets te
 installeren.
 
 ## Wat kun je maken?
 
-- **Schapkaarten** — de bekende actie- en tipkaarten (nieuwe én oude huisstijl) in alle formaten,
+- **Schapkaarten** - de bekende actie- en tipkaarten (nieuwe én oude huisstijl) in alle formaten,
   van SK Mini tot A3.
-- **Scankaarten** — kaarten met een scanbare barcode.
-- **Labels** — prijskaartjes/labels voor op het schap, met barcode en prijs.
-- **Winkelpakketten** — de kant-en-klare wekelijkse actiepakketten, direct te printen.
+- **Scankaarten** - kaarten met een scanbare barcode.
+- **Labels** - prijskaartjes/labels voor op het schap, met barcode en prijs.
+- **Winkelpakketten** - de kant-en-klare wekelijkse actiepakketten, direct te printen.
 
 ## De belangrijkste plekken
 
 - Bovenin vind je de **menubalk**: Schapkaarten, Scankaarten, Labels en (voor beheerders) **Beheer**.
-- Rechtsboven staat je **account** (profiel, uitloggen) en — voor superadmins — de **winkelkiezer**.
+- Rechtsboven staat je **account** (profiel, uitloggen) en - voor superadmins - de **winkelkiezer**.
 - Rechtsonder staat het ronde **?-knopje**: daarmee geef je feedback of open je deze kennisbank.
 
 > **Tip:** weet je even niet hoe iets werkt? Klik rechtsonder op de **?** en kies *Kennisbank openen*.
 > Bijna elk onderwerp staat hier uitgelegd.
 
-Veel plezier! Mis je iets in deze uitleg? Laat het weten via het feedback-knopje — dan vullen we het aan.
+Veel plezier! Mis je iets in deze uitleg? Laat het weten via het feedback-knopje - dan vullen we het aan.
 """,
     },
     {
@@ -43,10 +43,10 @@ Veel plezier! Mis je iets in deze uitleg? Laat het weten via het feedback-knopje
 ## Inloggen
 
 Je logt in met je **e-mailadres** en wachtwoord op de inlogpagina. Je e-mailadres is hoofdletter-
-ongevoelig — `Naam@Voorbeeld.nl` en `naam@voorbeeld.nl` werken allebei.
+ongevoelig - `Naam@Voorbeeld.nl` en `naam@voorbeeld.nl` werken allebei.
 
 Standaard blijf je **ingelogd** totdat je zelf uitlogt of je wachtwoord wijzigt. Wil je op een gedeelde
-computer werken? Vink dan bij het inloggen *"aangemeld blijven"* uit — dan word je uitgelogd zodra je
+computer werken? Vink dan bij het inloggen *"aangemeld blijven"* uit - dan word je uitgelogd zodra je
 de browser sluit.
 
 ## Wachtwoord vergeten
@@ -81,7 +81,7 @@ juiste winkel terecht en gaat printen naar de juiste printer.
 
 ## Medewerkers en ondernemers
 
-Je bent gekoppeld aan je eigen winkel. Je hoeft niets te kiezen — je werkt automatisch in jouw filiaal.
+Je bent gekoppeld aan je eigen winkel. Je hoeft niets te kiezen - je werkt automatisch in jouw filiaal.
 
 ## Superadmins: de winkelkiezer
 
@@ -99,15 +99,15 @@ juiste winkel voordat je iets print.
     {
         'slug': 'feedback-geven', 'category': 'Aan de slag', 'icon': 'fa-comment-dots',
         'sort_index': 4, 'title': 'Feedback geven (het ?-knopje)',
-        'summary': 'Een probleem, suggestie of idee doorgeven — met of zonder screenshot.',
+        'summary': 'Een probleem, suggestie of idee doorgeven - met of zonder screenshot.',
         'body': """# Feedback geven
 
 Rechtsonder in het scherm staat altijd een rond **?-knopje**. Beweeg je muis erover (of tik erop) en
 het klapt open. Dit is dé plek om iets door te geven:
 
-- **Probleem** — er gaat iets mis of werkt niet zoals verwacht.
-- **Suggestie** — iets kan handiger of duidelijker.
-- **Idee** — iets nieuws dat je graag zou willen.
+- **Probleem** - er gaat iets mis of werkt niet zoals verwacht.
+- **Suggestie** - iets kan handiger of duidelijker.
+- **Idee** - iets nieuws dat je graag zou willen.
 
 ## Zo werkt het
 
@@ -115,15 +115,15 @@ het klapt open. Dit is dé plek om iets door te geven:
 2. Kies het **type** (probleem, suggestie of idee).
 3. Schrijf in je eigen woorden wat je wilt melden. Hoe concreter, hoe beter we je kunnen helpen.
 4. **Screenshot:** zodra je het venster opent, maken we automatisch een schermafbeelding van wat jij op
-   dat moment ziet. Handig bij een probleem — dan zien we meteen waar het over gaat.
+   dat moment ziet. Handig bij een probleem - dan zien we meteen waar het over gaat.
    - Wil je die niet meesturen? Klik op **Verwijderen**.
    - Wil je een eigen afbeelding sturen? Klik op **Uploaden** en kies een bestand.
 5. Klik op **Versturen**. Klaar!
 
 Je melding komt binnen bij de beheerders. Zij kunnen zien wat je meldde, van welke pagina, en op welk
-moment — zodat ze er goed mee aan de slag kunnen.
+moment - zodat ze er goed mee aan de slag kunnen.
 
-> **Tip:** onderaan het feedback-venster zit ook een knop **Kennisbank openen** — misschien staat je
+> **Tip:** onderaan het feedback-venster zit ook een knop **Kennisbank openen** - misschien staat je
 antwoord er al.
 """,
     },
@@ -145,7 +145,7 @@ Schapkaarten zijn de bekende **actie- en tipkaarten** voor op het schap. Je maak
 3. Kies een **formaat**. Beschikbare maten:
    - **SK Mini** (75 × 88 mm)
    - **SK Middel** (270 × 70 mm)
-   - **SK Maxi** — 4 kaarten op één A4 (297 × 210 mm)
+   - **SK Maxi** - 4 kaarten op één A4 (297 × 210 mm)
    - **A5, A4, A3** (staand) en **A3 liggend**
 4. Kies **Kaarttype**: *Actiekaart* of *Tip*.
 5. Kies de **Layout**: *Nieuwe* of *Oude* huisstijl.
@@ -181,9 +181,9 @@ kaart eruit komt te zien.
 
 ## De twee schakelaars
 
-- **Kaarttype** — wissel tussen *Actiekaart* en *Tip*. Een tipkaart heeft geen actiemechanisme; je vult
+- **Kaarttype** - wissel tussen *Actiekaart* en *Tip*. Een tipkaart heeft geen actiemechanisme; je vult
   gewoon een prijs in.
-- **Layout** — wissel tussen de *Nieuwe* en de *Oude* PLUS-huisstijl. Beide zien er anders uit; kies wat
+- **Layout** - wissel tussen de *Nieuwe* en de *Oude* PLUS-huisstijl. Beide zien er anders uit; kies wat
   bij de actie past.
 
 Samen geven die vier combinaties (nieuw/oud × actie/tip) vier verschillende ontwerpen.
@@ -199,7 +199,7 @@ Vul in wat op de kaart moet komen: **merk**, **omschrijving/product**, **verpakk
 - Vanuit het overzicht kun je een kaart **printen** of **downloaden** als PDF.
 
 > **Tip:** het voorbeeld is een exacte weergave van de print. Klopt iets niet in het voorbeeld, dan
-klopt het ook niet op papier — pas het dan hier aan vóór je print.
+klopt het ook niet op papier - pas het dan hier aan vóór je print.
 """,
     },
     {
@@ -328,7 +328,7 @@ Onder **Beheer → Gebruikers** beheer je alle accounts. Klik een gebruiker aan 
 
 - naam, e-mail, rol en winkel aan te passen;
 - een **welkomst- of reset-mail** te sturen;
-- de gebruiker te **verwijderen** — daarbij kun je zijn/haar kaarten **overdragen** aan een andere
+- de gebruiker te **verwijderen** - daarbij kun je zijn/haar kaarten **overdragen** aan een andere
   gebruiker, zodat er niets verloren gaat.
 
 > **Tip:** het e-mailadres is de inlognaam. Zorg dat het klopt, anders kan iemand niet inloggen.
@@ -337,17 +337,17 @@ Onder **Beheer → Gebruikers** beheer je alle accounts. Klik een gebruiker aan 
     {
         'slug': 'rollen-rechten', 'category': 'Beheer', 'icon': 'fa-user-shield',
         'sort_index': 31, 'title': 'Rollen & rechten',
-        'summary': 'Wat mogen medewerker, ondernemer en superadmin — en hoe pas je rechten aan?',
+        'summary': 'Wat mogen medewerker, ondernemer en superadmin - en hoe pas je rechten aan?',
         'body': """# Rollen & rechten
 
 Elke gebruiker heeft een **rol** die bepaalt wat hij of zij mag.
 
 ## De rollen
 
-- **Medewerker** — maakt schapkaarten, scankaarten en (met recht) labels.
-- **Ondernemer** — alles van een medewerker, plus het **eigen team** beheren en het logboek van de eigen
+- **Medewerker** - maakt schapkaarten, scankaarten en (met recht) labels.
+- **Ondernemer** - alles van een medewerker, plus het **eigen team** beheren en het logboek van de eigen
   winkel bekijken.
-- **Superadmin (beheerder)** — mag **alles**: alle winkels, gebruikers, filialen, rollen, mailinstellingen
+- **Superadmin (beheerder)** - mag **alles**: alle winkels, gebruikers, filialen, rollen, mailinstellingen
   en de kennisbank.
 
 ## Rechten aanpassen (superadmin)
@@ -377,7 +377,7 @@ meldingen.
 De feedbacklijst werkt als een klein **ticketsysteem**:
 
 - **Filter** op type (Probleem / Suggestie / Idee) en op status.
-- **Zoek** op tekst — dat matcht in de titel, de melding zelf, de afzender, de winkel en de pagina.
+- **Zoek** op tekst - dat matcht in de titel, de melding zelf, de afzender, de winkel en de pagina.
 - Ongelezen meldingen zijn **dikgedrukt** gemarkeerd.
 
 ## Een melding afhandelen
@@ -412,12 +412,12 @@ Superadmins kunnen de hele kennisbank zelf **beheren, aanpassen en aanvullen** o
 1. Ga naar **Beheer → Kennisbank**.
 2. Klik op **Nieuw artikel**, of op **Bewerken** bij een bestaand artikel.
 3. Vul in:
-   - **Titel** — de kop van het artikel.
-   - **Categorie** — artikelen met dezelfde categorie worden samen gegroepeerd (bv. *Modules*).
-   - **Icoon** — een FontAwesome-klasse, bijvoorbeeld `fa-tags` of `fa-print`.
-   - **Korte samenvatting** — één zin die op de overzichtspagina verschijnt.
-   - **Sorteervolgorde** — een getal; lager staat hoger in de lijst.
-   - **Inhoud** — de tekst in **Markdown** (zie hieronder).
+   - **Titel** - de kop van het artikel.
+   - **Categorie** - artikelen met dezelfde categorie worden samen gegroepeerd (bv. *Modules*).
+   - **Icoon** - een FontAwesome-klasse, bijvoorbeeld `fa-tags` of `fa-print`.
+   - **Korte samenvatting** - één zin die op de overzichtspagina verschijnt.
+   - **Sorteervolgorde** - een getal; lager staat hoger in de lijst.
+   - **Inhoud** - de tekst in **Markdown** (zie hieronder).
 4. Klik op **Opslaan**.
 
 ## Opmaak met Markdown

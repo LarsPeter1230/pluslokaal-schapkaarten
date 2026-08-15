@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ tgt.username }} – Gebruiker{% endblock %}
+{% block title %}{{ tgt.username }} - Gebruiker{% endblock %}
 {% block content %}
 <div class="page-head">
   <div style="display:flex;align-items:center;gap:14px;">
@@ -38,7 +38,7 @@
           {% if is_admin %}
           <select name="filiaal">
             {% for f in filialen %}
-            <option value="{{ f.nummer }}" {{ 'selected' if f.nummer==tgt.filiaal }}>{{ f.nummer }}{% if f.naam %} — PLUS {{ f.naam }}{% endif %}</option>
+            <option value="{{ f.nummer }}" {{ 'selected' if f.nummer==tgt.filiaal }}>{{ f.nummer }}{% if f.naam %} - PLUS {{ f.naam }}{% endif %}</option>
             {% endfor %}
           </select>
           {% else %}<input type="text" value="{{ filiaal_display(tgt.filiaal, tgt.filiaal_naam) }}" readonly>{% endif %}
@@ -74,7 +74,7 @@
     <div class="panel__body stack">
       {% if not tgt.email %}
       <div style="background:var(--amber-tint);color:var(--amber);border-radius:8px;padding:11px 13px;font-size:.82rem;line-height:1.45;">
-        <i class="fa fa-circle-info"></i> Nog geen e-mailadres. Vul dit in bij <strong>Gegevens</strong> om mails te kunnen sturen — of stel het wachtwoord hieronder direct in.
+        <i class="fa fa-circle-info"></i> Nog geen e-mailadres. Vul dit in bij <strong>Gegevens</strong> om mails te kunnen sturen - of stel het wachtwoord hieronder direct in.
       </div>
       {% endif %}
       <form method="post">
@@ -91,7 +91,7 @@
         <div style="font-size:.85rem;font-weight:600;margin-bottom:8px;">
           <i class="fa fa-shield-halved"></i> Twee-factor (2FA):
           {% if tgt.mfa_enabled %}<span style="color:var(--green-d);">ingeschakeld</span>
-          {% elif tgt.role == 'admin' %}<span style="color:#c26a00;">nog niet ingesteld — verplicht</span>
+          {% elif tgt.role == 'admin' %}<span style="color:#c26a00;">nog niet ingesteld - verplicht</span>
           {% else %}<span class="muted">uit</span>{% endif %}
         </div>
         {% if tgt.mfa_enabled %}
@@ -134,10 +134,10 @@
             <i class="fa fa-search"></i>
           </div>
           <select name="transfer_to" id="transferSelect" size="6" style="height:auto;padding:6px;">
-            <option value="">— Niet overdragen (kaarten blijven bij filiaal) —</option>
+            <option value="">- Niet overdragen (kaarten blijven bij filiaal) -</option>
             {% for o in others %}
             <option value="{{ o.id }}" data-s="{{ o.username|lower }} {{ o.filiaal }} {{ (o.filiaal_naam or '')|lower }}">
-              {{ o.username }} — {{ filiaal_display(o.filiaal, o.filiaal_naam) }}
+              {{ o.username }} - {{ filiaal_display(o.filiaal, o.filiaal_naam) }}
             </option>
             {% endfor %}
           </select>

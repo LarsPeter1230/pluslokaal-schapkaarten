@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Wat is er nieuw? – PLUSLokaal{% endblock %}
+{% block title %}Wat is er nieuw? - PLUSLokaal{% endblock %}
 {% block content %}
 <div class="changelog-wrap changelog">
   <a href="{{ request.referrer if request.referrer and '/changelog' not in request.referrer else url_for('dashboard') }}" class="backlink"><i class="fa fa-arrow-left"></i> Terug</a>

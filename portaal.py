@@ -1,4 +1,4 @@
-"""Portaal — transparante per-gebruiker proxy naar pluslokaal.nl.
+"""Portaal - transparante per-gebruiker proxy naar pluslokaal.nl.
 
 pluslokaal.nl is een ASP.NET-WebForms/Bootstrap-site (geen Cloudflare/JS-gate), dus we kunnen met
 een lichte `requests.Session` inloggen en de sessie warm houden. Elke gebruiker koppelt eenmalig zijn

@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Labels maken – PLUSLokaal{% endblock %}
+{% block title %}Labels maken - PLUSLokaal{% endblock %}
 {% block content %}
 <div class="page-head">
   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
     <a href="{{ url_for('labels_dashboard') }}" class="btn btn-ghost btn-sm"><i class="fa fa-arrow-left"></i> Terug</a>
     <div>
       <h1 class="page-title">{{ 'Labels bewerken' if edit_data else 'Labels maken' }}</h1>
-      <p class="page-sub">Zoek of typ producten, stel opties in — het voorbeeld is exact wat er geprint wordt.</p>
+      <p class="page-sub">Zoek of typ producten, stel opties in - het voorbeeld is exact wat er geprint wordt.</p>
     </div>
   </div>
 </div>
@@ -80,7 +80,7 @@
   <div class="lb-modal__backdrop" data-act-cancel></div>
   <div class="lb-modal__box" role="dialog" aria-modal="true" aria-labelledby="actTitle">
     <div class="lb-modal__ic"><i class="fa fa-triangle-exclamation"></i></div>
-    <h3 id="actTitle">Let op — actielabel</h3>
+    <h3 id="actTitle">Let op - actielabel</h3>
     <p>Je neemt een <b>actieprijs</b> over. Zodra de actie is afgelopen, moeten de stickers die dan nog op
        <b>niet-verkochte</b> producten zitten <b>vervangen</b> worden door een label met de normale prijs.</p>
     <div class="lb-modal__acts">
@@ -151,7 +151,7 @@ function preview(){ clearTimeout(_t); _t=setTimeout(function(){
   fi('l-preview').src='{{ url_for("label_preview_live") }}?'+p.toString();
 },250); }
 
-// ── Zoeken op plus.nl — zelfde uiterlijk als bij Schapkaarten (kaartjes + 'Overnemen'),
+// ── Zoeken op plus.nl - zelfde uiterlijk als bij Schapkaarten (kaartjes + 'Overnemen'),
 //    maar zonder foto en zonder vinkjes. Neemt naam + prijs over en haalt de barcode (EAN) op.
 const PL_SPINNER = '<div class="pl-inline"><div class="pl-spinner" aria-hidden="true"><svg viewBox="0 0 132 140">'
   +'<path class="pl-leaf pl-leaf--1" d="M61.2,32.8 L61.2,54.8 C61.2,60.8 56.8,65.6 50.8,65.6 L30.4,65.6 C13.6,65.6 0,51.2 0,33.2 C0,15.6 13.6,0.8 30.4,0.8 C47.6,0.8 61.2,15.2 61.2,32.8 Z"/>'
@@ -201,7 +201,7 @@ async function doSearch(){
     loadBarcodes(token);   // barcodes op de achtergrond ophalen en per kaartje tonen
   }catch(e){ if(token===SEARCH_TOKEN){ fi('l-results').innerHTML=''; fi('l-status').textContent='Zoeken mislukt: '+e; } }
 }
-// Haal de barcode per resultaat op — gethrottled (max 3 tegelijk) zodat de server niet overbelast raakt.
+// Haal de barcode per resultaat op - gethrottled (max 3 tegelijk) zodat de server niet overbelast raakt.
 async function loadBarcodes(token){
   const queue=RESULTS.map((x,i)=>i).filter(i=>RESULTS[i].href && !RESULTS[i].barcode);
   let active=0, idx=0;
@@ -268,7 +268,7 @@ async function doOvernemen(i, withAction){
     eans = eans||[];
     if(eans.length===1){ fi('l-barcode').value=eans[0]; preview(); }
     else if(eans.length>1){
-      fi('bc-choice').innerHTML='<div class="muted small" style="margin:2px 0 4px;">plus.nl geeft meerdere barcodes — kies er één:</div>'+
+      fi('bc-choice').innerHTML='<div class="muted small" style="margin:2px 0 4px;">plus.nl geeft meerdere barcodes - kies er één:</div>'+
         eans.map(e=>`<button type="button" class="btn btn-outline btn-sm" style="margin:0 6px 6px 0;" onclick="setBarcode('${e}')">${e}</button>`).join('');
     }
   }

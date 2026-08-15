@@ -10,4 +10,4 @@ Verwachte bestandsnamen (eerste die bestaat wint, .otf of .ttf):
   Gotham-Book.otf          (of .ttf)   -> subtekst
   GothamNarrow-Book.otf    (of .ttf)   -> disclaimer + kaartcode
 
-Herstart daarna de app (of laat de supervisor herstarten) — geen codewijziging nodig.
+Herstart daarna de app (of laat de supervisor herstarten) - geen codewijziging nodig.

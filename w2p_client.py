@@ -16,7 +16,7 @@ Publieke API:
   - crawl(period_id, category_id, group_id) -> [{'promotion_document_id','formaat','naam','group_label'}]
   - thumbnail(promotion_document_id) -> PNG-bytes (of {'error':...})
   - order_and_download(doc_ids, period_id=None, category_id=7, targets=None, job_id=None) -> {formaat: pdf_bytes} (of {'error':...})
-  - get_progress(job_id) -> {'percent','message'} (of None) — voortgang van een lopende order_and_download
+  - get_progress(job_id) -> {'percent','message'} (of None) - voortgang van een lopende order_and_download
   - clear_progress(job_id) -> ruimt de voortgangs-entry op
 
 Bij fouten geven de functies een dict ``{'error': '...'}`` terug i.p.v. te crashen.
@@ -121,7 +121,7 @@ _GROUP_DL = r"""() =>
     href: a.getAttribute('href') || ''
   }))"""
 
-# Vink in één keer (in de pagina) alle gevraagde checkboxes aan i.p.v. 1-voor-1 via Playwright —
+# Vink in één keer (in de pagina) alle gevraagde checkboxes aan i.p.v. 1-voor-1 via Playwright -
 # bij grote afdelingen (honderden kaarten) is dat het verschil tussen ~3 minuten en enkele seconden.
 _BULK_CHECK = r"""(names) => {
   let n = 0;
@@ -297,7 +297,7 @@ def _worker(worker_index=0):
 
             # 2) documenten aanvinken per groep-pagina (checkbox bestaat alleen daar).
             #    Als we al weten in welke (categorie,periode,groep) elk document zit (uit onze DB-cache),
-            #    bezoeken we alleen die pagina's rechtstreeks — geen blinde zoektocht door alle periodes/groepen.
+            #    bezoeken we alleen die pagina's rechtstreeks - geen blinde zoektocht door alle periodes/groepen.
             if targets:
                 pages_needed = {}  # (category_id, period_id, group_id) -> set(doc_ids)
                 for d in wanted:
@@ -366,7 +366,7 @@ def _worker(worker_index=0):
             if "W2P_OrderID" not in (page.url or ""):
                 return {"error": "order niet aangemaakt (geen W2P_OrderID)"}
 
-            # 4) per formaatgroep de gecombineerde PDF ophalen — PARALLEL (dit zijn onafhankelijke
+            # 4) per formaatgroep de gecombineerde PDF ophalen - PARALLEL (dit zijn onafhankelijke
             #    downloads van vaak grote bestanden (10+ MB); na elkaar was dit de grootste
             #    tijdvreter). We gebruiken de sessie-cookies buiten Playwright om (urllib, thread-
             #    pool) i.p.v. page.request, die noodgedwongen sequentieel is.
@@ -386,7 +386,7 @@ def _worker(worker_index=0):
                 else:
                     url = href
                 # De site levert onge-encodede spaties in de querystring (bv. "Group=A3 liggend")
-                # — page.request (Playwright) accepteert dat, urllib.request niet.
+                # - page.request (Playwright) accepteert dat, urllib.request niet.
                 return urllib.parse.quote(url, safe=":/?&=")
 
             cookie_header = "; ".join("%s=%s" % (c["name"], c["value"]) for c in ctx.cookies())
@@ -396,7 +396,7 @@ def _worker(worker_index=0):
                 url = _resolve_href(g["href"])
                 req = urllib.request.Request(url, headers={"Cookie": cookie_header,
                                                              "User-Agent": "Mozilla/5.0"})
-                # Het oude systeem geeft onder gelijktijdige belasting soms een tijdelijke HTTP 500 —
+                # Het oude systeem geeft onder gelijktijdige belasting soms een tijdelijke HTTP 500 -
                 # een paar keer opnieuw proberen (met korte backoff) haalt die alsnog binnen.
                 data, status, err = b"", 0, None
                 for attempt in range(3):
@@ -472,7 +472,7 @@ def _worker(worker_index=0):
 # Aantal parallelle browser-workers. Elke worker heeft z'n eigen Chromium-context (eigen W2P-login,
 # eigen sessie en dus eigen winkelmandje), zodat meerdere afdelingen tegelijk besteld+gedownload
 # kunnen worden zonder dat hun mandjes elkaar vervuilen. Instelbaar via env (standaard 1, zodat
-# gewoon bladeren/zoeken licht blijft; de PDF-sync schaalt dit tijdelijk op — zie set_pool_size()).
+# gewoon bladeren/zoeken licht blijft; de PDF-sync schaalt dit tijdelijk op - zie set_pool_size()).
 import os as _os
 _NUM_WORKERS = max(1, int(_os.environ.get("W2P_WORKERS", "1")))
 _workers = []
@@ -556,7 +556,7 @@ def order_and_download(doc_ids, period_id=None, category_id=7, targets=None, job
     LET OP: dit maakt een echte order aan op het oude W2P-systeem.
 
     ``targets`` (optioneel, aanbevolen): dict ``{doc_id_str: {'period_id','group_id','category_id'}}``
-    uit onze eigen DB-cache — dan wordt elke (categorie,periode,groep)-pagina maar één keer
+    uit onze eigen DB-cache - dan wordt elke (categorie,periode,groep)-pagina maar één keer
     rechtstreeks bezocht i.p.v. blind alle periodes/groepen te doorzoeken (veel sneller,
     en werkt ook als de gekozen kaarten uit meerdere periodes/weken tegelijk komen).
 

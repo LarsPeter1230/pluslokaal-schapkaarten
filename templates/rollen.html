@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Rollen – PLUSLokaal{% endblock %}
+{% block title %}Rollen - PLUSLokaal{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -57,7 +57,7 @@
             <button type="submit" class="btn btn-primary btn-sm"><i class="fa fa-floppy-disk"></i> Opslaan</button>
             {% if not r.is_system %}
             <button type="submit" formaction="{{ url_for('rollen') }}" name="action" value="delete" class="btn btn-ghost btn-sm" style="color:#e3000a;" onclick="return confirm('Rol “{{ r.label }}” verwijderen?')" {{ 'disabled' if counts.get(r.name,0) }}><i class="fa fa-trash"></i> Verwijderen</button>
-            {% if counts.get(r.name,0) %}<span class="muted small">in gebruik — niet verwijderbaar</span>{% endif %}
+            {% if counts.get(r.name,0) %}<span class="muted small">in gebruik - niet verwijderbaar</span>{% endif %}
             {% endif %}
           </div>
         </form>

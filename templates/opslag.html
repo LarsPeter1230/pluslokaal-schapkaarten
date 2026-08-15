@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Opslag – PLUSLokaal{% endblock %}
+{% block title %}Opslag - PLUSLokaal{% endblock %}
 {% block content %}
 {% macro human(b) -%}
 {%- if b >= 1073741824 -%}{{ (b / 1073741824) | round(1) }} GB
@@ -30,7 +30,7 @@
         <div style="height:100%;width:{{ pct }}%;background:{{ barcol }};border-radius:99px;transition:width .3s;"></div>
       </div>
       {% if pct >= 90 %}
-      <p class="hint" style="margin-top:12px;color:#e3000a;font-weight:600;"><i class="fa fa-triangle-exclamation"></i> De schijf zit bijna vol — ruim oude kaarten op.</p>
+      <p class="hint" style="margin-top:12px;color:#e3000a;font-weight:600;"><i class="fa fa-triangle-exclamation"></i> De schijf zit bijna vol - ruim oude kaarten op.</p>
       {% endif %}
 
       <div class="grid cols-2" style="margin-top:20px;gap:14px;">
@@ -85,7 +85,7 @@
       <form method="post" onsubmit="return confirm('Weet je zeker dat je alle kaarten ouder dan het opgegeven aantal dagen wilt verwijderen? Dit kan niet ongedaan worden gemaakt.');">
         <input type="hidden" name="action" value="cleanup">
         <div class="field">
-          <label>Nu handmatig opruimen — ouder dan</label>
+          <label>Nu handmatig opruimen - ouder dan</label>
           <div style="display:flex;align-items:center;gap:8px;">
             <input type="number" name="cleanup_days_manual" min="1" required placeholder="bijv. 90" style="max-width:120px;">
             <span class="muted">dagen</span>
@@ -151,7 +151,7 @@
               {% endif %}
             </td>
             <td style="padding:8px 10px;">{{ w.rows }}</td>
-            <td style="padding:8px 10px;">{{ human(w.bytes) if w.bytes else '—' }}</td>
+            <td style="padding:8px 10px;">{{ human(w.bytes) if w.bytes else '-' }}</td>
             <td style="padding:8px 10px;text-align:right;">
               <form method="post" style="margin:0;" onsubmit="return confirm('Week {{ short }} volledig verwijderen? Alle kaarten én bestanden van deze week worden gewist en de week verdwijnt ook uit Winkelpakketten.');">
                 <input type="hidden" name="action" value="w2p_delete_week">

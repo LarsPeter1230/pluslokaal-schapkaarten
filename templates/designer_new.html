@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Nieuw ontwerp – Designer{% endblock %}
+{% block title %}Nieuw ontwerp - Designer{% endblock %}
 {% block head %}
 <style>
   .dn-wrap{max-width:640px;margin:0 auto;}
@@ -27,7 +27,7 @@
 
     <div class="dn-tabs">
       <div class="dn-tab active" data-kind="paper" onclick="pickKind('paper')">
-        <i class="fa fa-file"></i><b>Papier</b><span>Kaart of poster — kies formaat</span></div>
+        <i class="fa fa-file"></i><b>Papier</b><span>Kaart of poster - kies formaat</span></div>
       <div class="dn-tab" data-kind="label" onclick="pickKind('label')">
         <i class="fa fa-tag"></i><b>Label</b><span>Op de labelprinter</span></div>
     </div>
@@ -51,7 +51,7 @@
       <div class="dn-panel" id="panel-label">
         <div class="field"><label>Labelformaat</label>
           <select name="label_format">
-            {% for f in label_formats %}<option value="{{ f.id }}">{{ f.name }} — {{ '%g × %g mm'|format(f.width_mm, f.height_mm) }}</option>{% endfor %}
+            {% for f in label_formats %}<option value="{{ f.id }}">{{ f.name }} - {{ '%g × %g mm'|format(f.width_mm, f.height_mm) }}</option>{% endfor %}
           </select>
           {% if not label_formats %}<p class="hint">Nog geen labelformaten. Voeg ze toe onder <b>Labels</b>.</p>{% endif %}
         </div>

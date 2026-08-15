@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# PLUSLokaal — installatiescript. Draai vanuit de repo-map:  bash install.sh
+# PLUSLokaal - installatiescript. Draai vanuit de repo-map:  bash install.sh
 set -e
 
 echo "── PLUSLokaal installatie ─────────────────────────────────────────────"
@@ -36,4 +36,4 @@ echo ""
 echo "   Productie (gunicorn):"
 echo "     python -m gunicorn -c gunicorn_conf.py app:app"
 echo ""
-echo "   Eerste login: gebruiker 'admin', wachtwoord 'admin' — wijzig dit direct."
+echo "   Eerste login: gebruiker 'admin', wachtwoord 'admin' - wijzig dit direct."

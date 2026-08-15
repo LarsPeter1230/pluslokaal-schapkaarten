@@ -23,7 +23,7 @@ import sharedstate   # proces-overstijgende state (print/W2P-jobs, login-rate-li
 
 # 'idna'-codec vooraf laden in de HOOFD-thread. Werkzeug idna-encodeert de hostnaam bij het binden van de
 # URL-map; de eerste `codecs.lookup('idna')` vanuit een gunicorn-worker-THREAD kan racen en faalt dan met
-# "unknown encoding: idna" (een 500 op willekeurige pagina's, alleen via het echte domein — niet op
+# "unknown encoding: idna" (een 500 op willekeurige pagina's, alleen via het echte domein - niet op
 # 127.0.0.1, want een IP wordt niet idna-geëncodeerd). Eén keer opwarmen registreert 'm globaal.
 import codecs as _codecs, encodings.idna  # noqa: F401
 try:
@@ -58,8 +58,8 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 # de schijf vult. Ruim genoeg voor legitieme posts (screenshots ~3,5 MB, avatars ~3 MB).
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
-# Versie van de applicatie — getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.22.0'
+# Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
+APP_VERSION = '2.22.1'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -148,7 +148,7 @@ class Filiaal(db.Model):
     printer_rotation = db.Column(db.Integer,     default=0)
     allowed_ips      = db.Column(db.Text,        nullable=True)     # publieke IP's (app achter Cloudflare)
     login_hint       = db.Column(db.Text,        nullable=True)     # hint bij mislukte login vanaf dit winkel-IP
-    # Winkelprinter voor schapkaarten/scankaarten (kantoorprinter, IPP — A3/A4)
+    # Winkelprinter voor schapkaarten/scankaarten (kantoorprinter, IPP - A3/A4)
     doc_printer_name  = db.Column(db.String(120), nullable=True)
     doc_printer_ip    = db.Column(db.String(64),  nullable=True)
     doc_printer_port  = db.Column(db.Integer,     default=631)
@@ -322,7 +322,7 @@ class Card(db.Model):
     filiaal      = db.Column(db.Integer,     nullable=False)
     filiaal_naam = db.Column(db.String(100), nullable=True)
 
-# ─── FONTS (Montserrat variable — vrije Gotham-substituut) ────────────────────
+# ─── FONTS (Montserrat variable - vrije Gotham-substituut) ────────────────────
 _FONT_VAR = os.path.join(os.path.dirname(__file__), 'static', 'fonts', 'Montserrat-var.ttf')
 
 # Gewichten afgeleid van het PLUS-ontwerp (PDF): Gotham-Book≈500, Bold≈700, Black≈900
@@ -340,7 +340,7 @@ _GOTHAM_FILES = {
     500: ['Gotham-Book.otf', 'Gotham-Book.ttf', 'Gotham-Medium.otf'],
     400: ['GothamNarrow-Book.otf', 'GothamNarrow-Book.ttf', 'Gotham-Book.otf', 'Gotham-Book.ttf'],
 }
-# Vrije Gotham-substituut: GothicA1 (OFL, van Google Fonts) — visueel het dichtst bij Gotham van de
+# Vrije Gotham-substituut: GothicA1 (OFL, van Google Fonts) - visueel het dichtst bij Gotham van de
 # gratis fonts (dubbelverdiepings-'a', zelfde proporties/gewicht). Wordt gebruikt zolang de
 # gelicentieerde Gotham nog niet in static/fonts/gotham/ staat; anders wint Gotham.
 _GOTHICA1_DIR = os.path.join(os.path.dirname(__file__), 'static', 'fonts', 'gothica1')
@@ -389,7 +389,7 @@ def F(weight, size):
     return f
 
 # PLUS-kleuren (exact uit de W2P-winkelpakketten)
-RED   = (227,  0,  10)   # #E3000A — PLUS actierood
+RED   = (227,  0,  10)   # #E3000A - PLUS actierood
 GREEN = (130, 187, 34)   # #82BB22 (Action Green)
 BLACK = (35,  31,  32)   # #231F20
 WHITE = (255, 255, 255)
@@ -597,7 +597,7 @@ def _draw_product_box(canvas, draw, x, y, w, h, item):
 SCAN_GREEN = GREEN_SCAN        # zelfde PLUS-scankaartgroen als de A3-barcodetegels (127,193,67)
 
 def _scan_hier(canvas, draw, x0, y0, x1, y1, big=False):
-    """Scanner-icoon + wit 'Scan hier' — in een cel (grid) of groot links (compact).
+    """Scanner-icoon + wit 'Scan hier' - in een cel (grid) of groot links (compact).
     De tekst wordt op de beschikbare breedte geschaald, zodat hij nooit buiten de kaart valt."""
     w = x1 - x0; h = y1 - y0
     ic = scanner_img(int(h * (0.34 if big else 0.42)))
@@ -651,7 +651,7 @@ def _scan_product(canvas, draw, x0, y0, x1, y1, item, boxed=True):
 
 def draw_scankaart_cell(canvas, draw, ox, oy, W, H, products):
     """Eén PLUS-scankaart (groene kaart): 'Scan hier' + producten. Indeling past zich aan het aantal
-    producten aan — 1:1 met de PLUS-referentie (SK Maxi):
+    producten aan - 1:1 met de PLUS-referentie (SK Maxi):
       • 1 product : links groot 'Scan hier', rechts naam + barcode (op groen).
       • 2 producten: links groot 'Scan hier', rechts 2 witte productvakken onder elkaar.
       • ≥3 producten: 2-koloms raster; 'Scan hier' in de eerste cel, de rest witte vakken."""
@@ -689,7 +689,7 @@ def draw_scankaart_cell(canvas, draw, ox, oy, W, H, products):
 
 
 def generate_scankaart(cells):
-    """Render een SK Maxi-vel (A4-liggend) met **4 (afzonderlijke) PLUS-scankaarten** — net als de
+    """Render een SK Maxi-vel (A4-liggend) met **4 (afzonderlijke) PLUS-scankaarten** - net als de
     actie-SK Maxi: 4 kaarten op één vel, elk met een eigen productenlijst.
     `cells` = lijst van maximaal 4× {'products': [ {naam, formaat, code, type}, ... ]}.
     Verwerkt ook een platte productenlijst (→ 4 identieke kaarten) voor terugwaartse compatibiliteit."""
@@ -903,7 +903,7 @@ def _paste_overlay(canvas, o, ox, oy, W, H):
         pass
 
 def _draw_overlay(canvas, d, ox, oy, W, H):
-    """Teken de op de kaart geplaatste productfoto('s) — één of meerdere — op exact de positie/grootte
+    """Teken de op de kaart geplaatste productfoto('s) - één of meerdere - op exact de positie/grootte
     uit de editor. Ondersteunt zowel het oude enkele object als een lijst met meerdere foto's."""
     ov = d.get('overlay')
     if isinstance(ov, str):
@@ -918,7 +918,7 @@ def _draw_overlay(canvas, d, ox, oy, W, H):
 
 
 def _outline_text(draw, x, y, text, font, fill, outline, ow):
-    """Tekst met buitenlijn (sticker-effect) via PIL stroke — één efficiënte aanroep."""
+    """Tekst met buitenlijn (sticker-effect) via PIL stroke - één efficiënte aanroep."""
     draw.text((x, y), text, font=font, fill=fill, stroke_width=max(1, int(ow)), stroke_fill=outline)
 
 
@@ -1242,7 +1242,7 @@ def _old_twotone(draw, top_txt, label_txt, X, Y, S, W, H):
     rode tekst met witte buitenlijn + zwarte slagschaduw, rechts op de kaart. 1-op-1 met de PLUS-
     referentie (SK Maxi-cel: bovent. ~0.44·H hoog rond cx≈0.83, label licht overlappend eronder)."""
     # Vaste bounding box in de rechterhelft van de kaart; alles wordt binnen deze box gepast zodat
-    # het NOOIT over de kaartrand/gutter loopt — ongeacht de tekstbreedte ('1+1' vs '2 HALEN').
+    # het NOOIT over de kaartrand/gutter loopt - ongeacht de tekstbreedte ('1+1' vs '2 HALEN').
     bx0, bx1 = X(0.505), X(0.985)
     bcx = (bx0 + bx1) / 2
     bw = bx1 - bx0
@@ -1261,7 +1261,7 @@ def _old_twotone(draw, top_txt, label_txt, X, Y, S, W, H):
 
 
 def _old_price(canvas, draw, d, X, Y, S, W, H):
-    """Rode 'sticker'-prijs — 1-op-1 met de PLUS-referentie: groot geheel + grote superscript-centen,
+    """Rode 'sticker'-prijs - 1-op-1 met de PLUS-referentie: groot geheel + grote superscript-centen,
     witte buitenlijn + zwarte slagschaduw. Geheel ink-links ~0.46, onderkant ~0.98; centen rechtsboven."""
     av = str(d.get('av', '')).replace('€', '').replace(',', '.').strip()
     if not av:
@@ -1275,7 +1275,7 @@ def _old_price(canvas, draw, d, X, Y, S, W, H):
     fc = F(W_BLACK, Sc); cb = draw.textbbox((0, 0), cent, font=fc)
     gw = gb[2] - gb[0]; cw = cb[2] - cb[0]
     # bij brede (meercijferige) prijs alles evenredig verkleinen zodat het binnen de kaart past
-    # De hele prijs (geheel + centen) moet passen tussen ink-links 0.46W en de rechterrand 0.98W —
+    # De hele prijs (geheel + centen) moet passen tussen ink-links 0.46W en de rechterrand 0.98W -
     # anders (bv. in een smallere SK Maxi-cel) loopt 'ie over de kaartrand/gutter. Schaal totaal terug.
     avail = 0.52 * W
     total = gw + cw + int(Sw * 0.02)
@@ -1344,9 +1344,9 @@ def _old_actie_landscape(canvas, draw, d, ox, oy, W, H):
             draw.text((tx - vb[0], ty - vb[1]), vptxt, font=fv, fill=WHITE)
             midy = ty + vh / 2
             draw.line([(tx, midy), (tx + vw, midy)], fill=WHITE, width=max(2, S(0.008)))
-        # grote rode prijs (sticker) rechts — eerst tekenen zodat het label eroverheen komt
+        # grote rode prijs (sticker) rechts - eerst tekenen zodat het label eroverheen komt
         _old_price(canvas, draw, d, X, Y, S, W, H)
-        # wit label (verpakking + inhoud) — overlapt de bovenkant van de prijs
+        # wit label (verpakking + inhoud) - overlapt de bovenkant van de prijs
         vlbl = ' '.join(filter(None, [str(d.get('verpakking', '')).strip(), str(d.get('inhoud', '')).strip()]))
         if vlbl:
             _old_label(draw, X(0.72), Y(0.40), vlbl, 0.44 * W, S(0.052))
@@ -1504,7 +1504,7 @@ def _newtip_title(draw, d, lx, top_y, W, H, mk, pk, vk):
 def _newtip_footer(canvas, draw, d, lx, land_y, H, on_green_nix=False, nix_x=None, nix_y=None):
     """NIX18 (alleen bij alcohol) + 'Land van herkomst' + 'Aanvullende tekst', onderaan de kaart."""
     def S(p): return max(6, int(p * H))
-    # NIX18-blok (leeftijdsgrens) — alleen bij alcohol=ja
+    # NIX18-blok (leeftijdsgrens) - alleen bij alcohol=ja
     if str(d.get('alcohol', 'nee')).strip() == 'ja':
         nx = nix_x if nix_x is not None else lx
         ny = nix_y if nix_y is not None else (land_y - S(0.13))
@@ -1635,7 +1635,7 @@ _PRINT_DPI = 300
 _SIZES_MM = {
     'sk_mini':    (75,  88),
     'sk_middel':  (270, 70),
-    'sk_maxi':    (297, 210),   # A4 liggend vel — 4 kaarten (afscheurpapier)
+    'sk_maxi':    (297, 210),   # A4 liggend vel - 4 kaarten (afscheurpapier)
     'a5_staand':  (148, 210),
     'a4_staand':  (210, 297),
     'a3_staand':  (297, 420),
@@ -1765,11 +1765,11 @@ def generate_kaart(kaarten, formaat):
     stem   = f"kaart_{datetime.now().strftime('%Y%m%d%H%M%S%f')[:18]}_{secrets.token_hex(4)}"
     folder = app.config['EXPORT_FOLDER']
 
-    # 1) PDF — het te printen product, op exact A3/A4-formaat (300 dpi)
+    # 1) PDF - het te printen product, op exact A3/A4-formaat (300 dpi)
     canvas.save(os.path.join(folder, stem + '.pdf'), 'PDF',
                 resolution=_PRINT_DPI)
 
-    # 2) PNG — lichte preview voor het dashboard
+    # 2) PNG - lichte preview voor het dashboard
     prev = canvas.copy()
     prev.thumbnail((1400, 1400), Image.LANCZOS)
     prev.save(os.path.join(folder, stem + '.png'), 'PNG', optimize=True, compress_level=6)
@@ -1785,7 +1785,7 @@ def hash_password(pw):
 
 def _check_pw(user, pw):
     """Controleer het wachtwoord. Ondersteunt oude (pbkdf2/plain-text) hashes en upgradet die bij een
-    geslaagde login transparant naar scrypt — zo blijven alle bestaande accounts werken."""
+    geslaagde login transparant naar scrypt - zo blijven alle bestaande accounts werken."""
     stored = user.password or ''
     if stored.startswith('scrypt:') or stored.startswith('pbkdf2:'):
         if not check_password_hash(stored, pw):
@@ -1796,7 +1796,7 @@ def _check_pw(user, pw):
             except Exception:
                 db.session.rollback()
         return True
-    # Legacy plain-text — check en direct hashen
+    # Legacy plain-text - check en direct hashen
     if stored == pw:
         try:
             user.password = hash_password(pw); db.session.commit()
@@ -1806,7 +1806,7 @@ def _check_pw(user, pw):
     return False
 
 def find_user_by_name(username):
-    """Zoek gebruiker op gebruikersnaam — hoofdletterongevoelig."""
+    """Zoek gebruiker op gebruikersnaam - hoofdletterongevoelig."""
     if not username:
         return None
     return User.query.filter(func.lower(User.username) == username.strip().lower()).first()
@@ -1843,7 +1843,7 @@ def login_required(f):
 # ─── LOGIN-THROTTLE (server-side, per IP+account) ─────────────────────────────
 # De oude teller stond alleen in de sessiecookie en was dus te omzeilen door de cookie weg te gooien.
 # Deze teller staat in het serverproces: een aanvaller kan hem niet resetten. Bij een herstart is hij
-# leeg — acceptabel, en legitieme gebruikers merken er niets van.
+# leeg - acceptabel, en legitieme gebruikers merken er niets van.
 _LOGIN_MAX = 8                # max mislukte pogingen ...
 _LOGIN_WINDOW = 300           # ... binnen dit venster (seconden) → daarna tijdelijk blokkeren
 # Rate-limiting staat in de GEDEELDE store (sharedstate) zodat 'ie klopt over meerdere gunicorn-workers.
@@ -1960,7 +1960,7 @@ def _security_headers(resp):
 @app.before_request
 def _guard_export_files():
     """De gerenderde kaart-PDF's/PNG's in static/export mogen niet publiek/anoniem opvraagbaar zijn
-    (bestandsnamen zouden anders te raden zijn). Alleen ingelogde gebruikers krijgen ze — de URL's
+    (bestandsnamen zouden anders te raden zijn). Alleen ingelogde gebruikers krijgen ze - de URL's
     zelf blijven exact gelijk, dus voor ingelogde gebruikers verandert er niets."""
     p = request.path or ''
     if p.startswith('/static/export/'):
@@ -2613,13 +2613,13 @@ def pluslokaal_features(role):
     feats = [
         'Professionele <strong>schapkaarten</strong> maken in álle PLUS-formaten (SK Mini/Middel/Maxi, A5, A4, '
         'A3 staand én liggend), als <strong>actie- of tipkaart</strong>, met alle actievormen (prijs, 2e halve prijs, '
-        'X% korting, X+Y gratis, enz.) — en printen als print-klare PDF.',
+        'X% korting, X+Y gratis, enz.) - en printen als print-klare PDF.',
         '<strong>Scankaarten</strong> met barcode maken en beheren.',
         '<strong>Prijslabels</strong> (schaplabels met logo, prijs en barcode) maken en rechtstreeks naar de '
         'labelprinter sturen.',
-        '<strong>Printbare winkelpakketten</strong>: de wekelijkse actiekaarten per afdeling — selecteren, '
+        '<strong>Printbare winkelpakketten</strong>: de wekelijkse actiekaarten per afdeling - selecteren, '
         'samenvoegen en in één keer printen of downloaden.',
-        '<strong>Direct op de winkelprinter printen</strong> — ook meerdere kaarten tegelijk — met automatisch '
+        '<strong>Direct op de winkelprinter printen</strong> - ook meerdere kaarten tegelijk - met automatisch '
         'het juiste papierformaat uit de juiste lade, én live voortgang met annuleren.',
         'Alles op <strong>één centrale plek</strong>, netjes per winkel, in je browser op computer, tablet of telefoon.',
     ]
@@ -2631,12 +2631,12 @@ def pluslokaal_features(role):
 def pluslokaal_improvements():
     """Wat er beter is t.o.v. de oude omgeving."""
     return [
-        '<strong>Rechtstreeks printen op de winkelprinter</strong> — geen bestanden meer downloaden en geen '
+        '<strong>Rechtstreeks printen op de winkelprinter</strong> - geen bestanden meer downloaden en geen '
         'gedoe met lade-instellingen; elk formaat rolt automatisch uit de juiste lade.',
         '<strong>Meerdere kaarten in één keer</strong> selecteren en samen printen, ook door verschillende '
-        'formaten heen — de selectie wordt daarna netjes gewist.',
+        'formaten heen - de selectie wordt daarna netjes gewist.',
         '<strong>Live voortgang</strong> tijdens het printen, met meldingen rechtsboven en een annuleerknop.',
-        'Alle kaartontwerpen <strong>1-op-1 in de PLUS-huisstijl</strong> — zowel het nieuwe als het oude ontwerp, '
+        'Alle kaartontwerpen <strong>1-op-1 in de PLUS-huisstijl</strong> - zowel het nieuwe als het oude ontwerp, '
         'actie- én tipkaarten, op exact formaat.',
         '<strong>Schapkaarten, scankaarten, prijslabels én winkelpakketten</strong> in één omgeving, in plaats van '
         'losse systemen en handwerk.',
@@ -2646,7 +2646,7 @@ def pluslokaal_improvements():
 
 def send_welcome_invite(user_obj):
     """Maak een tijdelijk wachtwoord aan, dwing wachtwoordwijziging af, en mail de uitnodiging met
-    inloggegevens + uitleg over PLUSLokaal. Geeft (ok, err, temp) terug — toon 'temp' aan de beheerder
+    inloggegevens + uitleg over PLUSLokaal. Geeft (ok, err, temp) terug - toon 'temp' aan de beheerder
     als de mail niet verstuurd kon worden, zodat die het persoonlijk kan doorgeven."""
     temp = generate_temp_password()
     user_obj.password = hash_password(temp)
@@ -2661,7 +2661,7 @@ def send_welcome_invite(user_obj):
           'color:#115013;margin:14px 0 8px;')
     body = (
         _mail_p(f'Beste {user_obj.username},') +
-        _mail_p('Welkom bij <strong>PLUSLokaal</strong> — de nieuwe, centrale omgeving waarmee je in je winkel '
+        _mail_p('Welkom bij <strong>PLUSLokaal</strong> - de nieuwe, centrale omgeving waarmee je in je winkel '
                 'álle schapkaarten, scankaarten en prijslabels zelf maakt, beheert en print, volledig in de '
                 'PLUS-huisstijl.') +
         f'<div style="{hd}">Wat je met PLUSLokaal kunt</div>' +
@@ -2677,7 +2677,7 @@ def send_welcome_invite(user_obj):
     return ok, err, temp
 
 def send_approved_notice(user_obj):
-    """Laat een zelf-geregistreerde gebruiker weten dat hij is goedgekeurd — hij houdt zijn eigen
+    """Laat een zelf-geregistreerde gebruiker weten dat hij is goedgekeurd - hij houdt zijn eigen
     (bij registratie gekozen) wachtwoord, dus we resetten NIETS."""
     if not (user_obj.email and mail_enabled()):
         return False, 'geen e-mailadres of mail staat uit'
@@ -2686,7 +2686,7 @@ def send_approved_notice(user_obj):
           'color:#115013;margin:14px 0 8px;')
     body = (
         _mail_p(f'Beste {user_obj.username},') +
-        _mail_p('Goed nieuws — je account voor <strong>PLUSLokaal</strong> is goedgekeurd. Je kunt nu inloggen '
+        _mail_p('Goed nieuws - je account voor <strong>PLUSLokaal</strong> is goedgekeurd. Je kunt nu inloggen '
                 'met je e-mailadres en het wachtwoord dat je bij de aanmelding hebt gekozen.') +
         f'<div style="{hd}">Wat je met PLUSLokaal kunt</div>' +
         _mail_features(pluslokaal_features(getattr(user_obj, 'role', 'medewerker'))) +
@@ -2733,7 +2733,7 @@ def too_large(e):
 # ─── ROUTES ───────────────────────────────────────────────────────────────────
 @app.route('/')
 def home():
-    # Al ingelogd? Direct naar het dashboard — anders naar de loginpagina. (Voorheen ging '/' ALTIJD naar
+    # Al ingelogd? Direct naar het dashboard - anders naar de loginpagina. (Voorheen ging '/' ALTIJD naar
     # /login, waardoor een nog geldige sessie tóch het inlogscherm zag = leek uitgelogd terwijl je 't niet was.)
     return redirect(url_for('dashboard' if get_current_user() else 'login'))
 
@@ -2766,7 +2766,7 @@ def login():
         # Server-side brute-force-rem (los van de sessiecookie).
         blk = _login_blocked_secs(un)
         if blk > 0:
-            log_action('login_geblokkeerd', f'IP {client_ip()} — te veel pogingen')
+            log_action('login_geblokkeerd', f'IP {client_ip()} - te veel pogingen')
             flash(f'Te veel mislukte pogingen. Wacht {blk} seconden en probeer het opnieuw.', 'error')
             return _login_fail_page()
         # inloggen met e-mailadres (of, als terugval, met de naam)
@@ -2811,7 +2811,7 @@ def login():
         # Log de mislukte poging: wat is er ingevuld, van welk IP en welk toestel.
         dev = device_str()
         reason = 'onbekende gebruiker' if not user else 'onjuist wachtwoord'
-        log_action('login_mislukt', f'ingevuld: "{un[:100]}" — {reason}' + (f' · {dev}' if dev else ''))
+        log_action('login_mislukt', f'ingevuld: "{un[:100]}" - {reason}' + (f' · {dev}' if dev else ''))
         flash('Ongeldige gebruikersnaam of wachtwoord.', 'error')
         return _login_fail_page()
     return render_template('login.html')
@@ -2859,7 +2859,7 @@ def mfa_setup():
                 return _finish_login(user)
             flash('Twee-factor-authenticatie is ingesteld.', 'success')
             return redirect(url_for('profile'))
-        flash('Onjuiste code — controleer de app en probeer opnieuw.', 'error')
+        flash('Onjuiste code - controleer de app en probeer opnieuw.', 'error')
     return render_template('mfa_setup.html', user=user, secret=secret,
                            qr=_mfa_qr_datauri(uri), forced=(session.get('pre_auth_uid') is not None))
 
@@ -2905,7 +2905,7 @@ def _notify_owners_pending(pending_user):
     )
     html = _mail_wrapper('Nieuwe medewerker goedkeuren', body)
     for to in recipients:
-        send_mail_async(to, f'Nieuwe medewerker wacht op goedkeuring — {store_name}', html)
+        send_mail_async(to, f'Nieuwe medewerker wacht op goedkeuring - {store_name}', html)
 
 @app.route('/registreren', methods=['GET', 'POST'])
 def signup():
@@ -3056,7 +3056,7 @@ def kaart_editor():
             card = Card.query.get(edit_id)
             if card and (user.role == 'admin' or card.filiaal == user.filiaal):
                 remove_card_files(card.image)
-                card.title = title; card.price = actie or '–'
+                card.title = title; card.price = actie or '-'
                 card.image = filename; card.formaat = labels.get(formaat, formaat)
                 card.kaart_data = kdata; card.timestamp = datetime.now()
                 card.filiaal_naam = fn
@@ -3066,7 +3066,7 @@ def kaart_editor():
                 flash('Kaart bijgewerkt!', 'success')
                 return redirect(url_for('dashboard'))
 
-        card = Card(title=title, price=actie or '–', image=filename,
+        card = Card(title=title, price=actie or '-', image=filename,
                     formaat=labels.get(formaat,formaat), kaart_data=kdata,
                     username=user.username, filiaal=user.filiaal,
                     filiaal_naam=fn)
@@ -3188,7 +3188,7 @@ def print_card(card_id):
     """Open de PDF (het printbare product) in de browser."""
     card = Card.query.get_or_404(card_id)
     u = get_current_user()
-    # Alleen eigen-winkel kaarten (of superadmin) — voorkomt inkijk in kaarten van andere filialen.
+    # Alleen eigen-winkel kaarten (of superadmin) - voorkomt inkijk in kaarten van andere filialen.
     if not is_superadmin(u) and card.filiaal != (u.filiaal if u else None):
         abort(403)
     pdf = card_basename(card.image) + '.pdf'
@@ -3249,7 +3249,7 @@ def register():
             flash(f'Gebruiker "{un}" aangemaakt. Uitnodiging met tijdelijk wachtwoord gemaild naar {email}.', 'success')
         else:
             flash(f'Gebruiker "{un}" aangemaakt, maar de uitnodiging kon niet worden verstuurd ({err}). '
-                  f'Tijdelijk wachtwoord: {temp} — geef dit persoonlijk door.', 'warning')
+                  f'Tijdelijk wachtwoord: {temp} - geef dit persoonlijk door.', 'warning')
         return redirect(url_for('register'))
     users = User.query.all()
     filialen = Filiaal.query.order_by(Filiaal.nummer).all()
@@ -3279,7 +3279,7 @@ def edit_user(user_id):
                 tgt.mfa_enabled = False; tgt.mfa_secret = None
                 db.session.commit()
                 log_action('mfa_gereset', tgt.username, filiaal=tgt.filiaal)
-                flash(f'Twee-factor-authenticatie van {tgt.username} is gereset — de gebruiker stelt '
+                flash(f'Twee-factor-authenticatie van {tgt.username} is gereset - de gebruiker stelt '
                       'deze bij de volgende login opnieuw in.', 'success')
             return redirect(url_for('edit_user', user_id=tgt.id))
         if action == 'welcome':
@@ -3288,7 +3288,7 @@ def edit_user(user_id):
             else:
                 ok, err, temp = send_welcome_invite(tgt)
                 flash(f'Uitnodiging met tijdelijk wachtwoord verstuurd naar {tgt.email}.' if ok
-                      else f'Mail mislukt ({err}). Tijdelijk wachtwoord: {temp} — geef dit door.',
+                      else f'Mail mislukt ({err}). Tijdelijk wachtwoord: {temp} - geef dit door.',
                       'success' if ok else 'warning')
             return redirect(url_for('edit_user', user_id=tgt.id))
         if action == 'reset':
@@ -3391,7 +3391,7 @@ def send_welcome(user_id):
         return redirect(url_for('register'))
     ok, err, temp = send_welcome_invite(tgt)
     flash(f'Uitnodiging met tijdelijk wachtwoord verstuurd naar {tgt.email}.' if ok
-          else f'Mail mislukt ({err}). Tijdelijk wachtwoord: {temp} — geef dit door.',
+          else f'Mail mislukt ({err}). Tijdelijk wachtwoord: {temp} - geef dit door.',
           'success' if ok else 'warning')
     return redirect(url_for('register'))
 
@@ -3500,7 +3500,7 @@ def mail_settings():
                 return redirect(url_for('mail_settings'))
             body = ('<p style="font-size:15px;line-height:1.6;">Dit is een testmail vanuit de '
                     'PLUSLokaal schapkaarten-omgeving. Als je deze ontvangt, werkt je SMTP-instelling. 🎉</p>')
-            ok, err = send_mail(to, 'PLUSLokaal — testmail', _mail_wrapper('Testmail', body))
+            ok, err = send_mail(to, 'PLUSLokaal - testmail', _mail_wrapper('Testmail', body))
             flash('Testmail verstuurd naar ' + to if ok else f'Testmail mislukt: {err}',
                   'success' if ok else 'error')
             return redirect(url_for('mail_settings'))
@@ -3600,7 +3600,7 @@ def _delete_w2p_cache(period_id=None):
 
 def _delete_w2p_week(period_id):
     """Verwijder een week VOLLEDIG: gedownloade PDF's + cache-rijen, de metadata (kaarten) én de
-    thumbnails. Daarna is de week nergens meer zichtbaar — ook niet bij Winkelpakketten — en wordt
+    thumbnails. Daarna is de week nergens meer zichtbaar - ook niet bij Winkelpakketten - en wordt
     'ie ook niet meer automatisch aangevuld."""
     n, freed = _delete_w2p_cache(period_id=period_id)     # PDF-bestanden + cache-rijen
     thumb_dir = _w2p_thumb_dir()
@@ -3642,7 +3642,7 @@ def _w2p_cache_stats():
         if os.path.exists(p):
             e['bytes'] += os.path.getsize(p)
     # ALLE weken tonen: zowel gedownloade als weken die alleen metadata (in cache) hebben, met een
-    # duidelijke status — zo zie je precies wat er bekend is vs. wat print-klaar op de server staat.
+    # duidelijke status - zo zie je precies wat er bekend is vs. wat print-klaar op de server staat.
     weeks = []
     for pid in set(list(period_labels.keys()) + list(per.keys())):
         e = per.get(pid, {'groups': set(), 'rows': 0, 'cards': 0, 'bytes': 0})
@@ -3882,7 +3882,7 @@ def _num(v):
         return None
 
 # ════════════════════════════════════════════════════════════════════════════
-#  DESIGNER (Bèta) — vrije canvas-editor voor labels én papier (kaarten/posters)
+#  DESIGNER (Bèta) - vrije canvas-editor voor labels én papier (kaarten/posters)
 #  Editor is client-side (DOM, slepen/schalen/draaien); de PRINT/PDF-uitvoer wordt
 #  server-side met PIL gerenderd vanuit de design-JSON (print-perfect, zelfde
 #  Montserrat-font als de kaarten). Elementen hebben fractionele coördinaten
@@ -4498,7 +4498,7 @@ def _weight_perlabel(weight):
 # aanpassen (alles is daar bewerkbaar).
 #
 # ▶ MERKENLIJST UITBREIDEN: zet een merk hieronder in `_MERKEN` (meerwoordig mag; hoofdletters zoals je 't
-#   getoond wilt hebben). Meerwoordige/PLUS-lijnen zijn het belangrijkst — enkelwoord-merken worden meestal
+#   getoond wilt hebben). Meerwoordige/PLUS-lijnen zijn het belangrijkst - enkelwoord-merken worden meestal
 #   al goed door de terugval (eerste woord) gepakt. Langste match wint automatisch.
 _MERKEN = [
     # PLUS-eigenmerk-lijnen
@@ -4652,7 +4652,7 @@ def _w2p_notify_admins(subject, detail):
                     f'Winkelpakket-accounts hebt aangevinkt dat je meldingen wilt. Daar kun je dit ook uitzetten.</p>')
             html = _mail_wrapper('Winkelpakketten: actie mislukt', body)
             for r in recips:
-                send_mail_async(r, 'PLUSLokaal — ' + subject, html)
+                send_mail_async(r, 'PLUSLokaal - ' + subject, html)
     except Exception as e:
         try:
             app.logger.error(f'W2P-faalmelding versturen mislukt: {e}')
@@ -4696,7 +4696,7 @@ def _portaal_rewrite_css(text, page_url):
     return text
 
 def _portaal_rewrite_attrs_only(html, page_url):
-    """Herschrijf alleen de URL-attributen (href/src/action/srcset/inline-style url()) naar de proxy —
+    """Herschrijf alleen de URL-attributen (href/src/action/srcset/inline-style url()) naar de proxy -
     zonder onze <base>/<style>/<script> te injecteren. Gebruikt voor AJAX-HTML-fragmenten."""
     def _attr(m):
         return f'{m.group(1)}={m.group(2)}{_portaal_rewrite_url(m.group(3), page_url)}{m.group(2)}'
@@ -4723,7 +4723,7 @@ def _portaal_rewrite_attrs_only(html, page_url):
     return html
 
 def _portaal_reskin_html(html, page_url):
-    """Volledige pagina: URL-attributen herschrijven (structuur blijft byte-voor-byte intact — NIET met
+    """Volledige pagina: URL-attributen herschrijven (structuur blijft byte-voor-byte intact - NIET met
     een parser herserialiseren, want pluslokaal.nl heeft geneste <form>'s die daardoor sneuvelen) én onze
     stijl/scripts injecteren."""
     html = _portaal_rewrite_attrs_only(html, page_url)
@@ -4732,7 +4732,7 @@ def _portaal_reskin_html(html, page_url):
     # sidebar (Jaarkalender/Tarieven/Mutatieformulieren/"Vraag een opdracht aan") standaard met
     # display:none en toont die via runtime-JS dat het proxyen niet schoon overleeft. We forceren de
     # sidebar zichtbaar op desktop en zetten de content ernaast (twee kolommen, net als het origineel).
-    # De top-categoriebalk (Landelijke activiteiten e.d.) wordt door hun JS opgebouwd en valt weg — de
+    # De top-categoriebalk (Landelijke activiteiten e.d.) wordt door hun JS opgebouwd en valt weg - de
     # nav-panels (uitgeklapt mega-menu) verbergen we zodat dat geen rommelig blok toont.
     # Ook: het "Schapkaarten"-item uit de sidebar halen (dat hebben we zelf al in de app).
     inject = (
@@ -4765,7 +4765,7 @@ def _portaal_reskin_html(html, page_url):
         '.nav-panels{display:none !important;}'
         # pluslokaal.nl 1-op-1 in onze pluslokaal.com-stijl. Deze CSS draait ALLEEN binnen het iframe
         # (dus raakt alleen pluslokaal.nl-elementen; hun eigen header/nav is toch verborgen), daarom
-        # mogen de selectors iframe-breed — zo geldt de stijl óók op W2P-pagina's (winkelmandje,
+        # mogen de selectors iframe-breed - zo geldt de stijl óók op W2P-pagina's (winkelmandje,
         # bestelgeschiedenis) die geen .pagecontent gebruiken.
         # Knoppen (PLUS-groen + onze "spraakwolk"-radius)
         '.btn,input[type=submit],input[type=button],button[type=submit]{'
@@ -4990,7 +4990,7 @@ def portaal_koppel():
     user.portaal_status = 'ok'
     user.portaal_checked = datetime.now()
     db.session.commit()
-    flash('pluslokaal.nl gekoppeld — je bent nu automatisch ingelogd.', 'success')
+    flash('pluslokaal.nl gekoppeld - je bent nu automatisch ingelogd.', 'success')
     return redirect(url_for('portaal'))
 
 @app.route('/portaal/ontkoppel', methods=['POST'])
@@ -5015,7 +5015,7 @@ def portaal_ontkoppel():
 @app.route('/portaal/basket-count')
 @login_required
 def portaal_basket_count_api():
-    """Actuele winkelmandje-teller (verse ophaal) — de parent roept dit na elke iframe-navigatie aan om
+    """Actuele winkelmandje-teller (verse ophaal) - de parent roept dit na elke iframe-navigatie aan om
     de badge bij het mandje-icoon live bij te werken."""
     user = get_current_user()
     if not user or not user.portaal_user or not user.portaal_pass_enc:
@@ -5254,13 +5254,13 @@ def label_print_network(job_id):
         log_action('print_mislukt', f'{f.printer_ip}:{f.printer_port} ({e.__class__.__name__})', filiaal=f.nummer)
         return jsonify({'error': f'Kan {f.printer_ip}:{f.printer_port} niet bereiken ({e.__class__.__name__}). Gebruik anders browserprint.'}), 502
     job.printed_at = datetime.now(); job.status = 'geprint'; db.session.commit()
-    log_action('print_netwerk', f'{total} label(s) → {f.printer_ip}:{f.printer_port} — "{job.name}"', filiaal=f.nummer)
+    log_action('print_netwerk', f'{total} label(s) → {f.printer_ip}:{f.printer_port} - "{job.name}"', filiaal=f.nummer)
     return jsonify({'success': True, 'sent': total,
                     'message': f'{total} label(s) verstuurd naar {f.printer_name or "printer"} '
                                f'({f.printer_ip}:{f.printer_port}, {(f.printer_protocol or "tspl").upper()}). '
-                               f'Komt er niets uit? Dan spreekt de printer die taal niet — kies een andere in Beheer → Filialen.'})
+                               f'Komt er niets uit? Dan spreekt de printer die taal niet - kies een andere in Beheer → Filialen.'})
 
-# ─── WINKELPRINTER (schapkaarten/scankaarten, IPP — A3/A4-kantoorprinter) ──────
+# ─── WINKELPRINTER (schapkaarten/scankaarten, IPP - A3/A4-kantoorprinter) ──────
 # Toshiba e-STUDIO en soortgelijke moderne kantoorprinters spreken "IPP Everywhere"
 # (AirPrint/Mopria): ze nemen kant-en-klare PDF's aan zonder fabrikant-driver, en
 # rapporteren hun papierladen als media-source keywords (tray-1..tray-4, by-pass-tray,
@@ -5289,7 +5289,7 @@ def _doc_trays(f):
 def _printers_for_cards(cards):
     """Map {filiaal_nummer: {'name':..., 'ready':bool}} voor de winkels van deze kaarten.
     Zo weet elke kaart of er voor ZIJN EIGEN winkel een printer is ingesteld (niet die van de
-    ingelogde gebruiker) — belangrijk voor de superadmin die kaarten van meerdere winkels ziet."""
+    ingelogde gebruiker) - belangrijk voor de superadmin die kaarten van meerdere winkels ziet."""
     nums = {c.filiaal for c in cards if c.filiaal is not None}
     out = {}
     if not nums:
@@ -5557,7 +5557,7 @@ def _run_print_task(job_id, ip, port, path, docs, printer_label, filiaal=None):
         skipped = sharedstate.job_field(job_id, 'skipped', 0) or 0
         extra = f' ({skipped} te klein/andere winkel overgeslagen.)' if skipped else ''
         _pj_set(job_id, status='done', percent=100, printer_job_id=None,
-                message=f'Klaar — {total} verstuurd naar {printer_label}.{extra}')
+                message=f'Klaar - {total} verstuurd naar {printer_label}.{extra}')
         with app.app_context():
             log_action('print_netwerk_klaar', f'{total} doc(en) → {printer_label}', filiaal=filiaal)
     except _PrintCancelled:
@@ -5607,7 +5607,7 @@ def _enqueue_demo_print(title, labels):
                         message=f'{lab}: wordt geprint… (demo)')
                 time.sleep(0.5)
         _pj_set(job_id, status='done', percent=100,
-                message='Klaar — dit is een demo, er is niets echt geprint.')
+                message='Klaar - dit is een demo, er is niets echt geprint.')
     threading.Thread(target=run, daemon=True).start()
     return job_id
 
@@ -5654,7 +5654,7 @@ def card_print_network(card_id):
             return jsonify({'error': f'Printen op de winkelprinter kan alleen vanaf het winkelnetwerk. Jouw IP: {cip}.'}), 403
     fmt = _card_format_key(card)
     if fmt not in _DOC_TRAY_FORMATS:
-        return jsonify({'error': f'Dit formaat ({card.formaat}) is te klein voor de winkelprinter — gebruik browserprint of downloaden.'}), 400
+        return jsonify({'error': f'Dit formaat ({card.formaat}) is te klein voor de winkelprinter - gebruik browserprint of downloaden.'}), 400
     pdf_name = card_basename(card.image) + '.pdf'
     pdf_path = os.path.join(app.config['EXPORT_FOLDER'], pdf_name)
     if not os.path.exists(pdf_path):
@@ -5690,7 +5690,7 @@ def _selected_cards(u, ids):
 @app.route('/kaarten/print', methods=['POST'])
 @login_required
 def cards_print_network():
-    """Meerdere geselecteerde kaarten in één keer printen — elke kaart naar de printer van ZIJN
+    """Meerdere geselecteerde kaarten in één keer printen - elke kaart naar de printer van ZIJN
     EIGEN winkel (filiaal), en elk formaat naar z'n eigen lade."""
     u = get_current_user()
     ids = [int(x) for x in request.form.getlist('card_ids') if str(x).isdigit()]
@@ -5744,7 +5744,7 @@ def cards_print_network():
 @app.route('/kaarten/download', methods=['POST'])
 @login_required
 def cards_download():
-    """Meerdere geselecteerde kaarten downloaden — één PDF, of een ZIP bij meerdere."""
+    """Meerdere geselecteerde kaarten downloaden - één PDF, of een ZIP bij meerdere."""
     u = get_current_user()
     ids = [int(x) for x in request.form.getlist('card_ids') if str(x).isdigit()]
     cards = _selected_cards(u, ids)
@@ -5833,7 +5833,7 @@ def filiaal_detail(nummer):
                                      _DOC_MEDIA.get(fmt), tray, _DOC_ORIENT.get(fmt), 1,
                                      job_name='pluslokaal-testprint')
                 log_action('printer_test_doc', f'{f.doc_printer_ip} lade {tray} ({fmt})', filiaal=f.nummer)
-                flash(f'Testpagina ({FORMAAT_LABELS.get(fmt, fmt)}) verstuurd naar {f.doc_printer_ip} — lade {tray}.', 'success')
+                flash(f'Testpagina ({FORMAAT_LABELS.get(fmt, fmt)}) verstuurd naar {f.doc_printer_ip} - lade {tray}.', 'success')
             except OSError as e:
                 flash(f'Kan winkelprinter {f.doc_printer_ip} niet bereiken: {e}', 'error')
             return redirect(url_for('filiaal_detail', nummer=nummer))
@@ -5962,7 +5962,7 @@ def team():
                 log_action('teamlid_toegevoegd', f'{nm} ({email}) als {ro}', filiaal=fil)
                 ok, err, temp = send_welcome_invite(m)
                 flash(f'{nm} toegevoegd. Uitnodiging met tijdelijk wachtwoord verstuurd.' if ok
-                      else f'{nm} toegevoegd, maar mail mislukt ({err}). Tijdelijk wachtwoord: {temp} — geef dit door.',
+                      else f'{nm} toegevoegd, maar mail mislukt ({err}). Tijdelijk wachtwoord: {temp} - geef dit door.',
                       'success' if ok else 'warning')
             return redirect(url_for('team', filiaal=fil) if u.role == 'admin' else url_for('team'))
         # acties op een bestaand lid (binnen de eigen winkel)
@@ -5985,7 +5985,7 @@ def team():
             if m.email:
                 ok, err, temp = send_welcome_invite(m)
                 flash('Uitnodiging met tijdelijk wachtwoord opnieuw verstuurd.' if ok
-                      else f'Mail mislukt ({err}). Tijdelijk wachtwoord: {temp} — geef dit door.',
+                      else f'Mail mislukt ({err}). Tijdelijk wachtwoord: {temp} - geef dit door.',
                       'success' if ok else 'warning')
         elif act == 'reset':
             if m.email and mail_enabled():
@@ -6049,7 +6049,7 @@ def _is_briljant(formaat):
 # ── Multi-up vellen uitsplitsen ───────────────────────────────────────────────
 # Sommige formaten bundelen meerdere kaarten op één afscheurvel. De gecachte vel-PDF is een net
 # raster; per formaat weten we hoe de NIET-briljant (=gebruikte) kaarten daarin liggen, zodat we een
-# gekozen kaart uit z'n cel kunnen knippen en alleen de gekozen kaarten opnieuw op vellen zetten —
+# gekozen kaart uit z'n cel kunnen knippen en alleen de gekozen kaarten opnieuw op vellen zetten -
 # i.p.v. het hele vel (alle kaarten) mee te sturen of live opnieuw te bestellen. Elke gesneden kaart
 # wordt geverifieerd tegen z'n eigen productnaam (tekst uit de PDF); klopt het niet, dan valt die
 # kaart terug op live bestellen. Layout per formaat (empirisch gemeten + geverifieerd, A4-liggend):
@@ -6150,7 +6150,7 @@ def _assemble_multiup_from_cache(cat_id, pid, gid, norm_fmt, selected_ids, quant
         return None, []
 
     # Pak de gekozen kaarten 4-op-1 (of layout['slots']-aantal): elke kaart wordt uit z'n bron-cel
-    # geknipt en op de VOLGENDE vaste rasterpositie gezet — exact dezelfde grootte/plek als het
+    # geknipt en op de VOLGENDE vaste rasterpositie gezet - exact dezelfde grootte/plek als het
     # origineel (zuivere verplaatsing, geen vervorming). Bij vol vel begint de volgende kaart een
     # nieuw vel. Geschikt voor het fysieke afscheur-papier.
     slots = layout['slots']
@@ -6184,7 +6184,7 @@ def _fetch_group_pdfs(cat_id, pid, gid, group_docs, detail_job_id=None):
     onafhankelijke paginavolgorde heeft; die volgorde (de tegel-volgorde ``sort_index``) bewaren we
     in ``doc_ids`` zodat we later exact weten welke pagina bij welk document hoort. Klopt de
     paginacount niet met het verwachte aantal kaarten (bv. multi-up vellen), dan slaan we dat formaat
-    over — download valt daar later terug op live ophalen.
+    over - download valt daar later terug op live ophalen.
 
     ``detail_job_id``: als gezet, geeft w2p_client.order_and_download hierop de fijnmazige stappen
     door ("Inloggen…", "Kaarten aanvinken…", "PDF ophalen: <formaat>…").
@@ -6208,7 +6208,7 @@ def _fetch_group_pdfs(cat_id, pid, gid, group_docs, detail_job_id=None):
         if not isinstance(data, (bytes, bytearray)):
             continue
         # De W2P-downloadknop heeft soms een "Briljant …"-label terwijl onze verwachte kaarten onder
-        # het genormaliseerde formaat staan — daarom ook hier normaliseren voor de match + opslag.
+        # het genormaliseerde formaat staan - daarom ook hier normaliseren voor de match + opslag.
         formaat = _normalize_formaat(raw_formaat)
         expected = by_formaat.get(formaat, [])
         if not expected:
@@ -6221,12 +6221,12 @@ def _fetch_group_pdfs(cat_id, pid, gid, group_docs, detail_job_id=None):
             continue
         # ALLE formaten cachen. Voor "single-up" formaten (1 pagina per kaart, page_count == #kaarten)
         # kunnen we later exact per kaart een pagina knippen. Voor "multi-up" formaten (bv. SK Maxi:
-        # meerdere kaarten op één afscheurvel, page_count < #kaarten) kan dat niet — dan bewaren we het
+        # meerdere kaarten op één afscheurvel, page_count < #kaarten) kan dat niet - dan bewaren we het
         # hele verzameldocument en leveren we bij download het complete vel-bestand (dat is de
         # natuurlijke printbare eenheid). Of het per-kaart-knipbaar is leiden we af uit page_count.
         if page_count != len(expected):
             app.logger.info(f'W2P cache: multi-up formaat "{formaat}" groep {gid} '
-                            f'({page_count} pagina\'s voor {len(expected)} kaarten) — heel vel bewaard.')
+                            f'({page_count} pagina\'s voor {len(expected)} kaarten) - heel vel bewaard.')
         safe_fmt = re.sub(r'[^a-zA-Z0-9]+', '_', formaat).strip('_') or 'onbekend'
         fname = f'{cat_id}_{pid}_{gid}_{safe_fmt}.pdf'
         with open(os.path.join(pdf_dir, fname), 'wb') as f:
@@ -6253,7 +6253,7 @@ def _cache_group_pdfs(cat_id, pid, gid, group_docs, detail_job_id=None):
 
 def sync_w2p_metadata():
     """Cache-sync: crawl alle categorieën × periodes × groepen uit W2P en sla metadata (+ later lazy
-    thumbnails) op. Licht/snel — bestelt NIETS bij W2P. Rapporteert voortgang via
+    thumbnails) op. Licht/snel - bestelt NIETS bij W2P. Rapporteert voortgang via
     w2p_client.set_progress('sync_meta', ...). Geeft ook terug welke groepen nieuwe documenten
     kregen (voor de nachtelijke aanvul-taak, zie sync_w2p_pdfs)."""
     import w2p_client
@@ -6340,7 +6340,7 @@ def sync_w2p_pdfs(only_groups=None):
                    db.session.query(W2PDocument.category_id, W2PDocument.period_id, W2PDocument.group_id)
                    .distinct().all()]
     # Aantal reeds gecachte formaten per groep (om VOLLEDIG gecachte groepen over te slaan; een groep
-    # die nog niet al z'n formaten heeft — bv. de multi-up formaten ontbraken nog — wordt wél gedaan).
+    # die nog niet al z'n formaten heeft - bv. de multi-up formaten ontbraken nog - wordt wél gedaan).
     cached_fmt_count = {}
     if skip_existing:
         for c, p, g, cnt in (db.session.query(
@@ -6377,7 +6377,7 @@ def sync_w2p_pdfs(only_groups=None):
 
     def _report():
         pct = 2 + int(96 * n_done / total)
-        act = ', '.join(sorted(active.values())) or '—'
+        act = ', '.join(sorted(active.values())) or '-'
         w2p_client.set_progress('sync_pdfs', pct,
                                  f'{len(active)} afdeling(en) tegelijk · {n_done}/{total} klaar…',
                                  groups_done=n_done, groups_total=total, pdfs_cached=n_cached,
@@ -6415,7 +6415,7 @@ def sync_w2p_pdfs(only_groups=None):
                 _report()
 
     w2p_client.set_progress('sync_pdfs', 100, 'Klaar', groups_done=total, groups_total=total,
-                             pdfs_cached=n_cached, skipped=n_skipped, active='—', concurrency=concurrency)
+                             pdfs_cached=n_cached, skipped=n_skipped, active='-', concurrency=concurrency)
     for s in range(concurrency):
         w2p_client.clear_progress(f'sync_pdfs_d{s}')
     return {'ok': True, 'groups': len(jobs), 'cached_pdfs': n_cached, 'skipped': n_skipped}
@@ -6499,10 +6499,10 @@ def _w2p_mark_available(doc_ids):
 
 def _w2p_missing_recent_groups(recent=5):
     """Detecteer groepen in de MEEST RECENTE weken die metadata hebben maar nog HELEMAAL GEEN
-    PDF-cache — dat is een week/afdeling die simpelweg niet gedownload is (zoals week 31 was). We
+    PDF-cache - dat is een week/afdeling die simpelweg niet gedownload is (zoals week 31 was). We
     kijken bewust alleen naar de nieuwste `recent` periodes (oudere, opgeschoonde weken laten we met
     rust) en alleen naar cache==0 (een deels-gedownloade groep laten we staan; sommige formaten
-    bestaan nu eenmaal niet voor elke afdeling — anders zou 'ie eeuwig opnieuw willen downloaden)."""
+    bestaan nu eenmaal niet voor elke afdeling - anders zou 'ie eeuwig opnieuw willen downloaden)."""
     try:
         periods = [pid for (pid,) in db.session.query(W2PDocument.period_id).distinct()
                    .order_by(W2PDocument.period_id.desc()).limit(recent).all()]
@@ -6524,7 +6524,7 @@ def _w2p_missing_recent_groups(recent=5):
 
 def _w2p_nightly_scheduler():
     """Zelfhelende W2P-download:
-    • Kort na het OPSTARTEN vult 'ie direct aan wat er ontbreekt (metadata aanwezig, PDF-cache niet) —
+    • Kort na het OPSTARTEN vult 'ie direct aan wat er ontbreekt (metadata aanwezig, PDF-cache niet) -
       zo hoeft niemand handmatig te downloaden als een week is blijven hangen (zoals week 31).
     • Elke nacht om 00:00: lichte cache-sync (metadata) en daarna de download-sync voor de gewijzigde
       groepen ÉN alles wat nog ontbreekt in de recente weken."""
@@ -6645,7 +6645,7 @@ def _wp_assemble_items(ids, known, targets, job_id, quantities=None):
     import w2p_client
     w2p_client.set_progress(job_id, 3, 'Cache controleren…')
     # 1) Kijk per document of we 'm al hebben liggen van een eerdere sync-pre-fetch
-    #    (static/w2p_pdfs/, zie _cache_group_pdfs) — dan hoeft er niets bij W2P besteld te worden.
+    #    (static/w2p_pdfs/, zie _cache_group_pdfs) - dan hoeft er niets bij W2P besteld te worden.
     cache_rows = {}  # (cat,pid,gid,formaat) -> W2PCachedPdf
     seen_triples = {(t['category_id'], t['period_id'], t['group_id']) for t in targets.values()}
     for cat, pid, gid in seen_triples:
@@ -6653,8 +6653,8 @@ def _wp_assemble_items(ids, known, targets, job_id, quantities=None):
             cache_rows[(cat, pid, gid, row.formaat)] = row
 
     from collections import defaultdict as _dd
-    cached_hits = []       # (formaat, cache_row, page_index) — single-up: exact per kaart knipbaar
-    multiup = _dd(list)    # (cat,pid,gid,norm_fmt) -> [doc_id] — multi-up: uit gecacht vel knippen
+    cached_hits = []       # (formaat, cache_row, page_index) - single-up: exact per kaart knipbaar
+    multiup = _dd(list)    # (cat,pid,gid,norm_fmt) -> [doc_id] - multi-up: uit gecacht vel knippen
     live_ids = []          # niet-gecacht (of split-verificatie faalt) → live bestellen
     for d in known:
         t = targets.get(str(d.promotion_document_id))
@@ -6776,7 +6776,7 @@ def winkelpakketten_print_start():
         wp_pid = 'wpprint_' + job_id
         with app.app_context():
             try:
-                # 1) PDF's samenstellen (0–70% van de balk), voortgang uit w2p_client doorgeven.
+                # 1) PDF's samenstellen (0-70% van de balk), voortgang uit w2p_client doorgeven.
                 def mirror():
                     for _ in range(6000):
                         p = w2p_client.get_progress(wp_pid) or {}
@@ -6804,7 +6804,7 @@ def winkelpakketten_print_start():
                     msg = 'Geen van de gekozen formaten kan op de winkelprinter (SK Mini/Middel → gebruik downloaden).'
                     _pj_set(job_id, status='error', percent=100, error=msg, message=msg)
                     return
-                # 3) Per formaat naar de juiste lade printen (70–100%).
+                # 3) Per formaat naar de juiste lade printen (70-100%).
                 docs = []
                 for fmt, pdf, key in printable:
                     docs.append({'pdf': pdf, 'media': _DOC_MEDIA.get(key), 'source': trays.get(key, 'auto'),
@@ -6822,9 +6822,9 @@ def winkelpakketten_print_start():
                     _poll_printer_job(ip, port, '/ipp/print', pjid, job_id, base, span, d['label'])
                 extra = ''
                 if skipped:
-                    extra = f' ({len(skipped)} te klein formaat overgeslagen — download die apart.)'
+                    extra = f' ({len(skipped)} te klein formaat overgeslagen - download die apart.)'
                 _pj_set(job_id, status='done', percent=100, printer_job_id=None,
-                        message=f'Klaar — {len(docs)} formaat(en) verstuurd naar {plabel}.{extra}')
+                        message=f'Klaar - {len(docs)} formaat(en) verstuurd naar {plabel}.{extra}')
                 log_action('winkelpakket_print', f'{len(docs)} formaat(en) → {plabel}', filiaal=filiaal)
             except _PrintCancelled:
                 _pj_set(job_id, status='cancelled', percent=100, printer_job_id=None, message='Geannuleerd.')
@@ -6841,7 +6841,7 @@ def winkelpakketten_print_start():
 @app.route('/winkelpakketten/cart-info', methods=['POST'])
 @login_required
 def winkelpakketten_cart_info():
-    """Geef de kaartgegevens (naam/formaat/week/afdeling) van de geselecteerde doc_ids terug — voor
+    """Geef de kaartgegevens (naam/formaat/week/afdeling) van de geselecteerde doc_ids terug - voor
     het winkelmandje-overzicht (kaarten kunnen uit meerdere weken/afdelingen komen)."""
     ids = [int(x) for x in request.form.getlist('doc_ids') if str(x).isdigit()]
     if not ids:
@@ -6867,7 +6867,7 @@ def winkelpakketten_download_start():
     if not ids:
         return jsonify({'error': 'Selecteer minstens één kaart.'}), 400
     # Bekende (categorie,periode,groep) per document meegeven uit onze sync-cache, zodat
-    # w2p_client rechtstreeks naar de juiste pagina's kan navigeren i.p.v. blind te zoeken —
+    # w2p_client rechtstreeks naar de juiste pagina's kan navigeren i.p.v. blind te zoeken -
     # werkt ook als de selectie kaarten uit meerdere afdelingen/weken combineert.
     known = W2PDocument.query.filter(W2PDocument.promotion_document_id.in_(ids)).all()
     targets = {str(d.promotion_document_id): {'period_id': d.period_id, 'group_id': d.group_id,
@@ -7007,7 +7007,7 @@ def winkelpakketten_sync_pdfs():
     if not _w2p_pdf_bg(only_groups=only):
         flash('Er loopt al een download-synchronisatie.', 'error')
     else:
-        flash('Download naar server gestart — dit kan lang duren (er wordt per afdeling echt besteld bij het oude systeem).', 'success')
+        flash('Download naar server gestart - dit kan lang duren (er wordt per afdeling echt besteld bij het oude systeem).', 'success')
     return redirect(url_for('winkelpakketten'))
 
 @app.route('/winkelpakketten/sync/pdfs/progress')
@@ -7212,7 +7212,7 @@ def feedback_mine():
 @app.route('/feedback/updates')
 @login_required
 def feedback_updates():
-    """JSON: lichte poll voor de melder — hoeveel nieuwe beheer-reacties zijn er?"""
+    """JSON: lichte poll voor de melder - hoeveel nieuwe beheer-reacties zijn er?"""
     u = get_current_user()
     return jsonify(ok=True, unread_total=user_unread_replies(u))
 

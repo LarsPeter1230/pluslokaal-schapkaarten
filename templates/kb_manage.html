@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Kennisbank beheren – PLUSLokaal{% endblock %}
+{% block title %}Kennisbank beheren - PLUSLokaal{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -24,7 +24,7 @@
           </a>
           {% if a.summary %}<div class="muted small" style="margin-top:2px;">{{ a.summary }}</div>{% endif %}
         </td>
-        <td>{{ a.category or '—' }}</td>
+        <td>{{ a.category or '-' }}</td>
         <td>{{ a.sort_index }}</td>
         <td class="muted small">{{ a.updated_at.strftime('%d-%m-%Y') }}</td>
         <td style="text-align:right;white-space:nowrap;">

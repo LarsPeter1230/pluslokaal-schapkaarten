@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Feedback – PLUSLokaal{% endblock %}
+{% block title %}Feedback - PLUSLokaal{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -65,8 +65,8 @@
           <div class="fb-snippet">{{ f.message[:90] }}{{ '…' if f.message|length > 90 }}</div>
         </td>
         <td><span class="fb-typetag"><i class="fa {{ tmeta[1] }}"></i> {{ tmeta[0] }}</span></td>
-        <td>{{ f.username or '—' }}</td>
-        <td>{{ f.filiaal_naam or f.filiaal or '—' }}</td>
+        <td>{{ f.username or '-' }}</td>
+        <td>{{ f.filiaal_naam or f.filiaal or '-' }}</td>
         <td><span class="fb-status" style="color:{{ smeta[1] }};background:{{ smeta[2] }};">{{ smeta[0] }}</span></td>
         <td style="text-align:right;white-space:nowrap;color:var(--muted);font-size:.82rem;">{{ f.created_at.strftime('%d-%m-%Y %H:%M') }}</td>
         <td style="text-align:right;white-space:nowrap;">

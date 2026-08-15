@@ -45,7 +45,7 @@ def _wrap(draw, text, font, maxw):
 
 def render_label(item, opts, Lw, Lh, dpi=300, logo_path=None, show_logo=False):
     """Rendert het labelontwerp adaptief: tekst breekt af, alles schaalt zodat
-    het altijd binnen het label past — met of zonder prijs."""
+    het altijd binnen het label past - met of zonder prijs."""
     from PIL import Image, ImageDraw
 
     px = lambda mm: max(1, int(round(mm * dpi / 25.4)))
@@ -140,7 +140,7 @@ def render_label(item, opts, Lw, Lh, dpi=300, logo_path=None, show_logo=False):
             els.append(('text', (digits, f_dig), dh)); total += dh + px(0.8)
 
         if uc_code:
-            # UC-code (uithaalcode) als kleine, leesbare tekst onder de barcode — geen aparte barcode.
+            # UC-code (uithaalcode) als kleine, leesbare tekst onder de barcode - geen aparte barcode.
             f_uc = _font(True, max(7, int(px(Lh * 0.07) * s)))
             uh = _text_w(measure, uc_code, f_uc)[1]
             els.append(('text', (uc_code, f_uc), uh)); total += uh + px(0.6)

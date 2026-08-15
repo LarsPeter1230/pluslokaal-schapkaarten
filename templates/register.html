@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Gebruikers – PLUSLokaal{% endblock %}
+{% block title %}Gebruikers - PLUSLokaal{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -39,7 +39,7 @@
           {% if current_user.role=='admin' %}
           <select name="filiaal" required>
             {% for f in filialen %}
-            <option value="{{ f.nummer }}">{{ f.nummer }}{% if f.naam %} — PLUS {{ f.naam }}{% endif %}</option>
+            <option value="{{ f.nummer }}">{{ f.nummer }}{% if f.naam %} - PLUS {{ f.naam }}{% endif %}</option>
             {% endfor %}
           </select>
           {% else %}

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Logboek – PLUSLokaal{% endblock %}
+{% block title %}Logboek - PLUSLokaal{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -52,8 +52,8 @@
             {{ LOG_LABELS.get(a, a) }}
           </span>
         </td>
-        <td>{{ e.username or '—' }}{% if e.filiaal %} <span class="muted small">({{ e.filiaal }})</span>{% endif %}</td>
-        <td><code style="font-size:.8rem;">{{ e.ip or '—' }}</code></td>
+        <td>{{ e.username or '-' }}{% if e.filiaal %} <span class="muted small">({{ e.filiaal }})</span>{% endif %}</td>
+        <td><code style="font-size:.8rem;">{{ e.ip or '-' }}</code></td>
         <td style="font-size:.85rem;color:var(--text);word-break:break-word;">{{ e.detail or '' }}</td>
       </tr>
       {% else %}

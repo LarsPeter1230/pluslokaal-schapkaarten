@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Winkelpakket-accounts – PLUSLokaal{% endblock %}
+{% block title %}Winkelpakket-accounts - PLUSLokaal{% endblock %}
 {% block content %}
 <div class="page-head">
   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -34,7 +34,7 @@
                autocomplete="off" style="flex:1 1 200px;min-width:160px;">
         <span style="flex:2 1 240px;min-width:200px;display:flex;align-items:center;gap:8px;">
           <input type="password" name="pass{{ a.i }}" value="" autocomplete="new-password"
-                 placeholder="{{ 'Wachtwoord — laat leeg om te behouden' if a.pass_set else 'Wachtwoord' }}"
+                 placeholder="{{ 'Wachtwoord - laat leeg om te behouden' if a.pass_set else 'Wachtwoord' }}"
                  style="flex:1;min-width:0;">
           {% if a.pass_set %}<span class="muted small" title="Er is een wachtwoord ingesteld"><i class="fa fa-lock"></i> ingesteld</span>{% endif %}
         </span>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Printers – PLUSLokaal{% endblock %}
+{% block title %}Printers - PLUSLokaal{% endblock %}
 {% block content %}
 <div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;">
   <div>
@@ -48,8 +48,8 @@
   <div class="panel" style="flex:0 1 320px;">
     <div class="panel__head"><i class="fa fa-circle-info"></i><h3>Uitleg</h3></div>
     <div class="panel__body">
-      <p class="muted small" style="line-height:1.6;">Direct printen stuurt de labels als <b>{{ (f.printer_protocol or 'tspl')|upper }}</b> rechtstreeks naar <b>{{ f.printer_ip or '— geen IP —' }}:{{ f.printer_port or 9100 }}</b>.
-      TSPL print het volledige ontwerp (logo + barcode) als bitmap. Komt er niets uit, dan spreekt de printer die taal niet — kies een andere printertaal of gebruik browserprint.
+      <p class="muted small" style="line-height:1.6;">Direct printen stuurt de labels als <b>{{ (f.printer_protocol or 'tspl')|upper }}</b> rechtstreeks naar <b>{{ f.printer_ip or '- geen IP -' }}:{{ f.printer_port or 9100 }}</b>.
+      TSPL print het volledige ontwerp (logo + barcode) als bitmap. Komt er niets uit, dan spreekt de printer die taal niet - kies een andere printertaal of gebruik browserprint.
       De server (niet de browser) verstuurt de print, dus de printer moet vanaf de server bereikbaar zijn.</p>
     </div>
   </div>

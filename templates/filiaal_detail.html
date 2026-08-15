@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Filiaal {{ f.nummer }} – PLUSLokaal{% endblock %}
+{% block title %}Filiaal {{ f.nummer }} - PLUSLokaal{% endblock %}
 {% block content %}
 <div class="page-head">
   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -57,7 +57,7 @@
         </div>
         <label class="lbl-chk" style="display:flex;align-items:flex-start;gap:8px;font-weight:600;font-size:.85rem;margin:4px 0 6px;cursor:pointer;">
           <input type="checkbox" name="print_only" style="width:18px;height:18px;accent-color:var(--green);margin-top:1px;" {{ 'checked' if f.print_only }}>
-          <span>Alleen printen <span class="muted small">(verberg de knop “Samenvoegen &amp; downloaden” voor deze winkel). Lukt printen niet — printer offline of een fout — dan komt de downloadknop automatisch terug.</span></span></label>
+          <span>Alleen printen <span class="muted small">(verberg de knop “Samenvoegen &amp; downloaden” voor deze winkel). Lukt printen niet - printer offline of een fout - dan komt de downloadknop automatisch terug.</span></span></label>
         <div style="border-top:1px solid var(--border,#e9ecef);margin:16px 0 14px;"></div>
         <div class="sec__h" style="margin-bottom:12px;"><i class="fa fa-inbox"></i> Papierlade per formaat</div>
         <div class="grid cols-2">
@@ -85,8 +85,8 @@
   <div class="panel" style="flex:0 1 300px;">
     <div class="panel__head"><i class="fa fa-circle-info"></i><h3>Uitleg</h3></div>
     <div class="panel__body">
-      <p class="muted small" style="line-height:1.6;">Direct printen stuurt labels als <b>{{ (f.printer_protocol or 'tspl')|upper }}</b> rechtstreeks naar <b>{{ f.printer_ip or '— geen IP —' }}:{{ f.printer_port or 9100 }}</b>. TSPL print het volledige ontwerp (logo + barcode) als bitmap. De server verstuurt de print, dus de printer moet vanaf de server bereikbaar zijn. Komt er niets uit, kies dan een andere printertaal of gebruik browserprint.</p>
-      <p class="muted small" style="line-height:1.6;margin-top:10px;">De <b>winkelprinter</b> is de gewone kantoorprinter/copier (bv. Toshiba e-STUDIO) waar schapkaarten en scankaarten op afgedrukt worden, via <b>IPP</b> (poort 631) — geen apart stuurprogramma nodig. Kies per formaat welke papierlade gebruikt wordt; SK Mini en SK Middel zijn te klein voor deze printer en gebruiken altijd browserprint.</p>
+      <p class="muted small" style="line-height:1.6;">Direct printen stuurt labels als <b>{{ (f.printer_protocol or 'tspl')|upper }}</b> rechtstreeks naar <b>{{ f.printer_ip or '- geen IP -' }}:{{ f.printer_port or 9100 }}</b>. TSPL print het volledige ontwerp (logo + barcode) als bitmap. De server verstuurt de print, dus de printer moet vanaf de server bereikbaar zijn. Komt er niets uit, kies dan een andere printertaal of gebruik browserprint.</p>
+      <p class="muted small" style="line-height:1.6;margin-top:10px;">De <b>winkelprinter</b> is de gewone kantoorprinter/copier (bv. Toshiba e-STUDIO) waar schapkaarten en scankaarten op afgedrukt worden, via <b>IPP</b> (poort 631) - geen apart stuurprogramma nodig. Kies per formaat welke papierlade gebruikt wordt; SK Mini en SK Middel zijn te klein voor deze printer en gebruiken altijd browserprint.</p>
     </div>
   </div>
 </div>

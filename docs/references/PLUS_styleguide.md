@@ -1,50 +1,50 @@
-# PLUS – Style Guide (intern)
+# PLUS - Style Guide (intern)
 
 Gedestilleerd uit de bestaande login- en homepage-implementatie (Material-UI/JSS componenten). Bedoeld als basis voor toekomstige interne applicaties.
 
 ## 1. Kleuren
 
 ### Merkgroen (primair)
-- Primary Dark Green — `#115013` — tekst, headings (h1/h5), links, primaire outline-knoppen, focus states
-- Action Green — `#80bd1d` — primaire call-to-action achtergrond (login-knop, header-balk)
-- Button hover (dark) — `rgb(11, 56, 13)`
+- Primary Dark Green - `#115013` - tekst, headings (h1/h5), links, primaire outline-knoppen, focus states
+- Action Green - `#80bd1d` - primaire call-to-action achtergrond (login-knop, header-balk)
+- Button hover (dark) - `rgb(11, 56, 13)`
 
 ### Merk-accenten (uit het PLUS-blad-logo)
-- Paars — `#554DA7`
-- Bosgroen — `#227647`
-- Rood — `#E3131D`
-- (Spinner-variant, iets lichter) — Groen `#7fbd23`, Rood `#e01e19`, Paars `#6555b3`, Groen `#017f38`
+- Paars - `#554DA7`
+- Bosgroen - `#227647`
+- Rood - `#E3131D`
+- (Spinner-variant, iets lichter) - Groen `#7fbd23`, Rood `#e01e19`, Paars `#6555b3`, Groen `#017f38`
 
-Gebruik: uitsluitend als brand-accent (logo, laad-indicator, illustratieve momenten) — niet als UI-actiekleur.
+Gebruik: uitsluitend als brand-accent (logo, laad-indicator, illustratieve momenten) - niet als UI-actiekleur.
 
 ### Semantisch
-- Error / invalid — `#dd350d` (tekst/rand), `#f44336` (Material error)
-- Disabled tekst — `rgba(0,0,0,0.26)`
-- Disabled achtergrond — `rgba(0,0,0,0.12)`
+- Error / invalid - `#dd350d` (tekst/rand), `#f44336` (Material error)
+- Disabled tekst - `rgba(0,0,0,0.26)`
+- Disabled achtergrond - `rgba(0,0,0,0.12)`
 
 ### Neutralen
-- Tekst (donker) — `#333333`
-- Tekst (gedempt) / placeholder / labels — `#999999`
-- Tekst secundair — `#6c6c6c`
-- Scheidingslijnen — `#d8d8d8`
-- Achtergrond — `#ffffff`
+- Tekst (donker) - `#333333`
+- Tekst (gedempt) / placeholder / labels - `#999999`
+- Tekst secundair - `#6c6c6c`
+- Scheidingslijnen - `#d8d8d8`
+- Achtergrond - `#ffffff`
 
 ## 2. Typografie
 
 **Lettertype:** `Gotham, 'Open Sans', sans-serif` (Gotham primair; Open Sans als webfallback wordt zelf gehost). Iconen via het `Material Icons` icoonlettertype.
 
 **Schaal (gebaseerd op bestaande componenten):**
-- Titel (h1 / pagina-titel) — 22–24px, bold, line-height 30px
-- Subtitel — 16px, regular/semibold, line-height 24px
-- Body — 16px, regular, line-height 24px
-- Body small / caption — 14px, regular, line-height 22px
-- Micro / helper — 12px
+- Titel (h1 / pagina-titel) - 22-24px, bold, line-height 30px
+- Subtitel - 16px, regular/semibold, line-height 24px
+- Body - 16px, regular, line-height 24px
+- Body small / caption - 14px, regular, line-height 22px
+- Micro / helper - 12px
 
 Tekstkleur volgt de neutrale schaal hierboven; koppen en links in Primary Dark Green.
 
 ## 3. Knoppen
 
-- **Vorm:** asymmetrische afgeronde hoek — `border-radius: 24px 24px 24px 4px` (herkenbaar "spraakwolk"-silhouet, kenmerkend voor PLUS-knoppen)
+- **Vorm:** asymmetrische afgeronde hoek - `border-radius: 24px 24px 24px 4px` (herkenbaar "spraakwolk"-silhouet, kenmerkend voor PLUS-knoppen)
 - **Hoogte:** 48px, volledige breedte in formulieren
 - **Primair (contained):** achtergrond Action Green `#80bd1d`, tekst wit, geen schaduw in rust
 - **Outlined:** rand 1px Primary Dark Green, tekst Primary Dark Green, achtergrond wit
@@ -76,11 +76,11 @@ Material Icons (24px standaard, 1.25rem klein / 2.1875rem groot). Kleur volgt te
 
 ## 8. Logo
 
-Blad-vormig woordmerk "PLUS", wit op groene ondergrond in gebruik op de login-header. Het blad-icoon bestaat uit 4 kwadranten in de merkaccentkleuren (paars, rood, bosgroen, wit/groen-tint) — zie `PLUS_logo.svg`.
+Blad-vormig woordmerk "PLUS", wit op groene ondergrond in gebruik op de login-header. Het blad-icoon bestaat uit 4 kwadranten in de merkaccentkleuren (paars, rood, bosgroen, wit/groen-tint) - zie `PLUS_logo.svg`.
 
 ## 9. Toepassing in nieuwe apps
 
 - Gebruik Primary Dark Green voor tekst-acties/links, Action Green uitsluitend voor primaire CTA-knoppen.
 - Reserveer de blad-accentkleuren (paars/rood/bosgroen) voor merkmomenten, niet voor reguliere UI-status (gebruik semantische rood voor errors).
 - Houd de karakteristieke knopvorm (24/24/24/4 radius) aan voor herkenbaarheid.
-- Formulieren: 56px velden, 8px radius, zwevend label — consistent houden voor UX-continuïteit.
+- Formulieren: 56px velden, 8px radius, zwevend label - consistent houden voor UX-continuïteit.

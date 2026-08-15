@@ -1,6 +1,6 @@
 """Genereert printer-native labelcommando's (ZPL / EPL / TSPL) voor directe
 netwerkprint op poort 9100. Tekst + echte barcode; logo wordt hierbij weggelaten
-(raster-logo per taal is te printerspecifiek — gebruik daarvoor de browserprint)."""
+(raster-logo per taal is te printerspecifiek - gebruik daarvoor de browserprint)."""
 
 
 def _digits(s):

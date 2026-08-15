@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ 'Artikel bewerken' if art else 'Nieuw artikel' }} – Kennisbank{% endblock %}
+{% block title %}{{ 'Artikel bewerken' if art else 'Nieuw artikel' }} - Kennisbank{% endblock %}
 {% block content %}
 {% set d = form or art %}
 <div class="page-head">
@@ -24,7 +24,7 @@
                value="{{ (d.summary if d else '') or '' }}" placeholder="Waar gaat dit artikel over?">
       </div>
       <div class="field">
-        <label>Inhoud <span class="muted small">(Markdown — zie hulp rechts)</span></label>
+        <label>Inhoud <span class="muted small">(Markdown - zie hulp rechts)</span></label>
         <textarea name="body" id="kbBody" rows="22" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.86rem;line-height:1.5;"
           placeholder="# Kop&#10;&#10;Tekst met **vet** en *cursief*.&#10;&#10;- opsomming&#10;&#10;> tip">{{ (d.body if d else '') or '' }}</textarea>
       </div>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Mijn team – PLUSLokaal{% endblock %}
+{% block title %}Mijn team - PLUSLokaal{% endblock %}
 {% block content %}
 <div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;">
   <div>
@@ -17,7 +17,7 @@
 
 {% if not mail_on %}
 <div class="panel" style="margin-bottom:14px;"><div class="panel__body" style="padding:12px 16px;background:#fff8e6;border-left:4px solid #f7941d;">
-  <span class="small">E-mail staat uit — uitnodigingen worden niet verstuurd. Nieuwe leden moeten hun wachtwoord via een reset-link of de admin krijgen.</span>
+  <span class="small">E-mail staat uit - uitnodigingen worden niet verstuurd. Nieuwe leden moeten hun wachtwoord via een reset-link of de admin krijgen.</span>
 </div></div>
 {% endif %}
 
@@ -60,7 +60,7 @@
         <tbody>
           {% for m in active %}
           <tr>
-            <td><strong>{{ m.username }}</strong><br><span class="muted small">{{ m.email or '—' }}</span></td>
+            <td><strong>{{ m.username }}</strong><br><span class="muted small">{{ m.email or '-' }}</span></td>
             <td>
               {% if m.role == 'admin' or m.id == user.id %}{{ role_labels.get(m.role, m.role) }}
               {% else %}

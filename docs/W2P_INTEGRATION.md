@@ -10,19 +10,19 @@ in 1 bestand per formaat** om te printen (geen echt winkelmandje nodig).
 Gebruikerskeuze: **periodiek synchroniseren** (metadata+thumbnails opslaan zodat
 bladeren snel/onafhankelijk is; de print-PDF's on-demand via de bestel-flow).
 
-## Oud systeem — hoe het werkt (verkend, read-only)
-- **Login:** `https://pluslokaal.nl/login.aspx` — velden `#username`, `#password`, submit
+## Oud systeem - hoe het werkt (verkend, read-only)
+- **Login:** `https://pluslokaal.nl/login.aspx` - velden `#username`, `#password`, submit
   door **Enter in het wachtwoordveld** (de "Inloggen"-knop klikken submit niet betrouwbaar).
   Forms-auth cookie. **Cloudflare niet blokkerend** (200), warme sessie werkt.
-- **Credentials** staan in DB-`Setting` (`w2p_user`, `w2p_pass`) — net als SMTP. NIET hardcoden.
-  (Winkel 0001: gebruiker `voorbeeldond`; wachtwoord in Setting — **rotatie aanbevolen**.)
+- **Credentials** staan in DB-`Setting` (`w2p_user`, `w2p_pass`) - net als SMTP. NIET hardcoden.
+  (Winkel 0001: gebruiker `voorbeeldond`; wachtwoord in Setting - **rotatie aanbevolen**.)
 - **Boomstructuur** via `RetailDocuments.aspx?PeriodID=<p>&CategoryID=<c>&PromotionGroupID=<g>`:
   - Categorie (bv. `CategoryID=7` = Weekpakketten; ook Slijterij/leeg/VINT).
   - Periode = weekpakket: WK27=`25023`, WK28=`25074`, WK29=`25131`, WK30=`25195`.
   - PromotieGroep = afdeling: AGF=`241741`, Bloemen=`241760`, Brood=`241742`,
     Convenience=`241743`, Diepvries=`241744`, Kaas=`241745`, Kruidenierswaren=`241746`,
     Vers gebak=`241748`, Vers vlees=`241749`, Vis=`241750`, Vleeswaren=`241751`, Zuivel=`241752`.
-    (Deze ID's wisselen per periode — dynamisch uit de sidebar-links halen.)
+    (Deze ID's wisselen per periode - dynamisch uit de sidebar-links halen.)
 - **Kaart-tegel** (in de groep-pagina): `div.panel.panel-default` met
   `h3.panel-title` = `"<formaat> - <code>-<productnaam>-"` (bv. "A3 liggend - 4439-7-F21-Gato Negro-"),
   `img.docimg.thumbnail` = `GetPromotionDocumentThumb.ashx?PromotionDocumentID=<id>`,
@@ -36,7 +36,7 @@ bladeren snel/onafhankelijk is; de print-PDF's on-demand via de bestel-flow).
      (bv. `Group=A3 liggend`, `Group=SK Maxi`) → **gecombineerde PDF** van alle bestelde kaarten van dat formaat.
 
 ## Bouwplan (in te bouwen in app.py + templates, pluslokaal-design)
-1. **`w2p_client.py`** — warme Playwright-thread + queue (zoals `plus_search.py`):
+1. **`w2p_client.py`** - warme Playwright-thread + queue (zoals `plus_search.py`):
    - `login()` (Enter-submit), warme sessie herbruiken.
    - `crawl(period_id, category_id)` → lijst groepen + per groep de documenten
      `{promotion_document_id, formaat, naam, groep}` + thumbnail-bytes.

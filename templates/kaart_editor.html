@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{% if edit_card %}Kaart bewerken{% else %}Nieuwe kaart{% endif %} – PLUSLokaal{% endblock %}
+{% block title %}{% if edit_card %}Kaart bewerken{% else %}Nieuwe kaart{% endif %} - PLUSLokaal{% endblock %}
 {% block content %}
 
 <div class="page-head">
@@ -35,19 +35,19 @@
         <div style="display:flex;align-items:center;gap:10px;justify-content:space-between;">
           <span class="k" style="flex:0 0 auto;">Kaartformaat</span>
           <select id="f-formaat" onchange="onFmt()" style="flex:1 1 auto;">
-            <option value="sk_mini">SK Mini — 75 × 88 mm</option>
-            <option value="sk_middel">SK Middel — 270 × 70 mm</option>
-            <option value="sk_maxi">SK Maxi — 4 kaarten (A4)</option>
-            <option value="a5_staand">A5 staand — 148 × 210 mm</option>
-            <option value="a4_staand">A4 staand — 210 × 297 mm</option>
-            <option value="a3_staand">A3 staand — 297 × 420 mm</option>
-            <option value="a3_liggend" selected>A3 liggend — 420 × 297 mm</option>
+            <option value="sk_mini">SK Mini - 75 × 88 mm</option>
+            <option value="sk_middel">SK Middel - 270 × 70 mm</option>
+            <option value="sk_maxi">SK Maxi - 4 kaarten (A4)</option>
+            <option value="a5_staand">A5 staand - 148 × 210 mm</option>
+            <option value="a4_staand">A4 staand - 210 × 297 mm</option>
+            <option value="a3_staand">A3 staand - 297 × 420 mm</option>
+            <option value="a3_liggend" selected>A3 liggend - 420 × 297 mm</option>
           </select>
         </div>
         <div id="actie-type-row" style="display:flex;align-items:center;gap:10px;justify-content:space-between;">
           <span class="k" style="flex:0 0 auto;">Type actie</span>
           <select id="f-actietype" onchange="onActie()" style="flex:1 1 auto;">
-            <option value="">— Kies —</option>
+            <option value="">- Kies -</option>
             <option value="prijs">Prijs</option>
             <option value="halveprijs">2e Halve prijs</option>
             <option value="xpctkorting">X% Korting</option>
@@ -74,7 +74,7 @@
             <b>Tip: sleep foto's op de kaart</b><br>
             Sleep een productfoto uit de zoekresultaten naar de preview om 'm op de kaart te zetten.
             Je kunt de foto daarna <b>verplaatsen</b> (slepen) en <b>schalen</b> (groene hoek), en
-            <b>meerdere foto's</b> toevoegen — ook van verschillende producten. Verwijderen doe je met het rode ×.
+            <b>meerdere foto's</b> toevoegen - ook van verschillende producten. Verwijderen doe je met het rode ×.
           </span>
         </span>
       </div>
@@ -160,7 +160,7 @@
   <div class="pg-ic"><i class="fa fa-print"></i></div>
   <h2>Druk de kaart niet via de browser af</h2>
   <p>Deze uitdraai geeft niet de juiste kaart. Ga terug naar PLUSLokaal en gebruik in de editor de knop
-     <b>“Opslaan &amp; printen”</b>. Kies daar de <b>winkelprinter</b> of een nette <b>PDF-download</b> —
+     <b>“Opslaan &amp; printen”</b>. Kies daar de <b>winkelprinter</b> of een nette <b>PDF-download</b> -
      dan krijg je de kaart in het juiste formaat en de juiste kwaliteit.</p>
 </div>
 
@@ -170,7 +170,7 @@
     <div class="phelp__ic"><i class="fa fa-print"></i></div>
     <h3 id="phelpTitle">Zo druk je de kaart goed af</h3>
     <p>Afdrukken via het <b>browsermenu</b> of <b>Ctrl+P</b> geeft geen goede kaart. Gebruik de knop
-       <b>“Opslaan &amp; printen”</b> — dan kies je de <b>winkelprinter</b> of een nette
+       <b>“Opslaan &amp; printen”</b> - dan kies je de <b>winkelprinter</b> of een nette
        <b>PDF-download</b>, in het juiste formaat.</p>
     <div class="phelp__acts">
       <button type="button" class="btn btn-primary" onclick="closePrintHelp(); saveAndPrint();"><i class="fa fa-print"></i> Opslaan &amp; printen</button>
@@ -249,7 +249,7 @@ const SCANNER_SVG="{{ url_for('static',filename='img/scanner-icon.svg') }}";
 // formaat: [breedte,hoogte] mm
 const FMT={sk_mini:[75,88],sk_middel:[270,70],sk_maxi:[297,210],a5_staand:[148,210],a4_staand:[210,297],a3_staand:[297,420],a3_liggend:[420,297]};
 const FMT_LBL={sk_mini:'SK Mini',sk_middel:'SK Middel',sk_maxi:'SK Maxi (4×)',a5_staand:'A5 staand',a4_staand:'A4 staand',a3_staand:'A3 staand',a3_liggend:'A3 liggend'};
-// Tip-kaart geometrie per formaat — 1:1 gespiegeld van _NEWTIP_CFG in app.py (de PDF-renderer).
+// Tip-kaart geometrie per formaat - 1:1 gespiegeld van _NEWTIP_CFG in app.py (de PDF-renderer).
 // k=top → groene band bovenaan; k=left → groen linkerpaneel. band/panel = hoogte/breedte-fractie;
 // tx/ty = titel links/top; mk/vk = titel/subtitel-grootte (fractie H); tr = rechterrand titel;
 // pb = prijsblok [x0,y0,x1,y1] (fracties); land = y van 'Land van herkomst'.
@@ -314,7 +314,7 @@ let AK=0, AF='a3_liggend', KT='actie', LY='nieuw';
 (()=>{ const ed={{ edit_data|tojson }}; if(ed.formaat)AF=ed.formaat; (ed.kaarten||[]).forEach((d,i)=>{if(i<4){Object.assign(KD[i],d); KD[i].layout='nieuw';}}); if(KD[0].kaarttype==='tip')KT='tip'; })();
 {% endif %}
 
-// Zet alleen de UI (toggle + zichtbare velden) op een type — zonder de kaartdata te wijzigen.
+// Zet alleen de UI (toggle + zichtbare velden) op een type - zonder de kaartdata te wijzigen.
 function applyTypeUI(t){
   KT=t;
   fi('kt-actie').classList.toggle('active',t==='actie'); fi('kt-tip').classList.toggle('active',t==='tip');
@@ -347,7 +347,7 @@ function onFmt(){
   kp.classList.toggle('port',isPort(AF));
   kp.style.maxWidth=isPort(AF)?'360px':(AF==='sk_middel'?'none':'none');
   kp.style.marginInline=isPort(AF)?'auto':'0';
-  fi('prevLbl').textContent='Live preview — '+(FMT_LBL[AF]||AF);
+  fi('prevLbl').textContent='Live preview - '+(FMT_LBL[AF]||AF);
   fi('ktabs').classList.toggle('show',AF==='sk_maxi');
   render();
 }
@@ -501,7 +501,7 @@ function celHTML(idx){
 function updateStatic(idx,cel){
   if(!cel)return; const d=KD[idx];
   const g=s=>cel.querySelector(`[data-s="${s}"]`);
-  // Kies & Mix-schild rechtsboven (1:1 het PLUS-logo) — voor elk kaarttype/layout, net als de afdruk.
+  // Kies & Mix-schild rechtsboven (1:1 het PLUS-logo) - voor elk kaarttype/layout, net als de afdruk.
   const pvc=cel.querySelector('.pvc');
   if(pvc){
     let km=pvc.querySelector('.pv-kiesmix');
@@ -645,7 +645,7 @@ async function pzSearch(){
     const d=await r.json();
     if(d && d.error){ fi('pz-results').innerHTML=''; fi('pz-status').textContent='Zoeken mislukt: '+d.error; return; }
     if(!Array.isArray(d)||!d.length){ fi('pz-results').innerHTML=''; fi('pz-status').textContent='Geen resultaten gevonden.'; return; }
-    PZ=d; fi('pz-status').textContent=d.length+' resultaten — vink aan wat je overneemt:';
+    PZ=d; fi('pz-status').textContent=d.length+' resultaten - vink aan wat je overneemt:';
     fi('pz-results').innerHTML=d.map((x,i)=>pzRow(x,i)).join('');
   }catch(e){ fi('pz-results').innerHTML=''; fi('pz-status').textContent='Zoeken mislukt: '+e; }
 }

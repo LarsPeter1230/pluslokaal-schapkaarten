@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ fb.title }} – Feedback{% endblock %}
+{% block title %}{{ fb.title }} - Feedback{% endblock %}
 {% block content %}
 {% set tmeta = FEEDBACK_TYPES.get(fb.ftype, ('?','fa-circle')) %}
 {% set smeta = FEEDBACK_STATUS.get(fb.status, (fb.status,'#666','#eee')) %}
@@ -108,13 +108,13 @@
       <div class="panel__head"><i class="fa fa-circle-info"></i><h3>Details</h3></div>
       <div class="panel__body">
         <dl class="fb-meta">
-          <dt>Ingediend door</dt><dd>{{ fb.username or '—' }}{% if fb.user_role %} <span class="muted">({{ fb.user_role }})</span>{% endif %}</dd>
-          <dt>E-mail</dt><dd>{{ fb.user_email or '—' }}</dd>
-          <dt>Winkel</dt><dd>{{ fb.filiaal_naam or '—' }}{% if fb.filiaal %} <span class="muted">({{ fb.filiaal }})</span>{% endif %}</dd>
+          <dt>Ingediend door</dt><dd>{{ fb.username or '-' }}{% if fb.user_role %} <span class="muted">({{ fb.user_role }})</span>{% endif %}</dd>
+          <dt>E-mail</dt><dd>{{ fb.user_email or '-' }}</dd>
+          <dt>Winkel</dt><dd>{{ fb.filiaal_naam or '-' }}{% if fb.filiaal %} <span class="muted">({{ fb.filiaal }})</span>{% endif %}</dd>
           <dt>Datum &amp; tijd</dt><dd>{{ fb.created_at.strftime('%d-%m-%Y %H:%M') }}</dd>
-          <dt>Pagina</dt><dd style="word-break:break-all;">{% if fb.page_url %}<code>{{ fb.page_url }}</code>{% else %}—{% endif %}</dd>
-          <dt>IP-adres</dt><dd><code>{{ fb.ip or '—' }}</code></dd>
-          <dt>Browser</dt><dd class="muted small" style="word-break:break-word;">{{ fb.user_agent or '—' }}</dd>
+          <dt>Pagina</dt><dd style="word-break:break-all;">{% if fb.page_url %}<code>{{ fb.page_url }}</code>{% else %}-{% endif %}</dd>
+          <dt>IP-adres</dt><dd><code>{{ fb.ip or '-' }}</code></dd>
+          <dt>Browser</dt><dd class="muted small" style="word-break:break-word;">{{ fb.user_agent or '-' }}</dd>
         </dl>
       </div>
     </div>

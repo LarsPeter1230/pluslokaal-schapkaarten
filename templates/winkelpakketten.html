@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Printbare winkelpakketten – PLUSLokaal{% endblock %}
+{% block title %}Printbare winkelpakketten - PLUSLokaal{% endblock %}
 {% block content %}
 <div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;">
   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -290,7 +290,7 @@
   </div>
 </div>
 
-<!-- Mini voortgangsmelding rechtsboven — blijft zichtbaar als je op "Verdergaan" klikt -->
+<!-- Mini voortgangsmelding rechtsboven - blijft zichtbaar als je op "Verdergaan" klikt -->
 <div class="wp-toast" id="wpToast" hidden>
   <div class="wp-spinner wp-spinner--sm" aria-hidden="true">
     <svg viewBox="0 0 132 140">
@@ -525,7 +525,7 @@
     if(submit && submit.classList.contains('wp-dl-hidden')){
       submit.classList.remove('wp-dl-hidden');
       var bar = document.querySelector('.wp-actionbar__info small');
-      if(bar) bar.textContent = 'Printen lukte niet — je kunt de kaarten nu downloaden en zelf printen.';
+      if(bar) bar.textContent = 'Printen lukte niet - je kunt de kaarten nu downloaden en zelf printen.';
     }
   }
   var toggle   = document.getElementById('wpToggleAll');
@@ -742,7 +742,7 @@
   if(toastReopen) toastReopen.addEventListener('click', showModal);
   if(modalClose) modalClose.addEventListener('click', hideAll);
 
-  // Mandje volledig legen (selectie + aantallen) — meteen bij downloaden/printen.
+  // Mandje volledig legen (selectie + aantallen) - meteen bij downloaden/printen.
   function clearCartUI(){
     cart.clear(); qtys = {}; saveCart(); saveQtys();
     boxes.forEach(function(b){ b.checked = false; });

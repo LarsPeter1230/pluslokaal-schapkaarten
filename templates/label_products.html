@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Producten – Labels – PLUSLokaal{% endblock %}
+{% block title %}Producten - Labels - PLUSLokaal{% endblock %}
 {% block content %}
 <div class="page-head">
   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -37,7 +37,7 @@
           <select name="barcode_type">
             {% for t in ['ean13','ean8','code128'] %}<option value="{{ t }}" {{ 'selected' if p.barcode_type==t }}>{{ t|upper }}</option>{% endfor %}
           </select>
-          <input type="text" name="price" value="{{ '%.2f'|format(p.price) if p.price is not none else '' }}" placeholder="—">
+          <input type="text" name="price" value="{{ '%.2f'|format(p.price) if p.price is not none else '' }}" placeholder="-">
           <button class="iconbtn is-edit" title="Opslaan"><i class="fa fa-floppy-disk"></i></button>
         </form>
         <form method="post" onsubmit="return confirm('“{{ p.name }}” verwijderen?')" style="margin:0;">

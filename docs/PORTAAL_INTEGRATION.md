@@ -1,6 +1,6 @@
-# Portaal — pluslokaal.nl in ons jasje (Plan A: dunne overlay-proxy)
+# Portaal - pluslokaal.nl in ons jasje (Plan A: dunne overlay-proxy)
 
-**Status:** ✅ GEÏMPLEMENTEERD (20-07-2026, v2.10.0) volgens de iframe-variant van Plan A — zie §Realisatie onderaan.
+**Status:** ✅ GEÏMPLEMENTEERD (20-07-2026, v2.10.0) volgens de iframe-variant van Plan A - zie §Realisatie onderaan.
 **Doel:** de oude **pluslokaal.nl** (jaarkalender, tarieven, mutatieformulieren, campagnes,
 "vraag een opdracht aan", enz.) beschikbaar maken **binnen onze app**, in **ons design**, met
 **automatisch inloggen op de achtergrond** per gebruiker. Elke gebruiker vult eenmalig zijn
@@ -8,7 +8,7 @@ pluslokaal.nl-inloggegevens in onder *Mijn profiel*; wij bewaren de sessie en to
 onder `/portaal` in de pluslokaal.com-huisstijl.
 
 Kernidee van **Plan A**: we bouwen de content **niet** na. We halen de **echte, live pagina** van
-pluslokaal.nl op namens de gebruiker en serveren die 1-op-1 door — we vervangen alleen de **chrome**
+pluslokaal.nl op namens de gebruiker en serveren die 1-op-1 door - we vervangen alleen de **chrome**
 (hun header/nav) door de onze en injecteren onze CSS. Zo is de **inhoud altijd actueel** en hoeven
 wij niets bij te werken als PLUS de content wijzigt.
 
@@ -27,7 +27,7 @@ tarieven, campagnes zelf).
   `<form>`s/POSTs die we gewoon doorzetten.
 
 Dit is bewust het tegenovergestelde van de plus.nl-productzoek (`plus_search.py`), waar we DOM-velden
-**scrapen** — dat is gevoelig en vergt onderhoud. Voor het portaal willen we juist **niet** scrapen.
+**scrapen** - dat is gevoelig en vergt onderhoud. Voor het portaal willen we juist **niet** scrapen.
 
 ---
 
@@ -46,11 +46,11 @@ Browser ──/portaal/...──► pluslokaal.com (Flask, app.py)
 
 Vier componenten:
 
-1. **Credential-opslag** — per user versleuteld opgeslagen pluslokaal.nl login (§3).
-2. **Sessie-/login-worker** — logt op de achtergrond in en houdt de sessie warm (§4).
-3. **Proxy + reskin** — haalt de pagina op, herschrijft URLs, verbergt hun header, injecteert
+1. **Credential-opslag** - per user versleuteld opgeslagen pluslokaal.nl login (§3).
+2. **Sessie-/login-worker** - logt op de achtergrond in en houdt de sessie warm (§4).
+3. **Proxy + reskin** - haalt de pagina op, herschrijft URLs, verbergt hun header, injecteert
    onze header + CSS (§5).
-4. **UI** — nieuw nav-item "Portaal" met submenu + profielsectie voor de credentials (§6).
+4. **UI** - nieuw nav-item "Portaal" met submenu + profielsectie voor de credentials (§6).
 
 Alles komt in `app.py` (single-file backend) + een klein nieuw modulebestand `portaal.py` voor de
 worker (zelfde opzet als `plus_search.py`), plus templates.
@@ -59,13 +59,13 @@ worker (zelfde opzet als `plus_search.py`), plus templates.
 
 ## 3. Credential-opslag (versleuteld, nooit teruggetoond)
 
-**Datamodel** — nieuwe kolommen op `User` (idempotente ALTER in `_migrate_db()`):
+**Datamodel** - nieuwe kolommen op `User` (idempotente ALTER in `_migrate_db()`):
 
 | kolom | inhoud |
 |---|---|
 | `portaal_user` | pluslokaal.nl gebruikersnaam/e-mail (leesbaar, mag getoond) |
 | `portaal_pass_enc` | **versleuteld** wachtwoord (bytes/base64), nooit teruggetoond |
-| `portaal_status` | `none` / `ok` / `fout` — laatste loginresultaat |
+| `portaal_status` | `none` / `ok` / `fout` - laatste loginresultaat |
 | `portaal_checked` | timestamp laatste succesvolle login |
 
 **Encryptie:** wachtwoord **niet** hashen (we moeten het kunnen hergebruiken om in te loggen), dus
@@ -73,7 +73,7 @@ worker (zelfde opzet als `plus_search.py`), plus templates.
 `.portaal_secret` (32 bytes, net als `.secret_key`; niet in git, `chmod 600`). Reden voor een apart
 bestand: rotatie/scope losstaand van sessie-signing.
 
-> **Let op — dependency:** `cryptography` is **nog niet geïnstalleerd** in deze omgeving
+> **Let op - dependency:** `cryptography` is **nog niet geïnstalleerd** in deze omgeving
 > (`playwright` wel). Bouwstap: `pip install cryptography`. Alternatief zonder extra package is
 > AES via de stdlib niet beschikbaar; `cryptography`/Fernet is de nette keuze.
 
@@ -89,7 +89,7 @@ bestand: rotatie/scope losstaand van sessie-signing.
 
 Zelfde patroon als `plus_search.py`: één achtergrond-thread met een `queue`, thread-safe, warm.
 
-**Twee mogelijke transporten — kies op basis van hoe pluslokaal.nl inlogt (nog verifiëren):**
+**Twee mogelijke transporten - kies op basis van hoe pluslokaal.nl inlogt (nog verifiëren):**
 
 - **4a. `requests.Session`** (voorkeur, licht): als login een simpele form-POST is (username/password
   + evt. CSRF-token). We halen de loginpagina op, lezen het CSRF/hidden-veld, POST'en de credentials,
@@ -135,7 +135,7 @@ Stappen per request:
    wijzen → prefixen met `/portaal/...` zodat navigatie **binnen onze app** blijft. Externe links
    (andere domeinen) met rust laten of in nieuw tabblad.
 5. **Chrome verbergen:** hun header/nav/footer-container selecteren en `display:none` (of
-   `.replaceWith`). We hoeven de *exacte* selector niet perfect te raken — mislukt hij, dan zie je hun
+   `.replaceWith`). We hoeven de *exacte* selector niet perfect te raken - mislukt hij, dan zie je hun
    header, geen crash (zacht falen).
 6. **Onze skin injecteren:** in `<head>` onze `plus.css` + een klein `portaal.css`; bovenaan `<body>`
    onze eigen `base.html`-header/nav (met "Portaal" actief) en een submenu. Zo staat de PLUS-content
@@ -146,13 +146,13 @@ Stappen per request:
   plus.nl-guard bij de overlay-foto's.
 - **Geen credential-lek:** de opgeslagen wachtwoorden verlaten de server nooit richting browser.
 - **CSRF:** onze eigen `before_request` CSRF-check (die er al is) moet `/portaal/*` POSTs die naar
-  pluslokaal.nl gaan **overslaan** (hun forms hebben hún eigen token) — uitzonderen in de check.
+  pluslokaal.nl gaan **overslaan** (hun forms hebben hún eigen token) - uitzonderen in de check.
 
 ---
 
 ## 6. UI
 
-**Nav (`base.html`)** — nieuw item naast Schapkaarten/Scankaarten/Labels:
+**Nav (`base.html`)** - nieuw item naast Schapkaarten/Scankaarten/Labels:
 
 ```html
 <a href="{{ url_for('portaal') }}" class="{{ 'active' if ep.startswith('portaal') }}">
@@ -173,7 +173,7 @@ Eventueel als **dropdown** met snelkoppelingen: *Kalender · Tarieven · Campagn
 ## 7. Robuustheid & vangnetten
 
 - **Cache laatste goede HTML** (paar uur TTL) per pad; als een ophaal faalt → toon laatste goede
-  stand met badge *"kon niet verversen — weergave van HH:MM"* i.p.v. lege pagina.
+  stand met badge *"kon niet verversen - weergave van HH:MM"* i.p.v. lege pagina.
 - **Nachtelijke health-check** (cron/loop): logt in + haalt een paar sleutelpagina's op; mailt/meldt
   bij een breuk vóórdat een gebruiker het merkt. (Hergebruik `send_mail_async`.)
 - **"Open origineel op pluslokaal.nl"**-link als ultieme vangnet.
@@ -185,7 +185,7 @@ Eventueel als **dropdown** met snelkoppelingen: *Kalender · Tarieven · Campagn
 
 1. **Loginmechanisme van pluslokaal.nl** verifiëren: simpele form-POST (→ 4a `requests`) of
    JS/Cloudflare (→ 4b Playwright)? Bepaalt het transport.
-2. **Toestemming/ToS:** namens de gebruiker inloggen op pluslokaal.nl met diens eigen credentials —
+2. **Toestemming/ToS:** namens de gebruiker inloggen op pluslokaal.nl met diens eigen credentials -
    afstemmen dat dit is toegestaan/gewenst.
 3. **`pip install cryptography`** toevoegen (Fernet voor credential-encryptie).
 4. **Welke pagina's** in het submenu (kalender, tarieven, campagnes, mutaties, opdracht aanvragen)?
@@ -198,22 +198,22 @@ Eventueel als **dropdown** met snelkoppelingen: *Kalender · Tarieven · Campagn
 
 ## 9. Voorgestelde bouwvolgorde (fasen)
 
-- **Fase 0 — verkenning:** login-mechanisme + sitemap van pluslokaal.nl vaststellen (bepaalt 4a/4b).
-- **Fase 1 — credentials:** `cryptography` erbij, `User`-kolommen + migratie, Fernet-helper,
+- **Fase 0 - verkenning:** login-mechanisme + sitemap van pluslokaal.nl vaststellen (bepaalt 4a/4b).
+- **Fase 1 - credentials:** `cryptography` erbij, `User`-kolommen + migratie, Fernet-helper,
   `/profiel`-koppelsectie, testlogin.
-- **Fase 2 — worker:** `portaal.py` met `login()` + `fetch()` (transport uit fase 0), auto-relogin.
-- **Fase 3 — proxy/reskin:** `/portaal/<path>` route, URL-herschrijven, asset-proxy, header verbergen,
+- **Fase 2 - worker:** `portaal.py` met `login()` + `fetch()` (transport uit fase 0), auto-relogin.
+- **Fase 3 - proxy/reskin:** `/portaal/<path>` route, URL-herschrijven, asset-proxy, header verbergen,
   onze skin injecteren; SSRF- + CSRF-uitzonderingen.
-- **Fase 4 — UI:** nav-item + submenu, koppel-scherm, deeplinks.
-- **Fase 5 — robuustheid:** cache + fallback-badge, health-check, "open origineel"-link.
-- **Fase 6 — verificatie:** kalender/tarieven/mutatie doorlopen; download testen; zacht-falen testen.
+- **Fase 4 - UI:** nav-item + submenu, koppel-scherm, deeplinks.
+- **Fase 5 - robuustheid:** cache + fallback-badge, health-check, "open origineel"-link.
+- **Fase 6 - verificatie:** kalender/tarieven/mutatie doorlopen; download testen; zacht-falen testen.
 ```
 
 ---
 
 ## Realisatie (zoals gebouwd, v2.10.0)
 
-Gekozen: **Plan A in iframe-variant** — onze echte app-header (base.html) met "Portaal" bovenaan; de
+Gekozen: **Plan A in iframe-variant** - onze echte app-header (base.html) met "Portaal" bovenaan; de
 volledige pluslokaal.nl draait geïsoleerd in een `<iframe>` onder `/portaal/view/`. Nul CSS-conflict,
 content altijd live.
 
@@ -234,7 +234,7 @@ content altijd live.
   rest→bytes doorzetten incl. Content-Disposition). `portaal_view` in `_CSRF_EXEMPT`.
 - **`templates/portaal.html`** (nieuw): koppelscherm (niet gekoppeld) of volledig-breed iframe +
   portaalbalk (Start/Vernieuwen/Origineel/Ontkoppelen).
-- **`templates/base.html`**: nav-item "Portaal" (desktop + mobiel). **Geen submenu's** (bewust —
+- **`templates/base.html`**: nav-item "Portaal" (desktop + mobiel). **Geen submenu's** (bewust -
   navigatie gebeurt via pluslokaal.nl's eigen menu binnen het iframe).
 
 **Dependencies toegevoegd:** `cryptography` (Fernet), `requests`, `beautifulsoup4`.
@@ -249,7 +249,7 @@ health-check; per-rol zichtbaarheid (`can(user,'portaal')`) als je Portaal niet 
 
 ---
 
-## Iteratie 2 (20-07-2026) — header-items in ons design + layout-fixes
+## Iteratie 2 (20-07-2026) - header-items in ons design + layout-fixes
 
 Feedback gebruiker verwerkt:
 - **Reskin-parser gedropt:** pluslokaal.nl heeft kapotte HTML (o.a. een comment `<!--<div class="collapse
@@ -272,12 +272,12 @@ Feedback gebruiker verwerkt:
 
 **Bekende beperking:** de top-**userbar** (winkelmandje/geschiedenis-iconen, "U bent ingelogd als") van
 pluslokaal.nl valt weg (zit in het kapotte comment-blok + JS). Niet krit-functioneel; onze eigen categorie-
-nav + zoek dekken de navigatie. Sub-item-dropdowns per categorie zijn (nog) niet gebouwd — een categorie
+nav + zoek dekken de navigatie. Sub-item-dropdowns per categorie zijn (nog) niet gebouwd - een categorie
 laadt de landingspagina (met eigen sub-nav) in het iframe.
 
 ---
 
-## Iteratie 3 (20-07-2026) — mega-menu's, userbar-iconen, laad-spinner
+## Iteratie 3 (20-07-2026) - mega-menu's, userbar-iconen, laad-spinner
 
 - **Hover-dropdowns (mega-menu) per categorie**, net als het origineel. De hele menu-boom wordt server-
   side gereconstrueerd uit de **URL-padstructuur** van de `item-link`-anchors (`/cat/sectie/item/` →
@@ -297,13 +297,13 @@ laadt de landingspagina (met eigen sub-nav) in het iframe.
 
 ---
 
-## Iteratie 4 (20-07-2026) — polish: nav 1-rij, mandje-badge, spinner-vooraan, form-styling
+## Iteratie 4 (20-07-2026) - polish: nav 1-rij, mandje-badge, spinner-vooraan, form-styling
 
 - **Nav wrapt nooit** (welk scherm dan ook): `.pn-cats` (categorieën) `overflow-x:auto` en kan krimpen,
-  terwijl `.pn-right` (iconen + zoekveld) `flex:0 0 auto` — zoeken komt dus nooit op een 2e regel.
-  Getest 820–1500px: altijd 1 rij. Nav compacter (kleinere padding/gaps).
+  terwijl `.pn-right` (iconen + zoekveld) `flex:0 0 auto` - zoeken komt dus nooit op een 2e regel.
+  Getest 820-1500px: altijd 1 rij. Nav compacter (kleinere padding/gaps).
 - **Mega-menu `position:fixed`** met `--pn-top` (= onderkant nav, via JS gezet op load/resize) i.p.v.
-  absolute — zo knipt de scroll-container (`overflow`) de dropdown niet af.
+  absolute - zo knipt de scroll-container (`overflow`) de dropdown niet af.
 - **Winkelmandje-badge**: `_portaal_basket_count()` leest `fa-shopping-basket → <span class=counter>N`
   uit de (kort gecachete, per-user) home-HTML `_portaal_home_doc()` (gedeeld met de menu-build). Rode
   `.pn-badge` op het mandje-icoon als N>0.
@@ -317,9 +317,9 @@ laadt de landingspagina (met eigen sub-nav) in het iframe.
 
 ---
 
-## Iteratie 5 (20-07-2026) — brede huisstijl, mobiel hamburger-menu, profielkoppeling
+## Iteratie 5 (20-07-2026) - brede huisstijl, mobiel hamburger-menu, profielkoppeling
 
-- **Onze stijl overal** (reskin-injectie, nu **iframe-breed** i.p.v. alleen `.pagecontent` — veilig want de
+- **Onze stijl overal** (reskin-injectie, nu **iframe-breed** i.p.v. alleen `.pagecontent` - veilig want de
   CSS raakt alleen pluslokaal.nl-DOM en hun header is verborgen; werkt zo óók op W2P-pagina's zonder
   `.pagecontent`): content-tegels (`.blockitem`, BBQ/Mepal e.d.) met radius+shadow+hover; panelen
   (`.panel`/`.panel-heading-custom`); **tabellen** (`.table`/`.fixed-table-header th` → groene header,
@@ -331,27 +331,27 @@ laadt de landingspagina (met eigen sub-nav) in het iframe.
 - **Mobiel hamburger-menu**: `.pn-burger` (≤820px) opent een off-canvas `.pn-mobile` (groene kop + ×,
   zoekveld, Home, categorieën met uitklapbare sub-items, icoon-links). Desktop-nav (`.pn-cats`) verborgen
   op mobiel; alleen winkelmandje-icoon blijft in de balk. `pgo()` sluit het menu.
-- **Profiel-koppeling** (`/profile`): nieuw paneel "Portaal & pluslokaal.nl" — toont het **gekoppelde
+- **Profiel-koppeling** (`/profile`): nieuw paneel "Portaal & pluslokaal.nl" - toont het **gekoppelde
   account**, en laat de gebruiker **gebruikersnaam + wachtwoord wijzigen** (wachtwoord leeg = behouden) of
   **ontkoppelen**. Route-acties `action=portaal` / `portaal_unlink` in `profile()` (testlogin vóór opslaan,
   home-cache invalidatie). Placeholder-voorbeeld → `bv. 110ond`.
 
 ---
 
-## Iteratie 6 (20-07-2026) — winkelmandje/bestellen werkend + live badge + stijlgids
+## Iteratie 6 (20-07-2026) - winkelmandje/bestellen werkend + live badge + stijlgids
 
 - **AJAX-acties werkten niet** ("Bestellen"/mandje leegmaken → "something went wrong" / 404): pluslokaal.nl
   doet die via JS met **root-relatieve URLs** die op onze origin belandden. Fixes:
   1. Reskin injecteert VROEG een patch op `XMLHttpRequest.open` + `window.fetch` die pluslokaal.nl-/root-
      relatieve URLs naar `/portaal/view/...` herschrijft (AJAX blijft same-origin geproxyd).
   2. **404-vangnet** (`errorhandler(404)`): een pluslokaal.nl-pad met een `/portaal/view/`-referer wordt
-     alsnog 302/307 (307 behoudt POST) naar `/portaal/view/<pad>` gestuurd — vangt volledige navigaties/
+     alsnog 302/307 (307 behoudt POST) naar `/portaal/view/<pad>` gestuurd - vangt volledige navigaties/
      form-submits (bv. "Naar mijn winkelmand", DeleteDocument).
   3. AJAX-fragmenten (geen `<html>`/`<head>`) worden alleen ge-URL-herschreven, niet ge-injecteerd
      (`_portaal_rewrite_attrs_only` afgesplitst van `_portaal_reskin_html`) zodat JSON/fragmenten heel blijven.
 - **Live winkelmandje-badge**: route `/portaal/basket-count` (verse teller) + parent `refreshBasket()` na
   elke iframe-`load` én na mandje-XHR's (`loadend` op basket/adddocument/deletedocument) → badge (`pBasketBadge`
   /`pBasketBadgeM`) update direct bij toevoegen/verwijderen. Geverifieerd: leeg→weg, Bestellen→1, verwijderen→weg.
-- **Stijlgids** (downloadbaar): `docs/PLUS-Stijlgids.html` — zelf-standig, met kleuren+hex+var-namen,
+- **Stijlgids** (downloadbaar): `docs/PLUS-Stijlgids.html` - zelf-standig, met kleuren+hex+var-namen,
   `:root`-tokens (kopieerbaar), typografie, knoppen, velden, panelen/badges/tabellen, app-header en het
   **inlogscherm** (mockup + CSS). Voor het bouwen van nieuwe apps 1-op-1 in PLUS-stijl.

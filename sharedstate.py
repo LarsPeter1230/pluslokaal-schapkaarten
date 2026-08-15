@@ -8,7 +8,7 @@ SQLite-database (WAL staat al aan), zodat ELKE worker 'm leest/schrijft.
 Ontwerp:
 - job_state: één rij per job (JSON-blob). Updates gaan via `json_patch` = ATOMAIRE server-side merge,
   zodat een cancel-vlag vanaf worker B niet verloren gaat als worker A tegelijk voortgang wegschrijft.
-  (RFC 7386: een veld op null zetten verwijdert het — precies wat de code met None bedoelde: .get() geeft
+  (RFC 7386: een veld op null zetten verwijdert het - precies wat de code met None bedoelde: .get() geeft
   daarna None terug, identiek gedrag.)
 - rate_limit: één rij per mislukte login-poging (key, timestamp); tellen/opschonen per venster.
 
@@ -27,7 +27,7 @@ _local = threading.local()
 def init(db_path):
     """Zet het pad en maak de tabellen aan. Idempotent; roep één keer bij het opstarten aan.
     Gebruikt een WEGWERP-connectie (niet in thread-local) zodat er bij gunicorn `preload_app` geen
-    SQLite-connectie over de fork wordt meegenomen — elke worker/thread opent later z'n eigen."""
+    SQLite-connectie over de fork wordt meegenomen - elke worker/thread opent later z'n eigen."""
     global _db_path
     _db_path = db_path
     conn = sqlite3.connect(db_path, timeout=10)

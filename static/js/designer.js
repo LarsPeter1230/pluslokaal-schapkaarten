@@ -1,4 +1,4 @@
-/* Designer (Bèta) — Canva-achtige editor in PLUS-huisstijl.
+/* Designer (Bèta) - Canva-achtige editor in PLUS-huisstijl.
    Elementen bewaren fractionele coördinaten (0..1 van het canvas). Meerdere pagina's, undo/redo,
    slimme uitlijn-hulplijnen + snapping, zoom, PLUS-productzoek, sneltoetsen. Server rendert print-
    perfect met dezelfde fonts. */

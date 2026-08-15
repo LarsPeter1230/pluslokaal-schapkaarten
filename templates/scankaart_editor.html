@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}{% if edit_card %}Scankaart bewerken{% else %}Nieuwe scankaart{% endif %} – PLUSLokaal{% endblock %}
+{% block title %}{% if edit_card %}Scankaart bewerken{% else %}Nieuwe scankaart{% endif %} - PLUSLokaal{% endblock %}
 {% block content %}
 <div class="page-head">
   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
     <a href="{{ url_for('dashboard') }}" class="btn btn-ghost btn-sm"><i class="fa fa-arrow-left"></i> Terug</a>
     <div>
       <h1 class="page-title">{% if edit_card %}Scankaart bewerken{% else %}Nieuwe scankaart{% endif %}</h1>
-      <p class="page-sub">SK Maxi — 4 scankaarten op één A4. Elke kaart vul je apart; de indeling past zich vanzelf aan.</p>
+      <p class="page-sub">SK Maxi - 4 scankaarten op één A4. Elke kaart vul je apart; de indeling past zich vanzelf aan.</p>
     </div>
   </div>
 </div>
@@ -37,7 +37,7 @@
   </div>
 
   <div class="editor__preview">
-    <div class="prev-bar"><span class="prev-bar__lbl">Live preview — SK Maxi (4 scankaarten)</span></div>
+    <div class="prev-bar"><span class="prev-bar__lbl">Live preview - SK Maxi (4 scankaarten)</span></div>
     <div class="scankp" id="scankp"></div>
   </div>
 </div>
@@ -132,7 +132,7 @@ function boxHTML(p,plain){
 function cardInner(list){
   const prods=list.filter(p=>String(p.code||'').trim()||String(p.naam||'').trim());
   const n=prods.length;
-  if(n===0) return `<div class="sk-card sk-card--empty"><div class="sk-empty2">leeg — blijft wit</div></div>`;
+  if(n===0) return `<div class="sk-card sk-card--empty"><div class="sk-empty2">leeg - blijft wit</div></div>`;
   let inner;
   if(n<=2){
     inner=`<div class="sk-compact">${heroHTML(false)}<div class="sk-right">${prods.map(p=>boxHTML(p,n===1)).join('')}</div></div>`;

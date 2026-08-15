@@ -197,7 +197,7 @@
         modal.querySelector('#ppqPrintLabel').textContent = opts.printerName ? ('Printen op ' + opts.printerName) : 'Printen op winkelprinter';
         printBtn.disabled = false; if(qtyRow) qtyRow.style.display = '';
       } else {
-        modal.querySelector('#ppqModalSub').textContent = 'Voor deze winkel is geen printer ingesteld — je kunt de kaart wel downloaden.';
+        modal.querySelector('#ppqModalSub').textContent = 'Voor deze winkel is geen printer ingesteld - je kunt de kaart wel downloaden.';
         modal.querySelector('#ppqPrintLabel').textContent = 'Geen printer ingesteld';
         printBtn.disabled = true; if(qtyRow) qtyRow.style.display = 'none';
       }

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Mailinstellingen – PLUSLokaal{% endblock %}
+{% block title %}Mailinstellingen - PLUSLokaal{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -21,7 +21,7 @@
           <div class="field"><label>SMTP-host</label><input type="text" name="smtp_host" value="{{ cfg.smtp_host }}" placeholder="smtp.resend.com"></div>
           <div class="field"><label>Poort</label><input type="number" name="smtp_port" value="{{ cfg.smtp_port }}" placeholder="587"></div>
           <div class="field"><label>Gebruikersnaam</label><input type="text" name="smtp_user" value="{{ cfg.smtp_user }}" placeholder="resend"></div>
-          <div class="field"><label>Wachtwoord / API-key</label><input type="password" name="smtp_pass" value="" autocomplete="new-password" placeholder="{{ '•••••••• (ingesteld — laat leeg om te behouden)' if cfg.smtp_pass_set else 're_...' }}"><span class="muted small">Om veiligheidsredenen wordt de bestaande sleutel niet getoond. Laat leeg om hem te behouden; vul een nieuwe in om te wijzigen.</span></div>
+          <div class="field"><label>Wachtwoord / API-key</label><input type="password" name="smtp_pass" value="" autocomplete="new-password" placeholder="{{ '•••••••• (ingesteld - laat leeg om te behouden)' if cfg.smtp_pass_set else 're_...' }}"><span class="muted small">Om veiligheidsredenen wordt de bestaande sleutel niet getoond. Laat leeg om hem te behouden; vul een nieuwe in om te wijzigen.</span></div>
           <div class="field"><label>Afzender (e-mail)</label><input type="text" name="smtp_from" value="{{ cfg.smtp_from }}" placeholder="noreply@mail.pluslokaal.com"></div>
           <div class="field"><label>Afzendernaam</label><input type="text" name="smtp_from_name" value="{{ cfg.smtp_from_name }}" placeholder="PLUSLokaal"></div>
         </div>
