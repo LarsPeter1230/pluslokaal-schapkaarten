@@ -5,6 +5,16 @@ toegevoegd en verbeterd — de nieuwste bovenaan. Heb je een idee of mis je iets
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.21.0 — Barcode in de zoekresultaten + "per"-fix · 15 augustus 2026
+
+- **De gevonden barcode staat nu meteen in elk zoekresultaat** bij Labels — je ziet 'm dus al vóór je
+  "Overnemen" klikt. (Wordt op de achtergrond opgehaald, een paar tegelijk, zodat het vlot blijft.) Geeft
+  plus.nl meerdere barcodes, dan zie je ze allebei en kies je bij het overnemen.
+- **Opgelost: "per Per fles" op het label.** De prijs-eenheid toont nu netjes één keer "per" (bijv. "per fles"),
+  ook als je een product met verpakking "Per fles" van plus.nl overneemt.
+- Actieprijzen worden in de zoekresultaten net als bij Schapkaarten getoond (aanbieding in het rood, van-prijs
+  doorgestreept) — zichtbaar zodra een product daadwerkelijk in de aanbieding is.
+
 ## versie 2.20.2 — Productfoto in de labels-zoek · 15 augustus 2026
 
 - **De productfoto wordt weer getoond in de zoekresultaten** bij Labels (ter herkenning). De foto komt

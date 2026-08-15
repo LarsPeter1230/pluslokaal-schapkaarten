@@ -69,7 +69,12 @@ def render_label(item, opts, Lw, Lh, dpi=300, logo_path=None, show_logo=False):
     name = str(item.get('name') or '')
     has_price = item.get('price') is not None
     price = ('€ ' + ('%.2f' % item['price']).replace('.', ',')) if has_price else ''
-    unit = ('per ' + str(opts.get('price_unit') or 'stuk')) if has_price else ''
+    # Prijs-eenheid: één keer 'per'. Begint de waarde al met 'per ' (bv. 'Per fles' van plus.nl),
+    # dan die eraf halen zodat er niet 'per Per fles' ontstaat.
+    _pu = str(opts.get('price_unit') or 'stuk').strip()
+    if _pu.lower().startswith('per '):
+        _pu = _pu[4:].strip()
+    unit = ('per ' + _pu) if has_price else ''
     old_price = item.get('old_price')
     old_txt = ('€ ' + ('%.2f' % old_price).replace('.', ',')) if (has_price and old_price) else ''
     digits = ''.join(ch for ch in str(item.get('barcode') or '') if ch.isdigit()) \
