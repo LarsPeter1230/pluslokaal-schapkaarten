@@ -66,6 +66,7 @@
 .lbl-chk input{width:18px;height:18px;accent-color:var(--green);}
 .pz-card{border:1px solid var(--border,#e4e7e2);border-radius:8px;padding:8px 10px;margin-bottom:8px;}
 .pz-info{display:flex;gap:10px;align-items:center;}
+.pz-info img{width:44px;height:44px;object-fit:contain;border-radius:4px;background:#fff;flex:0 0 44px;}
 .pz-nm{font-weight:700;font-size:.9rem;line-height:1.15;}
 .pz-opts{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-top:8px;}
 .pz-opts .btn{margin-left:auto;}
@@ -120,6 +121,7 @@ function plRow(x,i){
   const info = [esc(x.verpakking||''), esc(x.eenheid||''), deal?('<b style="color:#e3000a;">'+esc(deal)+'</b>'):''].filter(Boolean).join(' · ');
   return `<div class="pz-card">
     <div class="pz-info">
+      ${x.img?`<img src="${esc(x.img)}" alt="" onerror="this.style.display='none'">`:''}
       <div style="min-width:0;"><div class="pz-nm">${esc(x.name)}</div>
         <div class="muted small">${info}${price?(' · '+price):''}</div></div>
     </div>

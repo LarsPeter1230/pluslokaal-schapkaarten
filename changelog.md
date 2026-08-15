@@ -5,6 +5,11 @@ toegevoegd en verbeterd — de nieuwste bovenaan. Heb je een idee of mis je iets
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.20.2 — Productfoto in de labels-zoek · 15 augustus 2026
+
+- **De productfoto wordt weer getoond in de zoekresultaten** bij Labels (ter herkenning). De foto komt
+  níét op het label — bij "Overnemen" worden alleen naam, prijs en barcode overgenomen.
+
 ## versie 2.20.1 — Labels-zoek net als bij Schapkaarten · 15 augustus 2026
 
 - **De plus.nl-zoek bij Labels ziet er nu hetzelfde uit als bij Schapkaarten** — met de PLUS-laadanimatie,
