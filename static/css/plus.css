@@ -404,6 +404,8 @@ input[readonly]{background:#f7f8f6;color:var(--muted);}
   padding:1.2cqh 0;pointer-events:none;}
 .single{position:absolute;inset:0;container-type:size;}
 .pvc{position:absolute;inset:0;}
+/* Kies & Mix-schild rechtsboven — breedte t.o.v. de kaart (16,5%), net als de afdruk */
+.pv-kiesmix{position:absolute;top:4.5cqh;right:3cqw;width:16.5cqw;height:auto;pointer-events:none;z-index:5;}
 
 /* editbare tekst */
 [contenteditable]{outline:none;cursor:text;transition:background .1s;white-space:pre-wrap;word-break:break-word;}

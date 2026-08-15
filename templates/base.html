@@ -59,9 +59,6 @@
       <a href="{{ url_for('designer_dashboard') }}" class="{{ 'active' if ep in ['designer_dashboard','designer_new','designer_editor'] }}">
         <i class="fa fa-pen-ruler"></i> Designer <span class="beta-tag">Bèta</span>
       </a>
-      <a href="https://kids.pluslokaal.com" target="_blank" rel="noopener" title="PLUS Kids — games voor kinderen (opent in nieuw tabblad)">
-        <i class="fa fa-gamepad"></i> Kids <i class="fa fa-arrow-up-right-from-square" style="font-size:.7em;opacity:.7;"></i>
-      </a>
       {% if user and user.role in ['admin','ondernemer'] %}
       <div class="dropdown" data-dd>
         <button class="nav-btn {{ 'active' if beheer }}" data-dd-toggle>
@@ -151,7 +148,6 @@
     <a href="{{ url_for('labels_dashboard') }}" class="{{ 'active' if ep in ['labels_dashboard','label_new','label_view','label_products','label_history'] }}"><i class="fa fa-tag"></i> Labels</a>
     <a href="{{ url_for('portaal') }}" class="{{ 'active' if ep in ['portaal','portaal_view'] }}"><i class="fa fa-globe"></i> Portaal</a>
     <a href="{{ url_for('designer_dashboard') }}" class="{{ 'active' if ep in ['designer_dashboard','designer_new','designer_editor'] }}"><i class="fa fa-pen-ruler"></i> Designer <span class="beta-tag">Bèta</span></a>
-    <a href="https://kids.pluslokaal.com" target="_blank" rel="noopener"><i class="fa fa-gamepad"></i> Kids <i class="fa fa-arrow-up-right-from-square" style="font-size:.7em;opacity:.7;"></i></a>
     {% if user and can(user,'team') and user.role != 'admin' %}
     <a href="{{ url_for('team') }}" class="{{ 'active' if ep=='team' }}"><i class="fa fa-users"></i> Mijn team</a>
     {% endif %}

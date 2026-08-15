@@ -243,6 +243,7 @@
 {% block extra_scripts %}
 <script>
 const NIX_SVG="{{ url_for('static',filename='img/nix18-logo.svg') }}";
+const KM_LOGO="{{ url_for('static',filename='img/kies-en-mix.png') }}";
 const FIELDS=['merk','koptekst','subtekst','vbtekst','aanv','verpakking','inhoud','vp1','vp2','actietype','av','av2','kilo','land','max','kem','alcohol','mix','code','kaarttype','layout','scans','overlay'];
 const SCANNER_SVG="{{ url_for('static',filename='img/scanner-icon.svg') }}";
 // formaat: [breedte,hoogte] mm
@@ -499,6 +500,14 @@ function celHTML(idx){
 function updateStatic(idx,cel){
   if(!cel)return; const d=KD[idx];
   const g=s=>cel.querySelector(`[data-s="${s}"]`);
+  // Kies & Mix-schild rechtsboven (1:1 het PLUS-logo) — voor elk kaarttype/layout, net als de afdruk.
+  const pvc=cel.querySelector('.pvc');
+  if(pvc){
+    let km=pvc.querySelector('.pv-kiesmix');
+    if((d.kem||'nee')==='ja'){
+      if(!km){ km=document.createElement('img'); km.className='pv-kiesmix'; km.src=KM_LOGO; km.alt='Kies & Mix'; pvc.appendChild(km); }
+    } else if(km){ km.remove(); }
+  }
   if(KT!=='tip' && LY==='oud'){
     const spec=actionSpec(d);
     const two=g('oa-two'), price=cel.querySelector('.oa-price'), oaLbl=g('oa-label'), oaStr=g('oa-strike');

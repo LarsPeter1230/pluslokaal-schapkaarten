@@ -5,6 +5,13 @@ toegevoegd en verbeterd — de nieuwste bovenaan. Heb je een idee of mis je iets
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.17.0 — Kies & Mix-logo op de kaart · 15 augustus 2026
+
+- **Zet je een kaart op "Kies & Mix"? Dan komt nu het echte PLUS "Kies & Mix"-schild rechtsboven op de
+  kaart** — 1:1 hetzelfde logo als op de officiële PLUS-kaarten. Werkt op alle formaten (A3, A4, A3 liggend
+  en elk vak van een SK Maxi) en zowel in het live voorbeeld als op de afdruk/PDF.
+- De **link naar PLUS Kids** is weer uit de menubalk gehaald.
+
 ## versie 2.16.0 — Snelkoppeling naar PLUS Kids · 14 augustus 2026
 
 - **Nieuwe link "Kids" in de menubalk** — opent **PLUS Kids** (kids.pluslokaal.com), de speelsite met

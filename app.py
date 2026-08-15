@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie — getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.16.0'
+APP_VERSION = '2.17.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -817,6 +817,34 @@ def _action_spec(d):
 
 
 # ─── KAART TEKENEN (oriëntatie-bewust) ────────────────────────────────────────
+_KM_LOGO_FILE = os.path.join(os.path.dirname(__file__), 'static', 'img', 'kies-en-mix.png')
+_km_logo_cache = {}
+def _kies_mix_logo(w_px):
+    """Het originele PLUS 'Kies & Mix'-schild (transparant), geschaald op breedte. Gecachet per breedte."""
+    w_px = max(8, int(w_px))
+    if w_px in _km_logo_cache:
+        return _km_logo_cache[w_px]
+    img = None
+    try:
+        base = Image.open(_KM_LOGO_FILE).convert('RGBA')
+        h_px = max(1, int(w_px * base.height / base.width))
+        img = base.resize((w_px, h_px), Image.LANCZOS)
+    except Exception:
+        img = None
+    _km_logo_cache[w_px] = img
+    return img
+
+def _draw_kies_mix(canvas, ox, oy, W, H):
+    """Plak het 'Kies & Mix'-logo 1:1 rechtsboven op de kaart (zelfde plek als de PLUS-referentie)."""
+    logo = _kies_mix_logo(int(0.165 * W))          # ~16,5% van de kaartbreedte, net als de PLUS-kaart
+    if logo is None:
+        return
+    mx = int(0.030 * W)                            # marge vanaf de rechterrand
+    my = int(0.045 * H)                            # marge vanaf de bovenrand
+    x = int(ox + W - mx - logo.width)
+    y = int(oy + my)
+    canvas.paste(logo, (x, y), logo)
+
 def draw_kaart(canvas, draw, data, ox, oy, W, H):
     layout = str(data.get('layout', 'nieuw')).strip()
     kt = str(data.get('kaarttype', 'actie')).strip()
@@ -832,6 +860,9 @@ def draw_kaart(canvas, draw, data, ox, oy, W, H):
         else:
             (_draw_landscape if land else _draw_portrait)(canvas, draw, data, ox, oy, W, H)
     _draw_overlay(canvas, data, ox, oy, W, H)
+    # Kies & Mix-schild rechtsboven (1:1 het PLUS-logo) wanneer de kaart 'Kies & Mix' is.
+    if str(data.get('kem', 'nee')).strip() == 'ja':
+        _draw_kies_mix(canvas, ox, oy, W, H)
 
 
 _overlay_cache = {}
