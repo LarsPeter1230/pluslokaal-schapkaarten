@@ -30,7 +30,20 @@
       <div id="bc-choice" style="padding:0 0 0 2px;"></div>
       <div class="frow"><span class="k">Prijs €<small>leeg = geen prijs</small></span><input type="text" id="l-price" placeholder="1.49" oninput="preview()"></div>
       <div class="frow"><span class="k">Van-prijs €<small>doorgestreept</small></span><input type="text" id="l-old" placeholder="1.99" oninput="preview()"></div>
-      <div class="frow"><span class="k">UC-code<small>uithaalcode, bijv. A35</small></span><input type="text" id="l-uc" placeholder="bijv. A35" maxlength="6" autocomplete="off" oninput="this.value=this.value.toUpperCase();preview()"></div>
+      <div class="frow"><span class="k">UC-code<small>uithaalcode, bijv. UC-A35</small></span>
+        <span style="flex:1;display:flex;align-items:center;gap:8px;">
+          <input type="text" id="l-uc" placeholder="bijv. UC-A35" maxlength="8" autocomplete="off"
+                 oninput="this.value=this.value.toUpperCase();preview()" style="flex:1;">
+          <span class="uc-tip" tabindex="0" aria-label="Uitleg UC-code"><i class="fa fa-circle-info"></i>
+            <span class="uc-tip__bubble">
+              <b>UC-code (uithaalcode)</b><br>
+              Versheids-/rotatiecode voor groente &amp; fruit. Opbouw: <b>UC-</b> + <b>weekdag</b>
+              (A = maandag, B = dinsdag, C = woensdag …) + <b>weeknummer</b>.<br>
+              Voorbeeld: <b>UC-A35</b> = maandag, week&nbsp;35. Wordt als tekst onder de barcode geprint.
+            </span>
+          </span>
+        </span>
+      </div>
       <div class="frow"><span class="k">Aantal<small>kopieën</small></span><input type="number" id="l-qty" value="1" min="1" style="max-width:90px;"></div>
     </div>
 
@@ -62,6 +75,21 @@
   </div>
 </div>
 
+<!-- Huisstijl-waarschuwing bij het overnemen van een ACTIE -->
+<div id="actModal" class="lb-modal" hidden>
+  <div class="lb-modal__backdrop" data-act-cancel></div>
+  <div class="lb-modal__box" role="dialog" aria-modal="true" aria-labelledby="actTitle">
+    <div class="lb-modal__ic"><i class="fa fa-triangle-exclamation"></i></div>
+    <h3 id="actTitle">Let op — actielabel</h3>
+    <p>Je neemt een <b>actieprijs</b> over. Zodra de actie is afgelopen, moeten de stickers die dan nog op
+       <b>niet-verkochte</b> producten zitten <b>vervangen</b> worden door een label met de normale prijs.</p>
+    <div class="lb-modal__acts">
+      <button type="button" class="btn btn-primary" id="actOk"><i class="fa fa-check"></i> Begrepen, overnemen</button>
+      <button type="button" class="btn btn-ghost" data-act-cancel>Annuleren</button>
+    </div>
+  </div>
+</div>
+
 <style>.lbl-chk{display:flex;align-items:center;gap:8px;font-weight:600;font-size:.85rem;cursor:pointer;margin:0;color:var(--text);}
 .lbl-chk input{width:18px;height:18px;accent-color:var(--green);}
 .pz-card{border:1px solid var(--border,#e4e7e2);border-radius:8px;padding:8px 10px;margin-bottom:8px;}
@@ -72,6 +100,27 @@
 .pz-opts .btn{margin-left:auto;}
 .pz-bc{margin-top:3px;font-variant-numeric:tabular-nums;}
 .pz-bc i{color:var(--green);}
+.uc-tip{position:relative;display:inline-flex;align-items:center;color:var(--green,#82bb22);cursor:help;font-size:1rem;outline:none;flex:0 0 auto;}
+.uc-tip__bubble{position:absolute;right:0;top:calc(100% + 8px);z-index:60;width:270px;max-width:70vw;
+  background:#fff;border:1px solid var(--border,#e0e0e0);border-radius:10px;box-shadow:0 8px 26px rgba(0,0,0,.18);
+  padding:10px 12px;font-size:12.5px;line-height:1.5;color:var(--text,#333);font-weight:400;
+  text-transform:none;letter-spacing:normal;white-space:normal;
+  opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity .15s ease,transform .15s ease;}
+.uc-tip__bubble b{color:var(--green-d,#115013);}
+.uc-tip:hover .uc-tip__bubble,.uc-tip:focus .uc-tip__bubble,.uc-tip:focus-within .uc-tip__bubble{opacity:1;visibility:visible;transform:none;}
+.pz-ck{display:inline-flex;align-items:center;gap:6px;font-size:.82rem;font-weight:600;color:var(--text,#333);cursor:pointer;}
+.pz-ck input{width:16px;height:16px;accent-color:var(--green);}
+/* Huisstijl-waarschuwingspopup */
+.lb-modal{position:fixed;inset:0;z-index:900;display:flex;align-items:center;justify-content:center;}
+.lb-modal[hidden]{display:none;}
+.lb-modal__backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45);}
+.lb-modal__box{position:relative;background:#fff;border-radius:16px;max-width:460px;width:calc(100% - 32px);
+  padding:24px;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,.3);border-top:6px solid var(--green,#82bb22);}
+.lb-modal__ic{width:58px;height:58px;border-radius:50%;background:#fff5e6;color:#e3000a;
+  display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 12px;}
+.lb-modal__box h3{margin:0 0 8px;color:var(--green-d,#115013);}
+.lb-modal__box p{margin:0 0 18px;color:var(--text,#333);line-height:1.55;font-size:.95rem;}
+.lb-modal__acts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
 
 {% endblock %}
 {% block extra_scripts %}
@@ -130,6 +179,7 @@ function plRow(x,i){
         <div class="pz-bc muted small" id="pz-bc-${i}"><i class="fa fa-barcode"></i> <span>${x.barcode?esc(x.barcode):'barcode ophalen…'}</span></div></div>
     </div>
     <div class="pz-opts">
+      ${(x.actie!=null||x.deal)?`<label class="pz-ck"><input type="checkbox" id="pz-act-${i}" checked> Actie overnemen</label>`:''}
       <button type="button" class="btn btn-primary btn-sm" onclick="overnemen(${i})"><i class="fa fa-arrow-left"></i> Overnemen</button>
     </div>
   </div>`;
@@ -177,13 +227,32 @@ function showRowBarcode(i){
   el.innerHTML='<i class="fa fa-barcode"></i> '+eans.map(esc).join(' / ');
 }
 function setBarcode(v){ fi('l-barcode').value=v; fi('bc-choice').innerHTML=''; preview(); }
-async function overnemen(i){
+// Klik op 'Overnemen'. Neem je een ACTIE over, dan eerst de huisstijl-waarschuwing tonen.
+function overnemen(i){
+  const x=RESULTS[i]; if(!x)return;
+  const hasAction=(x.actie!=null||!!x.deal);
+  const ck=fi('pz-act-'+i);
+  const takeAction=hasAction && (ck?ck.checked:false);
+  if(takeAction) showActWarning(()=>doOvernemen(i,true));
+  else doOvernemen(i,false);
+}
+function showActWarning(onOk){
+  const m=fi('actModal'); if(!m){ onOk(); return; }
+  const ok=fi('actOk');
+  const close=()=>{ m.hidden=true; };
+  ok.onclick=()=>{ close(); onOk(); };
+  m.querySelectorAll('[data-act-cancel]').forEach(b=>b.onclick=close);
+  m.hidden=false;
+}
+async function doOvernemen(i, withAction){
   const x=RESULTS[i]; if(!x)return;
   fi('l-name').value=x.name||'';
   if(x.barcode) fi('l-barcode').value=x.barcode;          // uit de eigen catalogus (indien bekend)
-  const p = (x.actie!=null?x.actie:(x.prijs!=null?x.prijs:x.price));
-  if(p!=null&&p!=='') fi('l-price').value=String(p).replace(',','.');
-  if(x.actie!=null && x.van!=null) fi('l-old').value=String(x.van).replace(',','.');
+  let price, old='';
+  if(withAction){ price=(x.actie!=null?x.actie:(x.prijs!=null?x.prijs:x.price)); old=(x.van!=null?x.van:''); }
+  else { price=(x.van!=null?x.van:(x.prijs!=null?x.prijs:x.price)); old=''; }   // normale prijs = van-prijs
+  if(price!=null&&price!=='') fi('l-price').value=String(price).replace(',','.');
+  fi('l-old').value=(old!==''&&old!=null)?String(old).replace(',','.'):'';
   if(x.unit) fi('o-unit').value=cleanUnit(x.unit);         // 'Per fles' → 'fles' (geen dubbel 'per')
   fi('bc-choice').innerHTML=''; fi('l-results').innerHTML=''; fi('l-status').textContent=''; fi('l-search').value='';
   preview();

@@ -2,6 +2,7 @@
 zet dat om naar een TSPL BITMAP-opdracht, zodat de winkelprinter het échte
 ontwerp print: logo, streep, naam, prijsband en barcode."""
 from io import BytesIO
+import re
 
 _FONT_REG = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
 _FONT_BOLD = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
@@ -80,6 +81,10 @@ def render_label(item, opts, Lw, Lh, dpi=300, logo_path=None, show_logo=False):
     digits = ''.join(ch for ch in str(item.get('barcode') or '') if ch.isdigit()) \
              or str(item.get('barcode') or '')
     uc_code = str(item.get('uc_code') or '').strip().upper()
+    if uc_code:
+        # Normaliseer naar 'UC-<dag><week>' (bv. 'A35' of 'UCA35' → 'UC-A35').
+        core = re.sub(r'^UC[\s\-]*', '', uc_code).strip()
+        uc_code = ('UC-' + core) if core else ''
     extras = []
     if opts.get('show_date') and opts.get('today'):
         extras.append(str(opts['today']))

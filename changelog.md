@@ -5,6 +5,16 @@ toegevoegd en verbeterd — de nieuwste bovenaan. Heb je een idee of mis je iets
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.22.0 — UC-code + actie overnemen met waarschuwing · 15 augustus 2026
+
+- **De UC-code komt nu altijd als "UC-A35" op het label.** Typ je alleen `A35`, dan zet de app er
+  automatisch `UC-` voor. (Opbouw: UC + weekdag A=maandag/B=dinsdag/C=woensdag… + weeknummer.)
+- **ⓘ-uitleg bij het UC-veld** — houd de muis erop voor de betekenis en een voorbeeld.
+- **Staat een product in de aanbieding? Dan kun je in het zoekresultaat "Actie overnemen" aanvinken** —
+  je krijgt dan de actieprijs (met de van-prijs doorgestreept) op het label; laat je 'm uit, dan de normale prijs.
+- **Neem je een actie over, dan verschijnt een waarschuwing** (in PLUS-huisstijl): let op dat de stickers na
+  afloop van de actie vervangen moeten worden als de producten dan nog niet verkocht zijn.
+
 ## versie 2.21.0 — Barcode in de zoekresultaten + "per"-fix · 15 augustus 2026
 
 - **De gevonden barcode staat nu meteen in elk zoekresultaat** bij Labels — je ziet 'm dus al vóór je
