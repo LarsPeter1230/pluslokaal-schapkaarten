@@ -74,6 +74,7 @@ def render_label(item, opts, Lw, Lh, dpi=300, logo_path=None, show_logo=False):
     old_txt = ('€ ' + ('%.2f' % old_price).replace('.', ',')) if (has_price and old_price) else ''
     digits = ''.join(ch for ch in str(item.get('barcode') or '') if ch.isdigit()) \
              or str(item.get('barcode') or '')
+    uc_code = str(item.get('uc_code') or '').strip().upper()
     extras = []
     if opts.get('show_date') and opts.get('today'):
         extras.append(str(opts['today']))
@@ -127,6 +128,12 @@ def render_label(item, opts, Lw, Lh, dpi=300, logo_path=None, show_logo=False):
         if digits:
             dh = _text_w(measure, digits, f_dig)[1]
             els.append(('text', (digits, f_dig), dh)); total += dh + px(0.8)
+
+        if uc_code:
+            # UC-code (uithaalcode) als kleine, leesbare tekst onder de barcode — geen aparte barcode.
+            f_uc = _font(True, max(7, int(px(Lh * 0.07) * s)))
+            uh = _text_w(measure, uc_code, f_uc)[1]
+            els.append(('text', (uc_code, f_uc), uh)); total += uh + px(0.6)
 
         for ex in extras:
             eh = _text_w(measure, ex, f_ex)[1]

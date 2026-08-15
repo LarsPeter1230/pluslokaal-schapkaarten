@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie — getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.18.0'
+APP_VERSION = '2.19.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -4399,7 +4399,8 @@ def label_preview_live():
     item = {'name': request.args.get('name', ''),
             'barcode': request.args.get('barcode', ''),
             'price': _num(request.args.get('price')),
-            'old_price': _num(request.args.get('old_price'))}
+            'old_price': _num(request.args.get('old_price')),
+            'uc_code': (request.args.get('uc', '') or '').strip().upper()}
     opts = {'price_unit': request.args.get('unit', 'stuk'),
             'extra_line1': request.args.get('extra1', ''),
             'extra_line2': request.args.get('extra2', ''),
@@ -5085,16 +5086,33 @@ def portaal_view(sub):
 @app.route('/api/labels/zoeken')
 @login_required
 def api_label_search():
+    """Zoek producten op plus.nl (zelfde warme-browserzoek als bij Schapkaarten) en neem naam + prijs over.
+    plus.nl toont geen EAN/streepjescode, dus de barcode blijft handmatig (of uit de eigen productcatalogus)."""
     u = get_current_user()
     fil = _label_filiaal() or u.filiaal
     term = (request.args.get('q') or '').strip()
-    q = Product.query.filter_by(filiaal=fil, active=True)
-    if term:
-        q = q.filter(Product.name.ilike(f'%{term}%') | Product.barcode.ilike(f'%{term}%'))
-    rows = q.order_by(Product.name).limit(20).all()
-    return jsonify([{'name': p.name, 'barcode': p.barcode or '',
-                     'barcode_type': p.barcode_type or 'ean13',
-                     'price': p.price} for p in rows])
+    if len(term) < 2:
+        return jsonify([])
+    try:
+        import plus_search
+        res = plus_search.search(term)
+    except Exception as e:
+        return jsonify({'error': str(e)[:200]}), 502
+    if isinstance(res, dict):
+        return jsonify(res), 502
+    # Eigen catalogus-barcodes klaarzetten om, waar de naam matcht, tóch een barcode te kunnen invullen.
+    cat = {p.name.strip().lower(): p for p in Product.query.filter_by(filiaal=fil, active=True).limit(1000).all()}
+    out = []
+    for r in res:
+        n = _norm_plus(r)
+        naam = (n.get('naam') or '').strip()
+        price = n.get('prijs') or n.get('actie') or None
+        hit = cat.get(naam.lower())
+        out.append({'name': naam, 'price': price, 'unit': n.get('verpakking') or '',
+                    'img': n.get('img') or '',
+                    'barcode': (hit.barcode if hit else '') or '',
+                    'barcode_type': (hit.barcode_type if hit else 'ean13')})
+    return jsonify(out)
 
 @app.route('/labels/producten', methods=['GET', 'POST'])
 @login_required

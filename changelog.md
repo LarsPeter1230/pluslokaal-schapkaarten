@@ -5,6 +5,18 @@ toegevoegd en verbeterd — de nieuwste bovenaan. Heb je een idee of mis je iets
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.19.0 — Labels maken vernieuwd · 15 augustus 2026
+
+- **Geen batches meer** — je maakt en bewaart een label nu in één keer op deze pagina. De knop "Toevoegen aan
+  lijst" en het overzicht "Labels in deze batch" zijn weg.
+- **Zoeken gebeurt nu op plus.nl** (dezelfde bron als bij Schapkaarten): kies een product en de **naam en prijs**
+  worden overgenomen. *(plus.nl toont geen streepjescode, dus de barcode vul je zelf in — of hij komt uit je eigen
+  productenlijst als we het artikel kennen.)*
+- **Leeg beginnen** — naam, prijs en voorbeeld worden niet meer standaard ingevuld. Zolang je nog niets typt,
+  toont het voorbeeld een demolabel ("PLUS Voorbeeld"); zodra je iets invult, verschijnt meteen jouw eigen label.
+- **Nieuw veld "UC-code" (uithaalcode)** — de versheids-/rotatiecode voor groente & fruit (bijv. `A35`: dag +
+  weeknummer). Wordt als kleine, leesbare tekst onder de barcode geprint. Optioneel, maximaal 6 tekens.
+
 ## versie 2.18.0 — Barcodes & scankaarten 1:1 met PLUS · 15 augustus 2026
 
 - **Barcodes kun je nu ook op tip-kaarten zetten** (voorheen alleen op actiekaarten) — met exact dezelfde

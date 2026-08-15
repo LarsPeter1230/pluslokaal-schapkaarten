@@ -16,21 +16,19 @@
     <div class="sec">
       <div class="sec__h"><i class="fa fa-magnifying-glass"></i> Product</div>
       <div class="frow" style="position:relative;">
-        <span class="k">Zoek</span>
-        <input type="text" id="l-search" placeholder="naam of barcode…" autocomplete="off" oninput="doSearch(this.value)">
+        <span class="k">Zoek op plus.nl</span>
+        <span style="flex:1;position:relative;">
+          <input type="text" id="l-search" placeholder="bijv. Halvamel" autocomplete="off" oninput="doSearch(this.value)" style="width:100%;">
+          <span id="l-spin" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);"><i class="fa fa-leaf" style="color:var(--green);animation:spin 1s linear infinite;"></i></span>
+        </span>
       </div>
-      <div id="l-results" style="max-height:180px;overflow:auto;"></div>
+      <div id="l-results" style="max-height:200px;overflow:auto;"></div>
       <div class="frow"><span class="k">Naam</span><input type="text" id="l-name" oninput="preview()"></div>
       <div class="frow"><span class="k">Barcode</span><input type="text" id="l-barcode" placeholder="EAN13/EAN8/CODE128" oninput="preview()"></div>
       <div class="frow"><span class="k">Prijs €<small>leeg = geen prijs</small></span><input type="text" id="l-price" placeholder="1.49" oninput="preview()"></div>
       <div class="frow"><span class="k">Van-prijs €<small>doorgestreept</small></span><input type="text" id="l-old" placeholder="1.99" oninput="preview()"></div>
-      <div class="frow"><span class="k">Aantal</span><input type="number" id="l-qty" value="1" min="1" style="max-width:90px;"></div>
-      <button type="button" class="btn btn-outline btn-sm btn-block" onclick="addItem()"><i class="fa fa-plus"></i> Toevoegen aan lijst</button>
-    </div>
-
-    <div class="sec">
-      <div class="sec__h"><i class="fa fa-list"></i> Labels in deze batch <span id="l-count" class="muted small"></span></div>
-      <div id="l-list"><p class="muted small" style="margin:0;">Nog geen labels toegevoegd.</p></div>
+      <div class="frow"><span class="k">UC-code<small>uithaalcode, bijv. A35</small></span><input type="text" id="l-uc" placeholder="bijv. A35" maxlength="6" autocomplete="off" oninput="this.value=this.value.toUpperCase();preview()"></div>
+      <div class="frow"><span class="k">Aantal<small>kopieën</small></span><input type="number" id="l-qty" value="1" min="1" style="max-width:90px;"></div>
     </div>
 
     <div class="sec">
@@ -45,11 +43,11 @@
       <div class="frow"><span class="k">Label b×h (mm)</span>
         <span style="display:flex;gap:6px;"><input type="number" id="o-w" value="{{ def_w }}" step="0.5" style="max-width:80px;" oninput="preview()"> ×
         <input type="number" id="o-h" value="{{ def_h }}" step="0.5" style="max-width:80px;" oninput="preview()"></span></div>
-      <div class="frow"><span class="k">Batch-naam<small>optioneel</small></span><input type="text" id="o-name" placeholder="bijv. Weekaanbieding"></div>
+      <div class="frow"><span class="k">Naam voor opslaan<small>optioneel</small></span><input type="text" id="o-name" placeholder="bijv. Halvamel week 34"></div>
     </div>
 
     <button type="button" class="btn btn-primary btn-block" onclick="saveJob()" style="padding:13px;">
-      <i class="fa fa-floppy-disk"></i> {{ 'Wijzigingen opslaan' if edit_data else 'Labels opslaan' }}
+      <i class="fa fa-floppy-disk"></i> {{ 'Wijzigingen opslaan' if edit_data else 'Label opslaan' }}
     </button>
   </div>
 
@@ -63,65 +61,78 @@
 
 <style>.lbl-chk{display:flex;align-items:center;gap:8px;font-weight:600;font-size:.85rem;cursor:pointer;margin:0;color:var(--text);}
 .lbl-chk input{width:18px;height:18px;accent-color:var(--green);}
-.l-res{padding:7px 10px;border-radius:6px;cursor:pointer;font-size:.85rem;}
+.l-res{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:6px;cursor:pointer;font-size:.85rem;}
 .l-res:hover{background:rgba(128,189,29,.12);}
-.l-item{display:flex;align-items:center;gap:8px;border:1px solid var(--border,#e4e7e2);border-radius:8px;padding:6px 10px;margin-bottom:6px;font-size:.85rem;}
-.l-item b{font-weight:700;} .l-item .g{flex:1;min-width:0;cursor:pointer;}</style>
+.l-res img{width:34px;height:34px;object-fit:contain;border-radius:4px;background:#fff;flex:0 0 34px;}
+.l-res__t{min-width:0;line-height:1.2;}
+@keyframes spin{to{transform:translateY(-50%) rotate(360deg);}}</style>
 
 {% endblock %}
 {% block extra_scripts %}
 <script>
 const fi=id=>document.getElementById(id);
-let ITEMS=[];
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
 function num(v){v=String(v==null?'':v).replace(',','.').trim();return v===''?'':v;}
 
+// Voorbeeld: zolang je nog niets invult tonen we het placeholder-label (PLUS Voorbeeld);
+// zodra je in naam/barcode/prijs/van-prijs/UC iets typt, toont de preview jouw eigen invoer.
 let _t=null;
 function preview(){ clearTimeout(_t); _t=setTimeout(function(){
+  const name=fi('l-name').value.trim(), bc=fi('l-barcode').value.trim();
+  const price=num(fi('l-price').value), old=num(fi('l-old').value), uc=fi('l-uc').value.trim();
+  const empty = !name && !bc && price==='' && old==='' && !uc;
   const p=new URLSearchParams();
-  p.set('name',fi('l-name').value); p.set('barcode',fi('l-barcode').value);
-  if(num(fi('l-price').value)!=='')p.set('price',num(fi('l-price').value));
-  if(num(fi('l-old').value)!=='')p.set('old_price',num(fi('l-old').value));
+  if(empty){
+    p.set('name','PLUS Voorbeeld'); p.set('barcode','8710400145829'); p.set('price','1.49');
+  } else {
+    p.set('name',name); p.set('barcode',bc);
+    if(price!=='')p.set('price',price);
+    if(old!=='')p.set('old_price',old);
+    if(uc)p.set('uc',uc);
+  }
   p.set('unit',fi('o-unit').value||'stuk'); p.set('extra1',fi('o-ex1').value); p.set('extra2',fi('o-ex2').value);
   p.set('show_date',fi('o-date').checked?'1':'0'); p.set('show_logo',fi('o-logo').checked?'1':'0');
   p.set('w',fi('o-w').value||'45'); p.set('h',fi('o-h').value||'40'); p.set('_',Date.now());
   fi('l-preview').src='{{ url_for("label_preview_live") }}?'+p.toString();
 },250); }
 
+// Zoeken op plus.nl (zelfde bron als bij Schapkaarten). Neemt naam + prijs over (plus.nl heeft geen barcode).
 let _s=null;
-function doSearch(q){ clearTimeout(_s); _s=setTimeout(async function(){
-  if(!q.trim()){ fi('l-results').innerHTML=''; return; }
-  try{ const r=await fetch('{{ url_for("api_label_search") }}?q='+encodeURIComponent(q)); const d=await r.json();
-    fi('l-results').innerHTML=d.map((x,i)=>`<div class="l-res" onclick='pick(${JSON.stringify(x).replace(/'/g,"&#39;")})'><b>${esc(x.name)}</b> <span class="muted">${esc(x.barcode)}${x.price!=null?(' · € '+x.price):''}</span></div>`).join('')||'<div class="muted small" style="padding:6px 10px;">Geen resultaten.</div>';
-  }catch(e){}
+function doSearch(q){ clearTimeout(_s);
+  if(!q.trim()){ fi('l-results').innerHTML=''; fi('l-spin').style.display='none'; return; }
+  fi('l-spin').style.display='inline';
+  _s=setTimeout(async function(){
+  try{
+    const r=await fetch('{{ url_for("api_label_search") }}?q='+encodeURIComponent(q));
+    const d=await r.json();
+    if(!Array.isArray(d)){ fi('l-results').innerHTML='<div class="muted small" style="padding:6px 10px;">'+esc((d&&d.error)||'Zoeken mislukt.')+'</div>'; return; }
+    fi('l-results').innerHTML=d.map(x=>`<div class="l-res" onclick='pick(${JSON.stringify(x).replace(/'/g,"&#39;")})'>
+        ${x.img?`<img src="${esc(x.img)}" alt="">`:''}
+        <span class="l-res__t"><b>${esc(x.name)}</b>${x.price!=null&&x.price!==''?(' <span class="muted">€ '+esc(x.price)+'</span>'):''}${x.unit?(' <span class="muted small">'+esc(x.unit)+'</span>'):''}</span>
+      </div>`).join('')||'<div class="muted small" style="padding:6px 10px;">Geen resultaten.</div>';
+  }catch(e){ fi('l-results').innerHTML='<div class="muted small" style="padding:6px 10px;">Zoeken mislukt.</div>'; }
+  finally{ fi('l-spin').style.display='none'; }
 },250); }
-function pick(x){ fi('l-name').value=x.name||''; fi('l-barcode').value=x.barcode||'';
-  fi('l-price').value=(x.price!=null?x.price:''); fi('l-old').value=''; fi('l-results').innerHTML=''; fi('l-search').value=''; preview(); }
+function pick(x){
+  fi('l-name').value=x.name||'';
+  if(x.barcode) fi('l-barcode').value=x.barcode;          // alleen als de eigen catalogus 'm kent
+  if(x.price!=null&&x.price!=='') fi('l-price').value=x.price;
+  if(x.unit) fi('o-unit').value=x.unit;
+  fi('l-results').innerHTML=''; fi('l-search').value=''; preview();
+}
 
-function addItem(){
-  const nm=fi('l-name').value.trim();
-  if(!nm){ alert('Vul een naam in.'); return; }
-  ITEMS.push({name:nm,barcode:fi('l-barcode').value.trim(),barcode_type:'ean13',
+async function saveJob(){
+  const nm=fi('l-name').value.trim(), bc=fi('l-barcode').value.trim();
+  if(!nm && !bc){ alert('Vul minimaal een naam of barcode in.'); return; }
+  const item={name:nm, barcode:bc, barcode_type:'ean13',
     price:num(fi('l-price').value)===''?null:parseFloat(num(fi('l-price').value)),
     old_price:num(fi('l-old').value)===''?null:parseFloat(num(fi('l-old').value)),
-    qty:parseInt(fi('l-qty').value)||1});
-  fi('l-name').value='';fi('l-barcode').value='';fi('l-price').value='';fi('l-old').value='';fi('l-qty').value='1';
-  renderList(); preview();
-}
-function editItem(i){ const x=ITEMS[i]; fi('l-name').value=x.name;fi('l-barcode').value=x.barcode||'';
-  fi('l-price').value=(x.price!=null?x.price:'');fi('l-old').value=(x.old_price!=null?x.old_price:'');fi('l-qty').value=x.qty||1;
-  ITEMS.splice(i,1); renderList(); preview(); }
-function delItem(i){ ITEMS.splice(i,1); renderList(); }
-function renderList(){
-  fi('l-count').textContent=ITEMS.length?('('+ITEMS.reduce((a,b)=>a+(b.qty||1),0)+' labels)'):'';
-  fi('l-list').innerHTML=ITEMS.map((x,i)=>`<div class="l-item"><span class="g" onclick="editItem(${i})"><b>${esc(x.name)}</b> <span class="muted">${esc(x.barcode)}${x.price!=null?(' · € '+x.price):''} ×${x.qty||1}</span></span><button type="button" class="btn btn-ghost btn-sm" onclick="delItem(${i})"><i class="fa fa-trash"></i></button></div>`).join('')||'<p class="muted small" style="margin:0;">Nog geen labels toegevoegd.</p>';
-}
-async function saveJob(){
-  if(!ITEMS.length){ alert('Voeg minstens één label toe aan de lijst.'); return; }
-  const body={items:ITEMS,name:fi('o-name').value,price_unit:fi('o-unit').value||'stuk',
-    extra_line1:fi('o-ex1').value,extra_line2:fi('o-ex2').value,
-    show_date:fi('o-date').checked,show_logo:fi('o-logo').checked,
-    width:parseFloat(fi('o-w').value)||45,height:parseFloat(fi('o-h').value)||40,edit_id:EDIT_ID};
+    uc_code:fi('l-uc').value.trim().toUpperCase(),
+    qty:parseInt(fi('l-qty').value)||1};
+  const body={items:[item], name:fi('o-name').value, price_unit:fi('o-unit').value||'stuk',
+    extra_line1:fi('o-ex1').value, extra_line2:fi('o-ex2').value,
+    show_date:fi('o-date').checked, show_logo:fi('o-logo').checked,
+    width:parseFloat(fi('o-w').value)||45, height:parseFloat(fi('o-h').value)||40, edit_id:EDIT_ID};
   try{
     const r=await fetch('{{ url_for("label_new") }}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const d=await r.json();
@@ -131,19 +142,16 @@ async function saveJob(){
 }
 {% if edit_data %}
 let EDIT_ID={{ edit_data.id }};
-(function(){ const ed={{ edit_data|tojson }};
-  ITEMS=(ed.items||[]).map(x=>({name:x.name||'',barcode:x.barcode||'',barcode_type:x.barcode_type||'ean13',
-    price:(x.price!=null?x.price:null),old_price:(x.old_price!=null?x.old_price:null),qty:x.qty||1}));
+(function(){ const ed={{ edit_data|tojson }}; const x=(ed.items||[])[0]||{};
+  fi('l-name').value=x.name||''; fi('l-barcode').value=x.barcode||'';
+  fi('l-price').value=(x.price!=null?x.price:''); fi('l-old').value=(x.old_price!=null?x.old_price:'');
+  fi('l-uc').value=(x.uc_code||''); fi('l-qty').value=x.qty||1;
   fi('o-name').value=ed.name||''; fi('o-unit').value=ed.price_unit||'stuk';
   fi('o-ex1').value=ed.extra_line1||''; fi('o-ex2').value=ed.extra_line2||'';
   fi('o-date').checked=!!ed.show_date; fi('o-logo').checked=!!ed.show_logo;
-  renderList();
-  if(ITEMS[0]){ fi('l-name').value=ITEMS[0].name; fi('l-barcode').value=ITEMS[0].barcode||'';
-    fi('l-price').value=(ITEMS[0].price!=null?ITEMS[0].price:''); }
 })();
 {% else %}
 let EDIT_ID=null;
-fi('l-name').value='PLUS Voorbeeld'; fi('l-barcode').value='8710400145829'; fi('l-price').value='1.49';
 {% endif %}
 preview();
 </script>
