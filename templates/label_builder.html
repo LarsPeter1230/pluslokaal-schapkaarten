@@ -15,14 +15,16 @@
   <div class="editor__form">
     <div class="sec">
       <div class="sec__h"><i class="fa fa-magnifying-glass"></i> Product</div>
-      <div class="frow" style="position:relative;">
+      <div class="frow">
         <span class="k">Zoek op plus.nl</span>
-        <span style="flex:1;position:relative;">
-          <input type="text" id="l-search" placeholder="bijv. Halvamel" autocomplete="off" oninput="doSearch(this.value)" style="width:100%;">
-          <span id="l-spin" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);"><i class="fa fa-leaf" style="color:var(--green);animation:spin 1s linear infinite;"></i></span>
+        <span style="flex:1;display:flex;gap:6px;">
+          <input type="text" id="l-search" placeholder="bijv. cola zero" autocomplete="off"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();doSearch();}" style="flex:1;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="doSearch()"><i class="fa fa-search"></i></button>
         </span>
       </div>
-      <div id="l-results" style="max-height:200px;overflow:auto;"></div>
+      <div id="l-status" class="muted small" style="margin:2px 0 6px;"></div>
+      <div id="l-results" style="max-height:360px;overflow:auto;"></div>
       <div class="frow"><span class="k">Naam</span><input type="text" id="l-name" oninput="preview()"></div>
       <div class="frow"><span class="k">Barcode</span><input type="text" id="l-barcode" placeholder="EAN13/EAN8/CODE128" oninput="preview()"></div>
       <div id="bc-choice" style="padding:0 0 0 2px;"></div>
@@ -62,11 +64,11 @@
 
 <style>.lbl-chk{display:flex;align-items:center;gap:8px;font-weight:600;font-size:.85rem;cursor:pointer;margin:0;color:var(--text);}
 .lbl-chk input{width:18px;height:18px;accent-color:var(--green);}
-.l-res{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:6px;cursor:pointer;font-size:.85rem;}
-.l-res:hover{background:rgba(128,189,29,.12);}
-.l-res img{width:34px;height:34px;object-fit:contain;border-radius:4px;background:#fff;flex:0 0 34px;}
-.l-res__t{min-width:0;line-height:1.2;}
-@keyframes spin{to{transform:translateY(-50%) rotate(360deg);}}</style>
+.pz-card{border:1px solid var(--border,#e4e7e2);border-radius:8px;padding:8px 10px;margin-bottom:8px;}
+.pz-info{display:flex;gap:10px;align-items:center;}
+.pz-nm{font-weight:700;font-size:.9rem;line-height:1.15;}
+.pz-opts{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-top:8px;}
+.pz-opts .btn{margin-left:auto;}
 
 {% endblock %}
 {% block extra_scripts %}
@@ -97,32 +99,60 @@ function preview(){ clearTimeout(_t); _t=setTimeout(function(){
   fi('l-preview').src='{{ url_for("label_preview_live") }}?'+p.toString();
 },250); }
 
-// Zoeken op plus.nl (zelfde bron als bij Schapkaarten). Neemt naam + prijs over (plus.nl heeft geen barcode).
-let _s=null;
-function doSearch(q){ clearTimeout(_s);
-  if(!q.trim()){ fi('l-results').innerHTML=''; fi('l-spin').style.display='none'; return; }
-  fi('l-spin').style.display='inline';
-  _s=setTimeout(async function(){
+// ── Zoeken op plus.nl — zelfde uiterlijk als bij Schapkaarten (kaartjes + 'Overnemen'),
+//    maar zonder foto en zonder vinkjes. Neemt naam + prijs over en haalt de barcode (EAN) op.
+const PL_SPINNER = '<div class="pl-inline"><div class="pl-spinner" aria-hidden="true"><svg viewBox="0 0 132 140">'
+  +'<path class="pl-leaf pl-leaf--1" d="M61.2,32.8 L61.2,54.8 C61.2,60.8 56.8,65.6 50.8,65.6 L30.4,65.6 C13.6,65.6 0,51.2 0,33.2 C0,15.6 13.6,0.8 30.4,0.8 C47.6,0.8 61.2,15.2 61.2,32.8 Z"/>'
+  +'<path class="pl-leaf pl-leaf--2" d="M61.2,107.2 L61.2,85.6 C61.2,79.6 56.8,74.8 50.8,74.8 L30.4,74.8 C13.6,74.8 0,89.2 0,107.2 C0,125.2 13.6,139.6 30.4,139.6 C47.6,139.6 61.2,125.2 61.2,107.2 Z"/>'
+  +'<path class="pl-leaf pl-leaf--3" d="M69.6,107.2 L69.6,85.6 C69.6,79.6 74,74.8 80,74.8 L100.4,74.8 C117.2,74.8 131.2,89.2 131.2,107.2 C131.2,125.2 117.2,139.6 100.4,139.6 C83.6,139.6 69.6,125.2 69.6,107.2 Z"/>'
+  +'<path class="pl-leaf pl-leaf--4" d="M70,32.8 L70,54.8 C70,60.8 74.4,65.6 80,65.6 L100.4,65.6 C117.6,65.6 131.2,51.2 131.2,33.2 C131.2,15.6 117.6,0.8 100.4,0.8 C83.6,0.8 70,15.2 70,32.8 Z"/>'
+  +'</svg></div><span>Even zoeken op plus.nl…</span></div>';
+
+let RESULTS=[];
+function plEur(v){ if(v==null||v==='')return ''; return '€ '+String(v).replace('.',','); }
+function plDeal(x){ if(!x.deal)return ''; const dl=x.deal;
+  if(dl.kind==='voory')return dl.qty+' voor € '+String(dl.total).replace('.',',');
+  if(dl.kind==='pct')return dl.pct+'% korting'; return ''; }
+function plRow(x,i){
+  const price = x.actie!=null ? (`<b>${plEur(x.actie)}</b> <s class="muted">${plEur(x.van)}</s>`)
+              : (x.prijs!=null?plEur(x.prijs):(x.price!=null&&x.price!==''?plEur(x.price):''));
+  const deal = plDeal(x);
+  const info = [esc(x.verpakking||''), esc(x.eenheid||''), deal?('<b style="color:#e3000a;">'+esc(deal)+'</b>'):''].filter(Boolean).join(' · ');
+  return `<div class="pz-card">
+    <div class="pz-info">
+      <div style="min-width:0;"><div class="pz-nm">${esc(x.name)}</div>
+        <div class="muted small">${info}${price?(' · '+price):''}</div></div>
+    </div>
+    <div class="pz-opts">
+      <button type="button" class="btn btn-primary btn-sm" onclick="overnemen(${i})"><i class="fa fa-arrow-left"></i> Overnemen</button>
+    </div>
+  </div>`;
+}
+async function doSearch(){
+  const q=fi('l-search').value.trim();
+  if(q.length<2){ fi('l-status').textContent='Typ minstens 2 tekens.'; return; }
+  fi('l-status').textContent=''; fi('l-results').innerHTML=PL_SPINNER;
   try{
     const r=await fetch('{{ url_for("api_label_search") }}?q='+encodeURIComponent(q));
     const d=await r.json();
-    if(!Array.isArray(d)){ fi('l-results').innerHTML='<div class="muted small" style="padding:6px 10px;">'+esc((d&&d.error)||'Zoeken mislukt.')+'</div>'; return; }
-    fi('l-results').innerHTML=d.map(x=>`<div class="l-res" onclick='pick(${JSON.stringify(x).replace(/'/g,"&#39;")})'>
-        ${x.img?`<img src="${esc(x.img)}" alt="">`:''}
-        <span class="l-res__t"><b>${esc(x.name)}</b>${x.price!=null&&x.price!==''?(' <span class="muted">€ '+esc(x.price)+'</span>'):''}${x.unit?(' <span class="muted small">'+esc(x.unit)+'</span>'):''}</span>
-      </div>`).join('')||'<div class="muted small" style="padding:6px 10px;">Geen resultaten.</div>';
-  }catch(e){ fi('l-results').innerHTML='<div class="muted small" style="padding:6px 10px;">Zoeken mislukt.</div>'; }
-  finally{ fi('l-spin').style.display='none'; }
-},250); }
+    if(!Array.isArray(d)){ fi('l-results').innerHTML=''; fi('l-status').textContent='Zoeken mislukt: '+((d&&d.error)||''); return; }
+    if(!d.length){ fi('l-results').innerHTML=''; fi('l-status').textContent='Geen resultaten gevonden.'; return; }
+    RESULTS=d; fi('l-status').textContent=d.length+' resultaten:';
+    fi('l-results').innerHTML=d.map((x,i)=>plRow(x,i)).join('');
+  }catch(e){ fi('l-results').innerHTML=''; fi('l-status').textContent='Zoeken mislukt: '+e; }
+}
 function setBarcode(v){ fi('l-barcode').value=v; fi('bc-choice').innerHTML=''; preview(); }
-async function pick(x){
+async function overnemen(i){
+  const x=RESULTS[i]; if(!x)return;
   fi('l-name').value=x.name||'';
   if(x.barcode) fi('l-barcode').value=x.barcode;          // uit de eigen catalogus (indien bekend)
-  if(x.price!=null&&x.price!=='') fi('l-price').value=x.price;
+  const p = (x.actie!=null?x.actie:(x.prijs!=null?x.prijs:x.price));
+  if(p!=null&&p!=='') fi('l-price').value=String(p).replace(',','.');
+  if(x.actie!=null && x.van!=null) fi('l-old').value=String(x.van).replace(',','.');
   if(x.unit) fi('o-unit').value=x.unit;
-  fi('bc-choice').innerHTML='';
-  fi('l-results').innerHTML=''; fi('l-search').value=''; preview();
-  // EAN('s) van plus.nl ophalen (product-detail-API) als we nog geen barcode hebben.
+  fi('bc-choice').innerHTML=''; fi('l-results').innerHTML=''; fi('l-status').textContent=''; fi('l-search').value='';
+  preview();
+  // EAN('s) van plus.nl ophalen als we nog geen barcode hebben.
   if(!fi('l-barcode').value.trim() && x.href){
     const bc=fi('l-barcode'); bc.placeholder='barcode ophalen…';
     try{
@@ -130,7 +160,6 @@ async function pick(x){
       const d=await r.json(); const eans=(d&&d.eans)||[];
       if(eans.length===1 && !bc.value.trim()){ bc.value=eans[0]; preview(); }
       else if(eans.length>1 && !bc.value.trim()){
-        // meerdere barcodes → laat de gebruiker kiezen
         fi('bc-choice').innerHTML='<div class="muted small" style="margin:2px 0 4px;">plus.nl geeft meerdere barcodes — kies er één:</div>'+
           eans.map(e=>`<button type="button" class="btn btn-outline btn-sm" style="margin:0 6px 6px 0;" onclick="setBarcode('${e}')">${e}</button>`).join('');
       }

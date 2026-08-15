@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie — getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.20.0'
+APP_VERSION = '2.20.1'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -5108,7 +5108,11 @@ def api_label_search():
         naam = (n.get('naam') or '').strip()
         price = n.get('prijs') or n.get('actie') or None
         hit = cat.get(naam.lower())
-        out.append({'name': naam, 'price': price, 'unit': n.get('verpakking') or '',
+        out.append({'name': naam, 'price': price,
+                    'verpakking': n.get('verpakking') or '', 'eenheid': n.get('eenheid') or '',
+                    'prijs': n.get('prijs'), 'actie': n.get('actie'), 'van': n.get('van'),
+                    'deal': n.get('deal'),
+                    'unit': n.get('verpakking') or '',
                     'img': n.get('img') or '', 'href': r.get('href') or '',
                     'barcode': (hit.barcode if hit else '') or '',
                     'barcode_type': (hit.barcode_type if hit else 'ean13')})

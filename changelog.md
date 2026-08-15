@@ -5,6 +5,12 @@ toegevoegd en verbeterd — de nieuwste bovenaan. Heb je een idee of mis je iets
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.20.1 — Labels-zoek net als bij Schapkaarten · 15 augustus 2026
+
+- **De plus.nl-zoek bij Labels ziet er nu hetzelfde uit als bij Schapkaarten** — met de PLUS-laadanimatie,
+  het aantal resultaten en overzichtelijke productkaartjes met een **"Overnemen"**-knop. (Zonder foto en
+  zonder vinkjes: bij een label neem je gewoon het hele product over — naam, prijs en de barcode.)
+
 ## versie 2.20.0 — Barcode automatisch van plus.nl · 15 augustus 2026
 
 - **Kies je bij Labels een product uit de plus.nl-zoek, dan wordt nu ook de barcode (EAN) automatisch
