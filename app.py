@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.24.2'
+APP_VERSION = '2.24.3'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -3925,7 +3925,7 @@ def _designer_template_pages(headline):
     return {'bg': '#ffffff', 'elements': [
         {'type': 'text', 'x': 0.06, 'y': 0.05, 'w': 0.88, 'h': 0.30,
          'text': headline, 'color': '#80bd1d', 'bold': True, 'size': 0.072, 'align': 'left',
-         'font': 'montserrat', 'valign': 'top', 'lineh': 1.05},
+         'font': 'montserrat', 'valign': 'top', 'lineh': 1.05, 'autofit': True},
         {'type': 'shape', 'shape': 'rect', 'x': 0.06, 'y': 0.37, 'w': 0.88, 'h': 0.40,
          'fill': '#f4f5f3', 'radius': 0.02},
         {'type': 'text', 'x': 0.06, 'y': 0.55, 'w': 0.88, 'h': 0.06,
@@ -3935,8 +3935,9 @@ def _designer_template_pages(headline):
          'text': 'We doen met je mee.', 'color': '#ffffff', 'bold': True, 'size': 0.042, 'align': 'center'},
         {'type': 'image', 'static': 'plus-logo-wit.svg', 'src': '/static/img/plus-logo-wit.svg',
          'x': 0.30, 'y': 0.935, 'w': 0.20, 'h': 0.042, 'fit': 'contain'},
-        {'type': 'text', 'x': 0.515, 'y': 0.930, 'w': 0.33, 'h': 0.05,
-         'text': 'winkelnaam', 'color': '#ffffff', 'bold': True, 'size': 0.028, 'align': 'left', 'valign': 'middle'},
+        {'type': 'text', 'x': 0.515, 'y': 0.925, 'w': 0.40, 'h': 0.06,
+         'text': 'winkelnaam', 'color': '#ffffff', 'bold': True, 'size': 0.028, 'align': 'left',
+         'valign': 'middle', 'autofit': True},
     ]}
 
 def _designer_template(tid):
@@ -4034,22 +4035,41 @@ def _designer_draw_el(canvas, el, W, H, dpi):
         col = el.get('color', '#231f20')
         bold = bool(el.get('bold'))
         align = el.get('align', 'left')
+        fontid = el.get('font', 'montserrat')
+        lineh_f = float(el.get('lineh', 1.15))
         # tekstgrootte = fractie van canvas-hoogte → px (zo schaalt editor↔render 1:1)
         size_px = float(el.get('size', .05)) * H
-        font = _designer_font(el.get('font', 'montserrat'), bold, size_px)
-        # woordwrap binnen de elementbreedte
-        lines = []
-        for para in txt.split('\n'):
-            words = para.split(' ')
-            cur = ''
-            for w in words:
-                trial = (cur + ' ' + w).strip()
-                if d.textlength(trial, font=font) <= ew or not cur:
-                    cur = trial
-                else:
-                    lines.append(cur); cur = w
-            lines.append(cur)
-        lh = size_px * float(el.get('lineh', 1.15))
+
+        def _wrap_lines(fnt):
+            out = []
+            for para in txt.split('\n'):
+                words = para.split(' '); cur = ''
+                for w in words:
+                    trial = (cur + ' ' + w).strip()
+                    if d.textlength(trial, font=fnt) <= ew or not cur:
+                        cur = trial
+                    else:
+                        out.append(cur); cur = w
+                out.append(cur)
+            return out
+
+        font = _designer_font(fontid, bold, size_px)
+        lines = _wrap_lines(font)
+        # autofit: krimp de tekst tot 'ie binnen het vak past (breedte + hoogte). Handig voor bv. de
+        # winkelnaam of een lange kop, zodat elke lengte netjes past.
+        if el.get('autofit') and txt.strip():
+            for _ in range(24):
+                lines = _wrap_lines(font)
+                widest = max((d.textlength(ln, font=font) for ln in lines), default=0)
+                total_h = size_px * lineh_f * len(lines)
+                if widest <= ew and total_h <= eh:
+                    break
+                size_px *= 0.92
+                if size_px < 6:
+                    break
+                font = _designer_font(fontid, bold, size_px)
+            lines = _wrap_lines(font)
+        lh = size_px * lineh_f
         total = lh * len(lines)
         y = max(0, (eh - total) / 2.0) if el.get('valign', 'middle') == 'middle' else 0
         for ln in lines:

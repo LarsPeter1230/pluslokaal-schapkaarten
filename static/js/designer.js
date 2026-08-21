@@ -107,7 +107,20 @@
     s += 'border-radius:' + (e.shape === 'ellipse' ? '50%' : ((e.radius || 0) * 100 + '%')) + ';';
     return '<div class="eshape" style="' + s + '"></div>';
   }
-  function paintText() { els().forEach(function (e) { if (e.type === 'text') { var n = $('.el[data-id="' + e.id + '"] .etext'); if (n) n.textContent = e.text || ''; } }); }
+  function paintText() {
+    els().forEach(function (e) {
+      if (e.type !== 'text') return;
+      var box = $('.el[data-id="' + e.id + '"]'); var n = box && box.querySelector('.etext');
+      if (!n) return;
+      n.textContent = e.text || '';
+      if (e.autofit && box) {   // krimp tot de tekst binnen het vak past (net als de server-render)
+        var size = e.size * baseH(); n.style.fontSize = size + 'px'; var g = 0;
+        while (g++ < 24 && size > 6 && (n.scrollHeight > box.clientHeight + 1 || n.scrollWidth > box.clientWidth + 1)) {
+          size *= 0.92; n.style.fontSize = size + 'px';
+        }
+      }
+    });
+  }
 
   function addHandles(d, e) {
     ['nw', 'ne', 'sw', 'se'].forEach(function (p) { var h = document.createElement('div'); h.className = 'handle ' + p; h.addEventListener('pointerdown', function (ev) { startResize(ev, e, p); }); d.appendChild(h); });

@@ -5,6 +5,12 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.24.3 - Tekst schaalt automatisch mee · 21 augustus 2026
+
+- **Lange teksten passen nu altijd netjes.** De kop en de winkelnaam in de PLUS-sjablonen schalen
+  automatisch kleiner (en breken af) zodat ook een lange winkelnaam of productnaam binnen het vak blijft,
+  zowel in de editor als op de download.
+
 ## versie 2.24.2 - Sjabloonteksten duidelijker bewerkbaar · 21 augustus 2026
 
 - **De PLUS-sjablonen zijn volledig bewerkbaar:** elke tekst (kop, "We doen met je mee.", winkelnaam) pas
