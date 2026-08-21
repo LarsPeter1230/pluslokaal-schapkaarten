@@ -276,6 +276,12 @@
     $('#dzPrevPg').disabled = pg <= 0; $('#dzNextPg').disabled = pg >= np - 1;
   }
   function closePreview() { $('#dzPreviewModal').classList.remove('open'); }
+  function downloadPNG() {
+    exportPagePng(cur, 300).then(function (url) {
+      var a = document.createElement('a'); a.href = url; a.download = (titleEl.innerText.trim() || 'ontwerp') + '.png';
+      document.body.appendChild(a); a.click(); setTimeout(function () { a.remove(); }, 1500);
+    });
+  }
   function downloadPDF() {
     setSave('PDF maken…');
     var jobs = pages.map(function (_, i) { return exportPagePng(i, 300); });
@@ -356,7 +362,7 @@
   window.DZ = {
     addText: addText, addShape: addShape, addIcon: addIcon, addBarcode: addBarcode, addTable: addTable,
     addImage: addImage, setBg: setBg, undo: undo, redo: redo, zoomBy: zoomBy, zoomFit: zoomFit,
-    save: save, preview: preview, printLabel: printLabel, downloadPDF: downloadPDF,
+    save: save, preview: preview, printLabel: printLabel, downloadPDF: downloadPDF, downloadPNG: downloadPNG,
     plusSearch: plusSearch, addPage: addPage, dupPage: dupPage, delPage: delPage,
     msSearch: function () { return false; }
   };

@@ -5,6 +5,11 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.24.1 - PNG downloaden in de Designer · 21 augustus 2026
+
+- **Nieuwe "PNG"-knop in de Designer** - handig om een social-media post (bijv. een PLUS-sjabloon) als
+  afbeelding op te slaan en direct te plaatsen op je lokale social media.
+
 ## versie 2.24.0 - PLUS-sjablonen in de Designer · 21 augustus 2026
 
 - **De PLUS social-media sjablonen zitten nu in onze eigen Designer** (voorheen alleen in Canva). Bij een

@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.24.0'
+APP_VERSION = '2.24.1'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -4338,7 +4338,11 @@ def designer_preview(design_id):
     page = int(request.args.get('page', 0))
     img = _designer_render(des, dpi=min(300, max(72, dpi)), page=page)
     bio = io.BytesIO(); img.save(bio, 'PNG'); bio.seek(0)
-    return Response(bio.getvalue(), mimetype='image/png')
+    headers = {}
+    if request.args.get('dl') == '1':                      # als download (voor social posts)
+        safe = re.sub(r'[^A-Za-z0-9_-]+', '_', des.title or 'ontwerp')[:40] or 'ontwerp'
+        headers['Content-Disposition'] = f'attachment; filename="{safe}.png"'
+    return Response(bio.getvalue(), mimetype='image/png', headers=headers)
 
 def _designer_png_from_dataurl(durl):
     """Decodeer een 'data:image/png;base64,...'-string naar ruwe bytes (of None)."""

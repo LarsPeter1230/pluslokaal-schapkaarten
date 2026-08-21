@@ -129,10 +129,13 @@
     <button class="btn btn-ghost btn-sm" onclick="DZ.preview()"><i class="fa fa-eye"></i> Voorbeeld</button>
     {% if design.kind == 'label' %}
     <button class="btn btn-primary btn-sm" onclick="DZ.printLabel()"><i class="fa fa-print"></i> Print label</button>
-    {% elif engine == 'fabric' %}
+    {% else %}
+    <button class="btn btn-outline btn-sm" onclick="DZ.downloadPNG()"><i class="fa fa-image"></i> PNG</button>
+    {% if engine == 'fabric' %}
     <button class="btn btn-outline btn-sm" onclick="DZ.downloadPDF()"><i class="fa fa-file-pdf"></i> PDF</button>
     {% else %}
     <a class="btn btn-outline btn-sm" href="{{ url_for('designer_pdf', design_id=design.id) }}"><i class="fa fa-file-pdf"></i> PDF</a>
+    {% endif %}
     {% endif %}
     <button class="btn btn-primary btn-sm" onclick="DZ.save(true)"><i class="fa fa-floppy-disk"></i> Opslaan</button>
   </div>

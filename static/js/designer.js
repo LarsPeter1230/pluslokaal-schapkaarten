@@ -208,7 +208,7 @@
     layer: function (dir) { var e = sel(); if (!e) return; if (dir === 'front') e.z = els().length + 2; else if (dir === 'back') e.z = -1; else e.z = (e.z || 0) + (dir === 'up' ? 1.5 : -1.5); normZ(); render(); scheduleSave(); pushHist(); },
     lock: function () { var e = sel(); if (!e) return; e.lock = !e.lock; render(); buildProps(); scheduleSave(); },
     undo: undo, redo: redo, zoomBy: zoomBy, zoomFit: zoomFit,
-    save: save, preview: preview, printLabel: printLabel,
+    save: save, preview: preview, printLabel: printLabel, downloadPNG: downloadPNG,
     plusSearch: plusSearch, plusAdd: plusAdd, msSearch: msSearch,
     addPage: addPage, dupPage: dupPage, delPage: delPage, goPage: goPage
   };
@@ -474,6 +474,8 @@
     $('#dzPrevPg').disabled = pg <= 0; $('#dzNextPg').disabled = pg >= np - 1;
   }
   function closePreview() { $('#dzPreviewModal').classList.remove('open'); }
+  // PNG van de huidige pagina downloaden (voor social posts) - eerst opslaan, dan ophalen op 300 dpi.
+  function downloadPNG() { setSave('PNG maken…'); save(false).then(function () { window.location = I.previewUrl + '?dpi=300&dl=1&page=' + state.cur; setSave('Opgeslagen ✓'); }); }
   function printLabel() {
     var q = prompt('Hoeveel labels printen?', '1'); if (q === null) return;
     save(false).then(function () {
