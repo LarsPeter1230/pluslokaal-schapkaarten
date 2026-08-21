@@ -86,7 +86,7 @@
         ';font-style:' + (e.italic ? 'italic' : 'normal') + ';color:' + e.color +
         ';text-align:' + e.align + ';font-size:' + (e.size * baseH()) + 'px;line-height:' + (e.lineh || 1.15) +
         ';letter-spacing:' + ((e.ls || 0) * baseH()) + 'px;justify-content:' + (e.valign === 'top' ? 'flex-start' : 'center') + ';';
-      return '<div class="etext" style="' + st + '"></div>';
+      return '<div class="etext" title="Dubbelklik om de tekst te wijzigen (of pas \'m rechts aan bij Inhoud)" style="' + st + '"></div>';
     }
     if (e.type === 'image' || e.type === 'icon') return '<div class="el-imgwrap"><div class="el-spin">' + PL_SPIN + '</div><img data-imgel="1" src="' + (e.src || e.url || '') + '" style="object-fit:' + (e.fit || 'contain') + ';opacity:0"></div>';
     if (e.type === 'barcode') return '<img class="ebc" src="' + I.barcodeUrl + '?value=' + encodeURIComponent(e.value || '') + '&showtext=' + (e.showText ? 1 : 0) + '">';
