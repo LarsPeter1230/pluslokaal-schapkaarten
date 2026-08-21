@@ -442,17 +442,47 @@
   // ---- Opslaan / uitvoer -----------------------------------------------------
   function setSave(t) { saveState.textContent = t; }
   function scheduleSave() { setSave('Niet opgeslagen'); clearTimeout(saveTimer); saveTimer = setTimeout(function () { save(false); }, 1400); }
+  // save() geeft nu een Promise terug, zodat preview/print op de opgeslagen versie kunnen wachten.
   function save(withThumb) {
     setSave('Opslaan…');
     var body = { title: titleEl.innerText.trim(), data: { w_mm: I.w_mm, h_mm: I.h_mm, pages: state.pages } };
-    var fin = function () { fetch(I.saveUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': I.csrf }, credentials: 'same-origin', body: JSON.stringify(body) }).then(function (r) { return r.json(); }).then(function () { setSave('Opgeslagen ✓'); }).catch(function () { setSave('Opslaan mislukt'); }); };
+    var fin = function () { return fetch(I.saveUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': I.csrf }, credentials: 'same-origin', body: JSON.stringify(body) }).then(function (r) { return r.json(); }).then(function () { setSave('Opgeslagen ✓'); }).catch(function () { setSave('Opslaan mislukt'); }); };
     if (withThumb && window.html2canvas) {
       var was = selIds; selIds = []; render();
-      html2canvas(stage, { backgroundColor: page().bg || '#fff', scale: 300 / stage.offsetWidth }).then(function (c) { var t = document.createElement('canvas'); var s = Math.min(1, 420 / c.width); t.width = c.width * s; t.height = c.height * s; t.getContext('2d').drawImage(c, 0, 0, t.width, t.height); body.thumb = t.toDataURL('image/png'); selIds = was; render(); fin(); }).catch(function () { selIds = was; render(); fin(); });
-    } else fin();
+      return html2canvas(stage, { backgroundColor: page().bg || '#fff', scale: 300 / stage.offsetWidth }).then(function (c) { var t = document.createElement('canvas'); var s = Math.min(1, 420 / c.width); t.width = c.width * s; t.height = c.height * s; t.getContext('2d').drawImage(c, 0, 0, t.width, t.height); body.thumb = t.toDataURL('image/png'); selIds = was; render(); return fin(); }).catch(function () { selIds = was; render(); return fin(); });
+    }
+    return fin();
   }
-  function preview() { save(false); window.open(I.previewUrl + '?dpi=150&page=' + state.cur + '&t=' + Date.now(), '_blank'); }
-  function printLabel() { var q = prompt('Hoeveel labels printen?', '1'); if (q === null) return; save(false); setTimeout(function () { fetch(I.printLabelUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': I.csrf }, credentials: 'same-origin', body: JSON.stringify({ copies: parseInt(q) || 1 }) }).then(function (r) { return r.json(); }).then(function (d) { alert(d.ok ? 'Naar de labelprinter gestuurd ✓' : ('Printen mislukt: ' + (d.error || '?'))); }).catch(function () { alert('Printen mislukt.'); }); }, 600); }
+  // Voorbeeld: eerst opslaan (await), dan de server-render 1:1 in een nette modal tonen.
+  function preview() {
+    var m = $('#dzPreviewModal'), img = $('#dzPreviewImg');
+    m._pg = state.cur;
+    img.removeAttribute('src'); $('#dzPreviewImg').classList.add('loading');
+    $('#dzPreviewPg').textContent = 'Voorbeeld wordt gemaakt…';
+    m.classList.add('open');
+    save(false).then(function () { showPreviewPage(m._pg); });
+  }
+  function showPreviewPage(pg) {
+    var np = state.pages.length; if (pg < 0) pg = 0; if (pg >= np) pg = np - 1;
+    var m = $('#dzPreviewModal'); m._pg = pg;
+    var img = $('#dzPreviewImg');
+    img.classList.add('loading');
+    img.onload = function () { img.classList.remove('loading'); };
+    img.src = I.previewUrl + '?dpi=200&page=' + pg + '&t=' + Date.now();
+    $('#dzPreviewPg').textContent = np > 1 ? ('Pagina ' + (pg + 1) + ' / ' + np) : '';
+    $('#dzPrevPg').style.display = $('#dzNextPg').style.display = (np > 1 ? '' : 'none');
+    $('#dzPrevPg').disabled = pg <= 0; $('#dzNextPg').disabled = pg >= np - 1;
+  }
+  function closePreview() { $('#dzPreviewModal').classList.remove('open'); }
+  function printLabel() {
+    var q = prompt('Hoeveel labels printen?', '1'); if (q === null) return;
+    save(false).then(function () {
+      return fetch(I.printLabelUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': I.csrf }, credentials: 'same-origin', body: JSON.stringify({ copies: parseInt(q) || 1 }) })
+        .then(function (r) { return r.json(); })
+        .then(function (d) { alert(d.ok ? 'Naar de labelprinter gestuurd ✓' : ('Printen mislukt: ' + (d.error || '?'))); })
+        .catch(function () { alert('Printen mislukt.'); });
+    });
+  }
 
   // ---- Init ------------------------------------------------------------------
   document.addEventListener('DOMContentLoaded', function () {
@@ -468,6 +498,12 @@
     titleEl.addEventListener('blur', scheduleSave);
     $('#dzBgColor').addEventListener('input', function () { DZ.setBg(this.value); });
     $('#dzFile').addEventListener('change', function () { var file = this.files[0]; if (!file) return; var rd = new FileReader(); rd.onload = function (ev) { addToGallery(ev.target.result); DZ.addImage(ev.target.result); }; rd.readAsDataURL(file); this.value = ''; });
+    // Voorbeeld-modal: sluiten + paginanavigatie
+    $('#dzPreviewClose').addEventListener('click', closePreview);
+    $('#dzPreviewModal').addEventListener('click', function (e) { if (e.target === this) closePreview(); });
+    $('#dzPrevPg').addEventListener('click', function () { showPreviewPage(($('#dzPreviewModal')._pg || 0) - 1); });
+    $('#dzNextPg').addEventListener('click', function () { showPreviewPage(($('#dzPreviewModal')._pg || 0) + 1); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePreview(); });
     // sneltoetsen
     document.addEventListener('keydown', function (e) {
       if (/^(INPUT|TEXTAREA)$/.test(e.target.tagName) || e.target.isContentEditable) return;

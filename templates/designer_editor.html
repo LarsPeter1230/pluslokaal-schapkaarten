@@ -99,6 +99,14 @@
   .dz-addpage:hover{border-color:var(--green);background:var(--green-tint2);}
   .dz-modal{position:fixed;inset:0;background:rgba(20,26,20,.5);z-index:500;display:none;align-items:center;justify-content:center;}
   .dz-modal.open{display:flex;}
+  /* Voorbeeld-modal */
+  .dz-pvbox{background:#fff;border-radius:14px;max-width:min(92vw,900px);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+  .dz-pvhead{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border-soft);}
+  .dz-pvhead b{color:var(--green-d);}
+  .dz-pvbody{flex:1 1 auto;overflow:auto;background:#e9ebe6;display:flex;align-items:center;justify-content:center;padding:18px;min-height:220px;min-width:280px;}
+  .dz-pvbody img{max-width:100%;max-height:74vh;background:#fff;box-shadow:0 4px 20px rgba(0,0,0,.15);transition:opacity .15s;}
+  .dz-pvbody img.loading{opacity:.25;}
+  .dz-pvfoot{padding:8px 14px;border-top:1px solid var(--border-soft);text-align:center;}
 </style>
 {% endblock %}
 {% block content %}
@@ -211,6 +219,22 @@
 </div>
 
 <input type="file" id="dzFile" accept="image/*" hidden>
+
+<!-- Voorbeeld (server-render, 1:1 met de afdruk/PDF) -->
+<div class="dz-modal" id="dzPreviewModal">
+  <div class="dz-pvbox">
+    <div class="dz-pvhead">
+      <b><i class="fa fa-eye"></i> Voorbeeld</b>
+      <span id="dzPreviewPg" class="dz-savestate"></span>
+      <span class="sp" style="flex:1;"></span>
+      <button class="dz-ib" id="dzPrevPg" title="Vorige pagina"><i class="fa fa-chevron-left"></i></button>
+      <button class="dz-ib" id="dzNextPg" title="Volgende pagina"><i class="fa fa-chevron-right"></i></button>
+      <button class="btn btn-ghost btn-sm" id="dzPreviewClose"><i class="fa fa-xmark"></i> Sluiten</button>
+    </div>
+    <div class="dz-pvbody"><img id="dzPreviewImg" alt="voorbeeld"></div>
+    <div class="dz-pvfoot">Dit is exact wat er geprint / geexporteerd wordt.</div>
+  </div>
+</div>
 <script>
   window.DZ_INIT = {
     id: {{ design.id }}, kind: "{{ design.kind }}",

@@ -5,6 +5,13 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.22.2 - Designer-voorbeeld verbeterd · 21 augustus 2026
+
+- **Het "Voorbeeld" in de Designer klopt nu altijd en is goed te zien.** Voorheen kon je de vorige versie te
+  zien krijgen (het voorbeeld opende voordat je wijziging was opgeslagen) en verscheen het als een kale
+  afbeelding in een nieuw tabblad. Nu slaat de app eerst op en toont het voorbeeld in een net venster,
+  met bladeren tussen pagina's - exact zoals het geprint/geexporteerd wordt.
+
 ## versie 2.22.1 - Tekstuele opschoning · 15 augustus 2026
 
 - Kleine, tekstuele opschoning door de hele app: lange streepjes zijn overal vervangen door gewone
