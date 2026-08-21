@@ -5,6 +5,12 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.24.4 - Eén vrij invulbaar PLUS-sjabloon · 21 augustus 2026
+
+- **Eén PLUS-sjabloon in de "We doen met je mee"-stijl** met vrij invulbare tekst: vervang zelf
+  `[product]` en `[naam]`, sleep je foto erin en download. Zo maak je er elk product mee, zonder een
+  hele lijst vaste varianten.
+
 ## versie 2.24.3 - Tekst schaalt automatisch mee · 21 augustus 2026
 
 - **Lange teksten passen nu altijd netjes.** De kop en de winkelnaam in de PLUS-sjablonen schalen

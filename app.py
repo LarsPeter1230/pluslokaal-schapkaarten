@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.24.3'
+APP_VERSION = '2.24.4'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -3908,15 +3908,7 @@ _DESIGNER_ICONS = ['star', 'heart', 'check', 'circle-info', 'triangle-exclamatio
 # De campagne "vers bij [naam] vandaan" (social portret 4:5). Winkels vervangen [naam]
 # door hun winkelnaam en slepen een eigen foto in het fotovlak.
 _DESIGNER_TPL_SOCIAL = [
-    ('vers-aardbeien', 'Aardbeien lokaal', 'Onze aardbeien komen vers bij [naam] vandaan!'),
-    ('vers-asperges', 'Asperges lokaal', 'Onze asperges komen vers bij [naam] vandaan!'),
-    ('vers-appels', 'Appels lokaal', 'Onze appels komen vers bij [naam] vandaan!'),
-    ('vers-peren', 'Peren lokaal', 'Onze peren komen vers bij [naam] vandaan!'),
-    ('vers-kersen', 'Kersen lokaal', 'Onze kersen komen vers bij [naam] vandaan!'),
-    ('vers-aardappels', 'Aardappels lokaal', 'Onze aardappels komen vers bij [naam] vandaan!'),
-    ('vers-kaas', 'Kaas lokaal', 'Onze kaas komt vers bij [naam] vandaan!'),
-    ('vers-eieren', 'Eieren lokaal', 'Onze eieren komen vers bij [naam] vandaan!'),
-    ('vers-haring', 'Hollandse Nieuwe lokaal', 'Onze Hollandse Nieuwe komt vers bij [naam] vandaan!'),
+    ('vers-lokaal', 'Vers lokaal (We doen met je mee)', 'Onze [product] komen vers bij [naam] vandaan!'),
 ]
 _DESIGNER_TPL_W_MM, _DESIGNER_TPL_H_MM = 108.0, 135.0   # 4:5 social portret
 
