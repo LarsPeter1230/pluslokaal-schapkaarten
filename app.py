@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.22.2'
+APP_VERSION = '2.23.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -4169,8 +4169,10 @@ def designer_new():
 def designer_editor(design_id):
     u, des = _designer_get(design_id)
     fonts = [(k, v[2]) for k, v in _DESIGNER_FONTS.items()]
+    # Nieuwe Fabric.js-editor via ?fabric=1 (opt-in tijdens de migratie); anders de klassieke.
+    engine = 'fabric' if request.args.get('fabric') == '1' else 'classic'
     return render_template('designer_editor.html', design=des, fonts=fonts,
-                           icons=_DESIGNER_ICONS)
+                           icons=_DESIGNER_ICONS, engine=engine)
 
 @app.route('/designer/<int:design_id>/opslaan', methods=['POST'])
 @login_required
@@ -4240,18 +4242,40 @@ def designer_preview(design_id):
     bio = io.BytesIO(); img.save(bio, 'PNG'); bio.seek(0)
     return Response(bio.getvalue(), mimetype='image/png')
 
-@app.route('/designer/<int:design_id>/pdf')
+def _designer_png_from_dataurl(durl):
+    """Decodeer een 'data:image/png;base64,...'-string naar ruwe bytes (of None)."""
+    import base64
+    try:
+        if durl and durl.startswith('data:image'):
+            return base64.b64decode(durl.split(',', 1)[1])
+    except Exception:
+        pass
+    return None
+
+@app.route('/designer/<int:design_id>/pdf', methods=['GET', 'POST'])
 @login_required
 def designer_pdf(design_id):
     import io, fitz
     u, des = _designer_get(design_id)
     doc = fitz.open()
     pw, ph = des.w_mm * 72 / 25.4, des.h_mm * 72 / 25.4   # punten
-    for i in range(len(_designer_pages(des))):
-        img = _designer_render(des, dpi=300, page=i)
-        pbio = io.BytesIO(); img.save(pbio, 'PNG'); pbio.seek(0)
-        page = doc.new_page(width=pw, height=ph)
-        page.insert_image(fitz.Rect(0, 0, pw, ph), stream=pbio.getvalue())
+    # Nieuwe (Fabric-)editor stuurt de client-gerenderde PNG's mee → 1:1 met wat je ziet.
+    client_pngs = (request.get_json(silent=True) or {}).get('pages') if request.method == 'POST' else None
+    if client_pngs:
+        for durl in client_pngs:
+            raw = _designer_png_from_dataurl(durl)
+            if not raw:
+                continue
+            page = doc.new_page(width=pw, height=ph)
+            page.insert_image(fitz.Rect(0, 0, pw, ph), stream=raw)
+    else:                                                  # fallback: server-render (oude ontwerpen)
+        for i in range(len(_designer_pages(des))):
+            img = _designer_render(des, dpi=300, page=i)
+            pbio = io.BytesIO(); img.save(pbio, 'PNG'); pbio.seek(0)
+            page = doc.new_page(width=pw, height=ph)
+            page.insert_image(fitz.Rect(0, 0, pw, ph), stream=pbio.getvalue())
+    if doc.page_count == 0:
+        doc.new_page(width=pw, height=ph)
     out = doc.tobytes(); doc.close()
     safe = re.sub(r'[^A-Za-z0-9_-]+', '_', des.title or 'ontwerp')[:40] or 'ontwerp'
     return Response(out, mimetype='application/pdf',
@@ -4269,8 +4293,14 @@ def designer_print_label(design_id):
         if not ip_in_list(cip, f.allowed_ips or ''):
             return jsonify({'error': f'Printen kan alleen vanaf het winkelnetwerk. Jouw IP: {cip}.'}), 403
     dpi = int(f.printer_dpi or 300)
-    img = _designer_render(des, dpi=dpi).convert('L').point(lambda p: 0 if p < 128 else 1, mode='1')
-    qty = int((request.get_json(silent=True) or {}).get('copies', 1) or 1)
+    body = request.get_json(silent=True) or {}
+    raw = _designer_png_from_dataurl(body.get('png'))
+    if raw:                                                # client-gerenderd (Fabric) → 1:1
+        import io
+        img = Image.open(io.BytesIO(raw)).convert('L').point(lambda p: 0 if p < 128 else 1, mode='1')
+    else:                                                  # fallback: server-render
+        img = _designer_render(des, dpi=dpi).convert('L').point(lambda p: 0 if p < 128 else 1, mode='1')
+    qty = int(body.get('copies', 1) or 1)
     payload = _labelimage.image_to_tspl(img, des.w_mm, des.h_mm, dpi=dpi, copies=max(1, qty))
     try:
         _send_raw(f.printer_ip, f.printer_port or 9100, payload)

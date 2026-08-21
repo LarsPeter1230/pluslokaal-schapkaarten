@@ -129,6 +129,8 @@
     <button class="btn btn-ghost btn-sm" onclick="DZ.preview()"><i class="fa fa-eye"></i> Voorbeeld</button>
     {% if design.kind == 'label' %}
     <button class="btn btn-primary btn-sm" onclick="DZ.printLabel()"><i class="fa fa-print"></i> Print label</button>
+    {% elif engine == 'fabric' %}
+    <button class="btn btn-outline btn-sm" onclick="DZ.downloadPDF()"><i class="fa fa-file-pdf"></i> PDF</button>
     {% else %}
     <a class="btn btn-outline btn-sm" href="{{ url_for('designer_pdf', design_id=design.id) }}"><i class="fa fa-file-pdf"></i> PDF</a>
     {% endif %}
@@ -246,9 +248,15 @@
     barcodeUrl: "{{ url_for('designer_barcode') }}",
     previewUrl: "{{ url_for('designer_preview', design_id=design.id) }}",
     printLabelUrl: "{{ url_for('designer_print_label', design_id=design.id) }}",
+    pdfUrl: "{{ url_for('designer_pdf', design_id=design.id) }}",
     plusUrl: "{{ url_for('api_plus_zoek') }}"
   };
 </script>
+{% if engine == 'fabric' %}
+<script src="{{ url_for('static', filename='js/fabric.min.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='js/designer_fabric.js', v=app_version) }}"></script>
+{% else %}
 <script src="{{ url_for('static', filename='js/html2canvas.min.js', v=app_version) }}"></script>
 <script src="{{ url_for('static', filename='js/designer.js', v=app_version) }}"></script>
+{% endif %}
 {% endblock %}

@@ -5,6 +5,16 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.23.0 - Designer op Fabric.js (bèta, opt-in) · 21 augustus 2026
+
+- **Start van de nieuwe Designer op basis van Fabric.js** (open source, MIT). Te proberen door `?fabric=1`
+  achter de ontwerp-URL te zetten; de vertrouwde editor blijft voorlopig gewoon de standaard.
+- Eén renderer: het canvas in de browser maakt zelf de print-afbeelding (300 DPI), de server pakt die in
+  tot PDF of stuurt 'm naar de labelprinter. Zo is het voorbeeld altijd 1:1 met de afdruk.
+- Kernfuncties in deze eerste versie: tekst (kop/subkop/body), vormen, foto's uploaden, PLUS-zoek, iconen,
+  barcode, achtergrond, verplaatsen/schalen/roteren, lagen, transparantie, undo/redo, zoom, meerdere pagina's,
+  voorbeeld, PDF en labelprinten.
+
 ## versie 2.22.2 - Designer-voorbeeld verbeterd · 21 augustus 2026
 
 - **Het "Voorbeeld" in de Designer klopt nu altijd en is goed te zien.** Voorheen kon je de vorige versie te
