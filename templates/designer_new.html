@@ -10,6 +10,11 @@
   .dn-tab i{font-size:1.5rem;color:var(--green);} .dn-tab b{display:block;margin-top:6px;color:var(--green-d);}
   .dn-tab span{font-size:.8rem;color:var(--muted);}
   .dn-panel{display:none;} .dn-panel.active{display:block;}
+  .dn-gal{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .dn-card{border:1px solid var(--border);border-radius:12px;overflow:hidden;text-decoration:none;color:var(--text);background:#fff;transition:border-color .15s,box-shadow .15s;}
+  .dn-card:hover{border-color:var(--green);box-shadow:0 6px 20px rgba(0,0,0,.1);}
+  .dn-card img{display:block;width:100%;aspect-ratio:108/135;object-fit:cover;background:#f4f5f3;}
+  .dn-card b{display:block;padding:8px 10px;font-size:.82rem;color:var(--green-d);}
   .orient{display:flex;gap:10px;}
   .orient label{flex:1;border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center;cursor:pointer;}
   .orient input{display:none;} .orient input:checked + span{color:var(--green-d);font-weight:800;}
@@ -30,6 +35,8 @@
         <i class="fa fa-file"></i><b>Papier</b><span>Kaart of poster - kies formaat</span></div>
       <div class="dn-tab" data-kind="label" onclick="pickKind('label')">
         <i class="fa fa-tag"></i><b>Label</b><span>Op de labelprinter</span></div>
+      <div class="dn-tab" data-kind="template" onclick="pickKind('template')">
+        <i class="fa fa-icons"></i><b>PLUS-sjabloon</b><span>Social-media posts</span></div>
     </div>
 
     <div class="panel"><div class="panel__body stack">
@@ -57,7 +64,20 @@
         </div>
       </div>
 
-      <button type="submit" class="btn btn-primary btn-block"><i class="fa fa-pen-ruler"></i> Beginnen met ontwerpen</button>
+      <div class="dn-panel" id="panel-template">
+        <p class="hint" style="margin:0 0 12px;">Kies een PLUS-sjabloon. Je vervangt daarna alleen de
+          <b>winkelnaam</b> en sleept je eigen <b>foto</b> in het vlak - klaar om te downloaden.</p>
+        <div class="dn-gal">
+          {% for id, name, headline in social_templates %}
+          <a class="dn-card" href="{{ url_for('designer_template_use', tid=id) }}">
+            <img loading="lazy" src="{{ url_for('designer_template_thumb', tid=id) }}" alt="{{ name }}">
+            <b>{{ name }}</b>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block" id="dnSubmit"><i class="fa fa-pen-ruler"></i> Beginnen met ontwerpen</button>
     </div></div>
   </form>
 </div>
@@ -68,6 +88,9 @@ function pickKind(k){
   document.querySelectorAll('.dn-tab').forEach(function(t){t.classList.toggle('active', t.dataset.kind===k);});
   document.getElementById('panel-paper').classList.toggle('active', k==='paper');
   document.getElementById('panel-label').classList.toggle('active', k==='label');
+  document.getElementById('panel-template').classList.toggle('active', k==='template');
+  // Bij een sjabloon kies je direct een kaart (geen 'beginnen'-knop nodig).
+  document.getElementById('dnSubmit').style.display = (k==='template') ? 'none' : '';
 }
 </script>
 {% endblock %}

@@ -5,6 +5,14 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.24.0 - PLUS-sjablonen in de Designer · 21 augustus 2026
+
+- **De PLUS social-media sjablonen zitten nu in onze eigen Designer** (voorheen alleen in Canva). Bij een
+  nieuw ontwerp kies je de tab **"PLUS-sjabloon"** en pak je een kant-en-klare post uit de campagne
+  "We doen met je mee" (aardbeien, asperges, appels, peren, kersen, aardappels, kaas, eieren, Hollandse Nieuwe).
+- Je vervangt alleen de **winkelnaam** en sleept je eigen **foto** in het vlak - daarna direct downloaden.
+  Alles gebeurt in onze app; Canva is niet meer nodig.
+
 ## versie 2.23.0 - Designer op Fabric.js (bèta, opt-in) · 21 augustus 2026
 
 - **Start van de nieuwe Designer op basis van Fabric.js** (open source, MIT). Te proberen door `?fabric=1`

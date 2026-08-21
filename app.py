@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.23.0'
+APP_VERSION = '2.24.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -3904,6 +3904,50 @@ _DESIGNER_ICONS = ['star', 'heart', 'check', 'circle-info', 'triangle-exclamatio
                    'fire', 'leaf', 'thumbs-up', 'bell', 'truck', 'percent', 'crown', 'bolt', 'snowflake',
                    'sun', 'mug-hot', 'utensils', 'basket-shopping', 'wine-glass', 'cheese', 'apple-whole']
 
+# ─── PLUS-SJABLONEN ("We doen met je mee"-social posts, natief nagemaakt) ──────
+# De campagne "vers bij [naam] vandaan" (social portret 4:5). Winkels vervangen [naam]
+# door hun winkelnaam en slepen een eigen foto in het fotovlak.
+_DESIGNER_TPL_SOCIAL = [
+    ('vers-aardbeien', 'Aardbeien lokaal', 'Onze aardbeien komen vers bij [naam] vandaan!'),
+    ('vers-asperges', 'Asperges lokaal', 'Onze asperges komen vers bij [naam] vandaan!'),
+    ('vers-appels', 'Appels lokaal', 'Onze appels komen vers bij [naam] vandaan!'),
+    ('vers-peren', 'Peren lokaal', 'Onze peren komen vers bij [naam] vandaan!'),
+    ('vers-kersen', 'Kersen lokaal', 'Onze kersen komen vers bij [naam] vandaan!'),
+    ('vers-aardappels', 'Aardappels lokaal', 'Onze aardappels komen vers bij [naam] vandaan!'),
+    ('vers-kaas', 'Kaas lokaal', 'Onze kaas komt vers bij [naam] vandaan!'),
+    ('vers-eieren', 'Eieren lokaal', 'Onze eieren komen vers bij [naam] vandaan!'),
+    ('vers-haring', 'Hollandse Nieuwe lokaal', 'Onze Hollandse Nieuwe komt vers bij [naam] vandaan!'),
+]
+_DESIGNER_TPL_W_MM, _DESIGNER_TPL_H_MM = 108.0, 135.0   # 4:5 social portret
+
+def _designer_template_pages(headline):
+    """Elementen (fracties van het blad) voor een 'We doen met je mee'-sjabloon."""
+    return {'bg': '#ffffff', 'elements': [
+        {'type': 'text', 'x': 0.06, 'y': 0.05, 'w': 0.88, 'h': 0.30,
+         'text': headline, 'color': '#80bd1d', 'bold': True, 'size': 0.072, 'align': 'left',
+         'font': 'montserrat', 'valign': 'top', 'lineh': 1.05},
+        {'type': 'shape', 'shape': 'rect', 'x': 0.06, 'y': 0.37, 'w': 0.88, 'h': 0.40,
+         'fill': '#f4f5f3', 'radius': 0.02},
+        {'type': 'text', 'x': 0.06, 'y': 0.55, 'w': 0.88, 'h': 0.06,
+         'text': 'Sleep hier je foto', 'color': '#b7bdb0', 'size': 0.026, 'align': 'center'},
+        {'type': 'shape', 'shape': 'rect', 'x': 0.0, 'y': 0.82, 'w': 1.0, 'h': 0.18, 'fill': '#80bd1d'},
+        {'type': 'text', 'x': 0.08, 'y': 0.845, 'w': 0.84, 'h': 0.06,
+         'text': 'We doen met je mee.', 'color': '#ffffff', 'bold': True, 'size': 0.042, 'align': 'center'},
+        {'type': 'image', 'static': 'plus-logo-wit.svg', 'src': '/static/img/plus-logo-wit.svg',
+         'x': 0.30, 'y': 0.935, 'w': 0.20, 'h': 0.042, 'fit': 'contain'},
+        {'type': 'text', 'x': 0.515, 'y': 0.930, 'w': 0.33, 'h': 0.05,
+         'text': 'winkelnaam', 'color': '#ffffff', 'bold': True, 'size': 0.028, 'align': 'left', 'valign': 'middle'},
+    ]}
+
+def _designer_template(tid):
+    for id_, name, headline in _DESIGNER_TPL_SOCIAL:
+        if id_ == tid:
+            return {'id': id_, 'name': name, 'headline': headline,
+                    'w_mm': _DESIGNER_TPL_W_MM, 'h_mm': _DESIGNER_TPL_H_MM,
+                    'data': {'w_mm': _DESIGNER_TPL_W_MM, 'h_mm': _DESIGNER_TPL_H_MM,
+                             'pages': [_designer_template_pages(headline)]}}
+    return None
+
 def _designer_font(font_id, bold, size_px):
     from PIL import ImageFont
     fam = _DESIGNER_FONTS.get(font_id) or _DESIGNER_FONTS['montserrat']
@@ -3948,6 +3992,32 @@ def _designer_decode_img(src):
     except Exception:
         return None
 
+_designer_static_cache = {}
+def _designer_static_img(name, want_w=600):
+    """Laad een eigen asset uit static/img (SVG via cairosvg, anders PIL). Alleen een bestandsnaam,
+    geen paden - SSRF/traversal-veilig. Voor sjabloon-elementen zoals het PLUS-logo."""
+    from PIL import Image
+    import io, os as _os
+    base = _os.path.basename(str(name or ''))
+    if not base or base != str(name):
+        return None
+    key = (base, int(want_w))
+    if key in _designer_static_cache:
+        return _designer_static_cache[key]
+    path = _os.path.join(_os.path.dirname(__file__), 'static', 'img', base)
+    im = None
+    try:
+        if base.lower().endswith('.svg'):
+            import cairosvg
+            png = cairosvg.svg2png(url=path, output_width=max(16, int(want_w)))
+            im = Image.open(io.BytesIO(png)).convert('RGBA')
+        else:
+            im = Image.open(path).convert('RGBA')
+    except Exception:
+        im = None
+    _designer_static_cache[key] = im
+    return im
+
 def _designer_draw_el(canvas, el, W, H, dpi):
     from PIL import Image, ImageDraw
     t = el.get('type')
@@ -3990,7 +4060,9 @@ def _designer_draw_el(canvas, el, W, H, dpi):
 
     elif t in ('image', 'icon'):
         im = None
-        if el.get('url') and not el.get('src'):        # plus.nl-productfoto → server-side ophalen
+        if el.get('static'):                           # eigen asset uit static/img (bv. PLUS-logo in sjablonen)
+            im = _designer_static_img(el['static'], want_w=max(ew, eh))
+        if im is None and el.get('url') and not el.get('src'):  # plus.nl-productfoto → server-side ophalen
             try:
                 im = _fetch_overlay(el['url'], want_w=max(ew, eh))
             except Exception:
@@ -4162,7 +4234,33 @@ def designer_new():
     formats = LabelFormat.query.filter(
         (LabelFormat.filiaal == None) | (LabelFormat.filiaal == (_active_filiaal() or u.filiaal))
     ).order_by(LabelFormat.name).all()
-    return render_template('designer_new.html', label_formats=formats, paper=_DESIGNER_PAPER)
+    return render_template('designer_new.html', label_formats=formats, paper=_DESIGNER_PAPER,
+                           social_templates=_DESIGNER_TPL_SOCIAL)
+
+@app.route('/designer/sjabloon/<tid>.png')
+@login_required
+def designer_template_thumb(tid):
+    import io, types
+    tpl = _designer_template(tid)
+    if not tpl:
+        abort(404)
+    des = types.SimpleNamespace(w_mm=tpl['w_mm'], h_mm=tpl['h_mm'], data_json=json.dumps(tpl['data']))
+    img = _designer_render(des, dpi=90, page=0)
+    bio = io.BytesIO(); img.save(bio, 'PNG'); bio.seek(0)
+    return send_file(bio, mimetype='image/png')
+
+@app.route('/designer/sjabloon/<tid>/gebruik')
+@login_required
+def designer_template_use(tid):
+    u = get_current_user()
+    tpl = _designer_template(tid)
+    if not tpl:
+        flash('Sjabloon niet gevonden.', 'error'); return redirect(url_for('designer_new'))
+    des = Design(title=tpl['name'], kind='social', w_mm=tpl['w_mm'], h_mm=tpl['h_mm'],
+                 data_json=json.dumps(tpl['data']),
+                 username=u.username, filiaal=(_active_filiaal() or u.filiaal))
+    db.session.add(des); db.session.commit()
+    return redirect(url_for('designer_editor', design_id=des.id))
 
 @app.route('/designer/<int:design_id>')
 @login_required
