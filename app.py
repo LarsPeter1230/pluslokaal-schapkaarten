@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.27.0'
+APP_VERSION = '2.28.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -154,10 +154,28 @@ class Filiaal(db.Model):
     doc_printer_port  = db.Column(db.Integer,     default=631)
     doc_printer_trays = db.Column(db.Text,        nullable=True)    # JSON {formaat: 'tray-3', ...}
     print_only        = db.Column(db.Boolean,     default=False)    # download-knop verbergen (tenzij printer offline/fout)
+    # Print-agent (Raspberry Pi in de winkel): verbindt ZELF naar buiten (geen firewall-gaten),
+    # haalt printopdrachten op en stuurt ze naar de USB-printers. agent_key = geheime winkel-sleutel.
+    agent_key         = db.Column(db.String(64),  nullable=True, index=True)
+    agent_seen        = db.Column(db.DateTime,    nullable=True)    # laatste poll (online = < 2 min geleden)
+    agent_version     = db.Column(db.String(20),  nullable=True)
+    agent_info        = db.Column(db.Text,        nullable=True)    # JSON (hostname, printers, ip)
 
 class Setting(db.Model):
     key   = db.Column(db.String(60), primary_key=True)
     value = db.Column(db.Text, nullable=True)
+
+class AgentJob(db.Model):
+    """Printopdracht voor een winkel-print-agent (Raspberry Pi). De agent pollt en voert uit."""
+    id         = db.Column(db.Integer, primary_key=True)
+    filiaal    = db.Column(db.Integer, nullable=False, index=True)
+    kind       = db.Column(db.String(16), nullable=False)          # label | document
+    payload    = db.Column(db.Text, nullable=False)                # base64 (TSPL-bytes of PDF)
+    meta_json  = db.Column(db.Text, nullable=True)                 # {media,source,orient,copies,job_name,label}
+    status     = db.Column(db.String(16), default='pending', index=True)  # pending|fetched|done|error|cancelled
+    error      = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    done_at    = db.Column(db.DateTime, nullable=True)
 
 # ─── LABELS-MODULE (geïntegreerd uit PLUS Label Manager) ──────────────────────
 class Product(db.Model):
@@ -1970,7 +1988,8 @@ def _guard_export_files():
             return Response('Niet gevonden', status=404, mimetype='text/plain')
 
 # ─── CSRF-BESCHERMING (lichtgewicht, session-token) ───────────────────────────
-_CSRF_EXEMPT = {'portaal_view'}   # de proxy zet pluslokaal.nl-formulieren (hún eigen tokens) door
+_CSRF_EXEMPT = {'portaal_view',           # de proxy zet pluslokaal.nl-formulieren (hún eigen tokens) door
+                'agent_poll', 'agent_result'}   # print-agent authenticeert met X-Agent-Key, geen sessie
 
 @app.context_processor
 def _inject_csrf():
@@ -1991,7 +2010,7 @@ def _inject_store_printer():
                 return {'name': 'de winkelprinter', 'ready': False, 'reason': 'choose'}
             f = Filiaal.query.filter_by(nummer=fil).first()
             po = bool(f and getattr(f, 'print_only', False))
-            if f and f.doc_printer_ip:
+            if f and (f.doc_printer_ip or _agent_online(f)):
                 return {'name': f.doc_printer_name or 'de winkelprinter', 'ready': True, 'print_only': po}
             return {'name': 'de winkelprinter', 'ready': False, 'reason': 'none', 'print_only': po}
         except Exception:
@@ -4419,7 +4438,7 @@ def designer_pdf(design_id):
 def designer_print_label(design_id):
     u, des = _designer_get(design_id)
     f = Filiaal.query.filter_by(nummer=(des.filiaal or u.filiaal)).first()
-    if not f or not f.printer_ip:
+    if not f or not (f.printer_ip or _agent_online(f)):
         return jsonify({'error': 'Voor deze winkel is geen labelprinter ingesteld (Beheer → Filialen).'}), 400
     if getattr(u, 'access_policy', 'anywhere') == 'ip_print':
         cip = client_ip()
@@ -4436,7 +4455,7 @@ def designer_print_label(design_id):
     qty = int(body.get('copies', 1) or 1)
     payload = _labelimage.image_to_tspl(img, des.w_mm, des.h_mm, dpi=dpi, copies=max(1, qty))
     try:
-        _send_raw(f.printer_ip, f.printer_port or 9100, payload)
+        _send_label(f, payload)
     except OSError as e:
         return jsonify({'error': f'Kon niet naar de printer sturen: {e}'}), 502
     log_action('designer_print_label', f'ontwerp {des.id} ({des.title})', filiaal=f.nummer)
@@ -5359,6 +5378,153 @@ def _send_raw(ip, port, payload, timeout=8):
         sock.sendall(bytes(payload))
         time.sleep(0.4)   # printer tijd geven vóór sluiten (anders onvolledige job)
 
+# ─── PRINT-AGENT (Raspberry Pi in de winkel) ──────────────────────────────────
+# De Pi verbindt ZELF (uitgaand, HTTPS) met pluslokaal.com en pollt om printopdrachten:
+# geen firewall-gaten in het winkelnetwerk nodig. Printers hangen via USB aan de Pi.
+AGENT_ONLINE_WINDOW = 120       # seconden sinds laatste poll om als 'online' te gelden
+_AGENT_FILE = os.path.join(os.path.dirname(__file__), 'agent', 'pluslokaal_agent.py')
+_AGENT_INSTALL = os.path.join(os.path.dirname(__file__), 'agent', 'install.sh')
+
+def _agent_online(f):
+    return bool(f and f.agent_key and f.agent_seen
+                and (datetime.now() - f.agent_seen).total_seconds() < AGENT_ONLINE_WINDOW)
+
+def _agent_by_key():
+    key = (request.headers.get('X-Agent-Key') or '').strip()
+    if not key or len(key) < 20:
+        return None
+    return Filiaal.query.filter_by(agent_key=key).first()
+
+def _agent_enqueue(filiaal_nummer, kind, payload_bytes, meta):
+    import base64
+    job = AgentJob(filiaal=filiaal_nummer, kind=kind,
+                   payload=base64.b64encode(bytes(payload_bytes)).decode('ascii'),
+                   meta_json=json.dumps(meta or {}))
+    db.session.add(job); db.session.commit()
+    return job.id
+
+def _agent_wait(ajid, job_id=None, base=0, span=100, label='', timeout=180):
+    """Wacht (pollend) tot de agent de job afrondt. Werkt de print-voortgang bij; raise OSError bij fout."""
+    t0 = time.time()
+    while time.time() - t0 < timeout:
+        if job_id and _pj_is_cancelled(job_id):
+            with app.app_context():
+                r = db.session.get(AgentJob, ajid)
+                if r and r.status in ('pending', 'fetched'):
+                    r.status = 'cancelled'; db.session.commit()
+            raise _PrintCancelled()
+        with app.app_context():
+            r = db.session.get(AgentJob, ajid)
+            st = r.status if r else 'error'
+            err = (r.error if r else 'agentopdracht verdwenen')
+        if st == 'done':
+            return
+        if st in ('error', 'cancelled'):
+            raise OSError(err or 'de print-agent meldde een fout')
+        if job_id:
+            pct = base + int(span * min(0.9, (time.time() - t0) / 30.0))
+            _pj_set(job_id, percent=max(pct, sharedstate.job_field(job_id, 'percent', 0)),
+                    message=f'{label}: via winkel-agent…')
+        time.sleep(1)
+    raise OSError('de print-agent reageerde niet binnen de tijd (staat de Pi aan?)')
+
+def _send_label(f, payload, timeout=45):
+    """Stuur een labelprinter-payload naar de winkel: via de online print-agent (USB aan de Pi) als
+    die er is, anders rechtstreeks naar het printer-IP (poort 9100). Raise OSError bij falen."""
+    if _agent_online(f):
+        ajid = _agent_enqueue(f.nummer, 'label', payload, {'label': 'labels'})
+        t0 = time.time()
+        while time.time() - t0 < timeout:
+            db.session.expire_all()
+            r = db.session.get(AgentJob, ajid)
+            if r and r.status == 'done':
+                return
+            if r and r.status in ('error', 'cancelled'):
+                raise OSError(r.error or 'de print-agent meldde een fout')
+            time.sleep(1)
+        raise OSError('de print-agent reageerde niet (staat de Pi aan?)')
+    if not f.printer_ip:
+        raise OSError('geen labelprinter ingesteld en geen agent online')
+    _send_label(f, payload)
+
+def _agent_jobs_cleanup(max_age_seconds=3600):
+    try:
+        cutoff = datetime.now() - timedelta(seconds=max_age_seconds)
+        AgentJob.query.filter(AgentJob.created_at < cutoff).delete()
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+def _agent_version_info():
+    """(versie, sha256) van het agent-bestand op schijf."""
+    import hashlib
+    try:
+        src = open(_AGENT_FILE, 'rb').read()
+        m = re.search(rb"AGENT_VERSION\s*=\s*'([^']+)'", src)
+        ver = m.group(1).decode() if m else '0.0.0'
+        return ver, hashlib.sha256(src).hexdigest()
+    except Exception:
+        return '0.0.0', ''
+
+@app.route('/api/agent/poll', methods=['POST'])
+def agent_poll():
+    import base64
+    f = _agent_by_key()
+    if not f:
+        abort(401)
+    body = request.get_json(silent=True) or {}
+    f.agent_seen = datetime.now()
+    f.agent_version = str(body.get('version') or '')[:20]
+    try:
+        f.agent_info = json.dumps(body.get('info') or {})[:2000]
+    except Exception:
+        pass
+    db.session.commit()
+    _agent_jobs_cleanup()
+    jobs = (AgentJob.query.filter_by(filiaal=f.nummer, status='pending')
+            .order_by(AgentJob.id).limit(3).all())
+    out = []
+    for j in jobs:
+        j.status = 'fetched'
+        out.append({'id': j.id, 'kind': j.kind, 'meta': json.loads(j.meta_json or '{}'),
+                    'payload_b64': j.payload})
+    db.session.commit()
+    ver, sha = _agent_version_info()
+    return jsonify({'jobs': out, 'agent_version': ver})
+
+@app.route('/api/agent/result', methods=['POST'])
+def agent_result():
+    f = _agent_by_key()
+    if not f:
+        abort(401)
+    body = request.get_json(silent=True) or {}
+    j = db.session.get(AgentJob, int(body.get('job_id') or 0))
+    if not j or j.filiaal != f.nummer:
+        abort(404)
+    j.status = 'done' if body.get('ok') else 'error'
+    j.error = (str(body.get('error') or '')[:400]) or None
+    j.done_at = datetime.now()
+    db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/api/agent/update')
+def agent_update():
+    ver, sha = _agent_version_info()
+    return jsonify({'version': ver, 'sha256': sha})
+
+@app.route('/api/agent/download')
+def agent_download():
+    if not os.path.exists(_AGENT_FILE):
+        abort(404)
+    return send_file(_AGENT_FILE, mimetype='text/x-python', as_attachment=True,
+                     download_name='pluslokaal_agent.py')
+
+@app.route('/agent/install.sh')
+def agent_install_sh():
+    if not os.path.exists(_AGENT_INSTALL):
+        abort(404)
+    return send_file(_AGENT_INSTALL, mimetype='text/x-shellscript')
+
 def _build_label_payload(items, f, opts, quantities=None):
     """Bouw de printer-payload voor een lijst items volgens de winkel-printertaal. Geeft (bytes, aantal)."""
     proto = (f.printer_protocol or 'tspl').lower()
@@ -5395,7 +5561,7 @@ def label_print_network(job_id):
     if not is_superadmin(u) and job.filiaal != u.filiaal:
         abort(403)
     f = Filiaal.query.filter_by(nummer=job.filiaal).first()
-    if not f or not f.printer_ip:
+    if not f or not (f.printer_ip or _agent_online(f)):
         return jsonify({'error': 'Voor deze winkel is geen printer-IP ingesteld (Beheer → Printers).'}), 400
     # IP-beleid: sommige accounts mogen alleen printen vanaf het winkelnetwerk
     if getattr(u, 'access_policy', 'anywhere') == 'ip_print':
@@ -5412,7 +5578,7 @@ def label_print_network(job_id):
     if total == 0:
         return jsonify({'error': 'Geen labels om te printen.'}), 400
     try:
-        _send_raw(f.printer_ip, f.printer_port or 9100, payload)
+        _send_label(f, payload)
     except OSError as e:
         log_action('print_mislukt', f'{f.printer_ip}:{f.printer_port} ({e.__class__.__name__})', filiaal=f.nummer)
         return jsonify({'error': f'Kan {f.printer_ip}:{f.printer_port} niet bereiken ({e.__class__.__name__}). Gebruik anders browserprint.'}), 502
@@ -5459,7 +5625,7 @@ def _printers_for_cards(cards):
         return out
     for f in Filiaal.query.filter(Filiaal.nummer.in_(nums)).all():
         out[f.nummer] = {'name': f.doc_printer_name or 'de winkelprinter',
-                         'ready': bool(f.doc_printer_ip)}
+                         'ready': bool(f.doc_printer_ip or _agent_online(f))}
     return out
 
 def _card_format_key(card):
@@ -5704,16 +5870,29 @@ def _run_print_task(job_id, ip, port, path, docs, printer_label, filiaal=None):
     Elk document mag een eigen 'ip'/'port'/'path' hebben (bulk over meerdere winkelprinters)."""
     _pj_set(job_id, status='running', percent=3, message='Verbinden met de printer…')
     total = max(1, len(docs))
+    # Winkel met een online print-agent (Pi)? Dan gaan de documenten via de agent (USB-printers),
+    # niet rechtstreeks over het netwerk - dat kan van buitenaf immers niet.
+    with app.app_context():
+        f_agent = Filiaal.query.filter_by(nummer=filiaal).first() if filiaal else None
+        use_agent = _agent_online(f_agent)
     try:
         for idx, d in enumerate(docs):
             if _pj_is_cancelled(job_id):
                 raise _PrintCancelled()
-            dip = d.get('ip', ip); dport = d.get('port', port); dpath = d.get('path', path)
-            _pj_set(job_id, ip=dip, port=dport, path=dpath)   # zodat annuleren de juiste printer raakt
             base = int(idx / total * 100)
             span = max(1, int(100 / total))
             _pj_set(job_id, percent=max(base + 1, sharedstate.job_field(job_id, 'percent', 0)),
                     message=f'{d["label"]}: versturen…')
+            if use_agent and not d.get('ip'):        # per-doc eigen printer (bulk) blijft direct
+                with app.app_context():
+                    ajid = _agent_enqueue(filiaal, 'document', d['pdf'],
+                                          {'media': d.get('media'), 'source': d.get('source'),
+                                           'orient': d.get('orient'), 'copies': d.get('copies', 1),
+                                           'job_name': d.get('job_name', 'pluslokaal'), 'label': d['label']})
+                _agent_wait(ajid, job_id, base, span, d['label'])
+                continue
+            dip = d.get('ip', ip); dport = d.get('port', port); dpath = d.get('path', path)
+            _pj_set(job_id, ip=dip, port=dport, path=dpath)   # zodat annuleren de juiste printer raakt
             pjid = _ipp_send_print_job(dip, dport, dpath, d['pdf'], d.get('media'), d.get('source'),
                                        d.get('orient'), d.get('copies', 1), d.get('job_name', 'pluslokaal'))
             _poll_printer_job(dip, dport, dpath, pjid, job_id, base, span, d['label'])
@@ -5808,7 +5987,7 @@ def card_print_network(card_id):
         return jsonify({'success': True, 'printer': DEMO_PRINTER_NAAM,
                         'job_id': _enqueue_demo_print(card.title, [card.title])})
     f = Filiaal.query.filter_by(nummer=card.filiaal).first()
-    if not f or not f.doc_printer_ip:
+    if not f or not (f.doc_printer_ip or _agent_online(f)):
         return jsonify({'error': 'Voor deze winkel is geen winkelprinter ingesteld (Beheer → Filialen).'}), 400
     if getattr(u, 'access_policy', 'anywhere') == 'ip_print':
         cip = client_ip()
@@ -5829,7 +6008,7 @@ def card_print_network(card_id):
     except Exception:
         copies = 1
     tray = _doc_trays(f).get(fmt, 'auto')
-    plabel = f.doc_printer_name or f.doc_printer_ip
+    plabel = f.doc_printer_name or f.doc_printer_ip or 'de winkelprinter (via agent)'
     docs = [{'pdf': pdf_bytes, 'media': _DOC_MEDIA.get(fmt), 'source': tray,
              'orient': _DOC_ORIENT.get(fmt), 'copies': copies,
              'job_name': f'pluslokaal-{card.title}', 'label': card.title}]
@@ -5872,7 +6051,7 @@ def cards_print_network():
     docs, skipped, printers = [], [], {}
     for card in cards:
         f = fils.get(card.filiaal)
-        if not f or not f.doc_printer_ip:                 # geen printer voor die winkel
+        if not f or not (f.doc_printer_ip or _agent_online(f)):   # geen printer voor die winkel
             skipped.append(card.title); continue
         if ip_print and not ip_in_list(cip, f.allowed_ips or ''):
             skipped.append(card.title); continue
@@ -5882,7 +6061,7 @@ def cards_print_network():
         pdf_path = os.path.join(app.config['EXPORT_FOLDER'], card_basename(card.image) + '.pdf')
         if not os.path.exists(pdf_path):
             skipped.append(card.title); continue
-        pname = f.doc_printer_name or f.doc_printer_ip
+        pname = f.doc_printer_name or f.doc_printer_ip or 'de winkelprinter (via agent)'
         printers[pname] = printers.get(pname, 0) + 1
         with open(pdf_path, 'rb') as fh:
             docs.append({'pdf': fh.read(), 'media': _DOC_MEDIA.get(fmt),
@@ -5968,15 +6147,29 @@ def filiaal_detail(nummer):
     f = Filiaal.query.filter_by(nummer=nummer).first_or_404()
     if request.method == 'POST':
         act = request.form.get('action', 'save')
+        if act == 'agent_key':
+            # Nieuwe agent-sleutel genereren (en de oude ongeldig maken). Eén keer getoond.
+            f.agent_key = secrets.token_urlsafe(32)
+            f.agent_seen = None; f.agent_version = None
+            db.session.commit()
+            log_action('agent_sleutel', f'nieuwe sleutel voor winkel {f.nummer}', filiaal=f.nummer)
+            flash(f'Nieuwe agent-sleutel (kopieer nu, wordt niet nog eens getoond): {f.agent_key}', 'success')
+            return redirect(url_for('filiaal_detail', nummer=nummer))
+        if act == 'agent_revoke':
+            f.agent_key = None; f.agent_seen = None; f.agent_version = None; f.agent_info = None
+            db.session.commit()
+            log_action('agent_sleutel_ingetrokken', f'winkel {f.nummer}', filiaal=f.nummer)
+            flash('Agent-sleutel ingetrokken - de Pi kan niet meer verbinden.', 'success')
+            return redirect(url_for('filiaal_detail', nummer=nummer))
         if act == 'test':
-            if not f.printer_ip:
-                flash('Stel eerst een printer-IP in en sla op.', 'error')
+            if not (f.printer_ip or _agent_online(f)):
+                flash('Stel eerst een printer-IP in (of zet de winkel-agent aan) en sla op.', 'error')
                 return redirect(url_for('filiaal_detail', nummer=nummer))
             item = {'name': 'PLUS TEST', 'barcode': '8710400145829', 'price': 1.23}
             opts = {'price_unit': 'stuk', 'today': datetime.now().strftime('%d-%m-%Y')}
             payload, _t = _build_label_payload([item], f, opts)
             try:
-                _send_raw(f.printer_ip, f.printer_port or 9100, payload)
+                _send_label(f, payload)
                 log_action('printer_test', f'{f.printer_ip}:{f.printer_port}', filiaal=f.nummer)
                 flash(f'Testlabel verstuurd naar {f.printer_ip}:{f.printer_port}. Komt er niets uit? Kies een andere printertaal.', 'success')
             except OSError as e:
@@ -6032,7 +6225,9 @@ def filiaal_detail(nummer):
     ucount = User.query.filter_by(filiaal=f.nummer).count()
     return render_template('filiaal_detail.html', user=u, f=f, ucount=ucount,
                            doc_trays=_doc_trays(f), doc_formats=_DOC_TRAY_FORMATS,
-                           formaat_labels=FORMAAT_LABELS)
+                           formaat_labels=FORMAAT_LABELS,
+                           agent_online=_agent_online(f),
+                           agent_info=(json.loads(f.agent_info) if f.agent_info else {}))
 
 # ─── ROLLENBEHEER (admin) ─────────────────────────────────────────────────────
 def _slugify_role(txt):
@@ -7061,7 +7256,7 @@ def winkelpakketten_print_start():
     if fil is None:
         return jsonify({'error': 'Kies eerst een winkel (rechtsboven) om op te printen.'}), 400
     f = Filiaal.query.filter_by(nummer=fil).first()
-    if not f or not f.doc_printer_ip:
+    if not f or not (f.doc_printer_ip or _agent_online(f)):
         return jsonify({'error': 'Voor deze winkel is geen winkelprinter ingesteld (Beheer → Filialen).'}), 400
     if getattr(u, 'access_policy', 'anywhere') == 'ip_print':
         if not ip_in_list(client_ip(), f.allowed_ips or ''):
@@ -7071,7 +7266,7 @@ def winkelpakketten_print_start():
                                               'category_id': d.category_id} for d in known}
     _print_jobs_cleanup()
     job_id = secrets.token_hex(12)
-    plabel = f.doc_printer_name or f.doc_printer_ip
+    plabel = f.doc_printer_name or f.doc_printer_ip or 'de winkelprinter (via agent)'
     trays = _doc_trays(f)
     ip, port = f.doc_printer_ip, f.doc_printer_port or 631
     filiaal = f.nummer
@@ -7121,12 +7316,20 @@ def winkelpakketten_print_start():
                                  'orient': _DOC_ORIENT.get(key), 'copies': 1,
                                  'job_name': f'pluslokaal-{fmt}', 'label': fmt})
                 total = max(1, len(docs))
+                use_agent = _agent_online(Filiaal.query.filter_by(nummer=filiaal).first())
                 for idx, d in enumerate(docs):
                     if _pj_is_cancelled(job_id):
                         raise _PrintCancelled()
                     base = 70 + int(idx / total * 30); span = max(1, int(30 / total))
                     _pj_set(job_id, percent=max(base, sharedstate.job_field(job_id, 'percent', 0)),
                             message=f'{d["label"]} → lade {d["source"]}: versturen…')
+                    if use_agent:
+                        ajid = _agent_enqueue(filiaal, 'document', d['pdf'],
+                                              {'media': d['media'], 'source': d['source'],
+                                               'orient': d['orient'], 'copies': d['copies'],
+                                               'job_name': d['job_name'], 'label': d['label']})
+                        _agent_wait(ajid, job_id, base, span, d['label'])
+                        continue
                     pjid = _ipp_send_print_job(ip, port, '/ipp/print', d['pdf'], d['media'],
                                                d['source'], d['orient'], d['copies'], d['job_name'])
                     _poll_printer_job(ip, port, '/ipp/print', pjid, job_id, base, span, d['label'])
@@ -7771,6 +7974,16 @@ def _migrate_db():
             except Exception:
                 pass
     _migrate_w2p_dagdeal_docids()
+    # (agent-kolommen)
+    for sql in ["ALTER TABLE filiaal ADD COLUMN agent_key VARCHAR(64)",
+                "ALTER TABLE filiaal ADD COLUMN agent_seen DATETIME",
+                "ALTER TABLE filiaal ADD COLUMN agent_version VARCHAR(20)",
+                "ALTER TABLE filiaal ADD COLUMN agent_info TEXT"]:
+        try:
+            with db.engine.connect() as conn:
+                conn.execute(text(sql)); conn.commit()
+        except Exception:
+            pass
     # Afzender weg van no-reply (eenmalig; admin kan 'm daarna zelf aanpassen in Mailinstellingen).
     try:
         if (get_setting('smtp_from', '') or '').lower().startswith('noreply@'):

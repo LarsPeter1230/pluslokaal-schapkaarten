@@ -5,6 +5,18 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.28.0 - Print-agent voor winkels (Raspberry Pi) · 23 augustus 2026
+
+- **Elke winkel kan nu direct printen via een Raspberry Pi.** Sluit de label- en/of winkelprinter via USB
+  op een Pi aan; de Pi verbindt zelf beveiligd met pluslokaal.com (geen wijzigingen aan de winkel-firewall)
+  en print de opdrachten lokaal - inclusief de papierlade per formaat.
+- **Beheer → Filialen** heeft per winkel een nieuw blok "Print-agent": sleutel genereren/intrekken,
+  online-status, versie en de installatie-opdracht voor op de Pi.
+- Op de Pi draait een **nette webinterface** (poort 8080) voor alle instellingen: sleutel, printers,
+  lade-koppeling, testknoppen en een log. De agent **werkt zichzelf automatisch bij** via pluslokaal.com.
+- Is de agent van een winkel online, dan gebruiken alle bestaande printknoppen (labels, schapkaarten,
+  winkelpakketten) automatisch de agent; anders werkt alles zoals voorheen.
+
 ## versie 2.27.0 - Winkelpakketten downloaden zonder zip · 23 augustus 2026
 
 - **Geen zip meer bij het downloaden van winkelpakketten.** Kies je kaarten in meerdere formaten, dan

@@ -82,6 +82,39 @@
       </form>
     </div>
   </div>
+  <div class="panel" style="flex:1 1 380px;">
+    <div class="panel__head"><i class="fa fa-microchip"></i><h3>Print-agent (Raspberry Pi)</h3></div>
+    <div class="panel__body">
+      <p class="muted small" style="line-height:1.6;margin:0 0 10px;">
+        Voor winkels waar de server niet bij de printers kan: een <b>Raspberry Pi</b> in de winkel
+        (printers via <b>USB</b>) verbindt zelf beveiligd naar pluslokaal.com en print lokaal.
+        Geen wijzigingen aan de winkel-firewall nodig.</p>
+      {% if f.agent_key %}
+        <p style="margin:0 0 10px;">
+          Status:
+          {% if agent_online %}<span class="badge" style="background:var(--green);color:#fff;">● online</span>
+          {% else %}<span class="badge" style="background:#b45309;color:#fff;">● offline</span>{% endif %}
+          {% if f.agent_version %}<span class="muted small"> · agent v{{ f.agent_version }}</span>{% endif %}
+          {% if f.agent_seen %}<span class="muted small"> · laatst gezien {{ f.agent_seen.strftime('%d-%m %H:%M') }}</span>{% endif %}
+        </p>
+        {% if agent_info.get('hostname') %}<p class="muted small" style="margin:0 0 10px;">Pi: {{ agent_info.get('hostname') }}{% if agent_info.get('printers') %} · printers: {{ agent_info.get('printers')|join(', ') }}{% endif %}</p>{% endif %}
+        <form method="post" style="display:inline;"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="agent_key">
+          <button type="submit" class="btn btn-outline btn-sm" onclick="return confirm('Nieuwe sleutel genereren? De huidige Pi verliest dan de verbinding tot je de nieuwe sleutel invoert.')"><i class="fa fa-rotate"></i> Nieuwe sleutel</button></form>
+        <form method="post" style="display:inline;"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="agent_revoke">
+          <button type="submit" class="btn btn-ghost btn-sm" onclick="return confirm('Sleutel intrekken? De agent kan dan niet meer printen.')"><i class="fa fa-ban"></i> Intrekken</button></form>
+      {% else %}
+        <form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="agent_key">
+          <button type="submit" class="btn btn-primary btn-sm"><i class="fa fa-key"></i> Agent-sleutel genereren</button></form>
+      {% endif %}
+      <div class="sec__h" style="margin:14px 0 8px;"><i class="fa fa-download"></i> Installatie op de Pi</div>
+      <p class="muted small" style="line-height:1.6;margin:0 0 6px;">Sluit de printers via USB aan, verbind de Pi met het netwerk (bv. de Fritz!Box) en draai:</p>
+      <pre style="background:#f4f5f3;border-radius:8px;padding:10px;font-size:.72rem;overflow-x:auto;white-space:pre-wrap;">curl -fsSL https://pluslokaal.com/agent/install.sh | sudo bash</pre>
+      <p class="muted small" style="line-height:1.6;">Daarna open je op de Pi <b>http://&lt;pi-adres&gt;:8080</b>, vul je de agent-sleutel in en kies je de USB-printers. De agent werkt zichzelf automatisch bij.</p>
+    </div>
+  </div>
   <div class="panel" style="flex:0 1 300px;">
     <div class="panel__head"><i class="fa fa-circle-info"></i><h3>Uitleg</h3></div>
     <div class="panel__body">
