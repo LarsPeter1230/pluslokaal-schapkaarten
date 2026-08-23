@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.38.0'
+APP_VERSION = '2.40.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -5927,7 +5927,7 @@ export DEBIAN_FRONTEND=noninteractive
 timeout 180 apt-get update || true
 timeout 600 apt-get install -y --no-install-recommends cups cups-client || true
 usermod -aG lpadmin {user} 2>/dev/null || true
-cupsctl --remote-admin 2>/dev/null || true
+cupsctl --remote-admin --remote-any --share-printers 2>/dev/null || true
 S "Beheer-software installeren" 75
 [ -f /opt/pluslokaal-rmm-install.sh ] && timeout 900 bash /opt/pluslokaal-rmm-install.sh || true
 if [ "{kiosk}" = "yes" ] && [ -f /opt/pluslokaal-kiosk-install.sh ]; then timeout 900 bash /opt/pluslokaal-kiosk-install.sh || true; fi
@@ -6013,21 +6013,49 @@ def _mbr_part2(img_path):
 def _firstboot_baked_sh(server):
     """First-boot voor het KANT-EN-KLARE image: de agent draait al (gebakken + aangezet), dus we
     installeren alleen nog de printersoftware (CUPS) en de beheer-agent (RMM), met time-outs."""
+    kiosk = 'yes' if _kiosk_enabled() else 'no'
     return f"""#!/usr/bin/env bash
-# PLUSLokaal - de agent is al kant-en-klaar geinstalleerd; alleen CUPS + RMM nog.
+# PLUSLokaal - de agent is al kant-en-klaar geinstalleerd; alleen CUPS + RMM (+ scherm-kiosk) nog.
 # De statusregels (S) voeden de voortgangsbalk bovenaan de webinterface.
 D=/etc/pluslokaal-agent
 mkdir -p "$D"
 S(){{ printf '{{"step":"%s","pct":%s,"done":%s}}\\n' "$1" "$2" "${{3:-false}}" > "$D/setup-status.json"; }}
-S "Printersoftware (CUPS) installeren" 40
+S "Printersoftware (CUPS) installeren" 35
 export DEBIAN_FRONTEND=noninteractive
 timeout 180 apt-get update || true
 timeout 600 apt-get install -y --no-install-recommends cups cups-client || true
 usermod -aG lpadmin ubuntu 2>/dev/null || true
-cupsctl --remote-admin 2>/dev/null || true
-S "Beheer-agent (RMM) installeren" 70
+cupsctl --remote-admin --remote-any --share-printers 2>/dev/null || true
+S "Beheer-agent (RMM) installeren" 60
 [ -f /opt/pluslokaal-rmm-install.sh ] && timeout 900 bash /opt/pluslokaal-rmm-install.sh || true
-S "Updates controleren" 90
+if [ "{kiosk}" = "yes" ]; then
+  S "Schermweergave installeren" 80
+  # Lichte kiosk: cage (Wayland) + cog (WPE-browser) tonen de webinterface op een aangesloten scherm.
+  timeout 600 apt-get install -y --no-install-recommends cage cog seatd 2>/dev/null || true
+  systemctl enable --now seatd 2>/dev/null || true
+  usermod -aG video,input,render,seat ubuntu 2>/dev/null || true
+  cat >/etc/systemd/system/pluslokaal-kiosk.service <<'KU'
+[Unit]
+Description=PLUSLokaal kiosk (webinterface op scherm)
+After=systemd-user-sessions.service seatd.service network-online.target
+[Service]
+User=ubuntu
+TTYPath=/dev/tty1
+StandardInput=tty
+StandardOutput=journal
+PAMName=login
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+ExecStartPre=/bin/sleep 5
+ExecStart=/usr/bin/cage -- cog http://localhost/
+Restart=always
+RestartSec=6
+[Install]
+WantedBy=multi-user.target
+KU
+  systemctl daemon-reload 2>/dev/null || true
+  systemctl enable --now pluslokaal-kiosk 2>/dev/null || true
+fi
+S "Updates controleren" 92
 python3 /opt/pluslokaal-agent/pluslokaal_agent.py --check-update 2>/dev/null || true
 S "Afronden" 100 true
 touch /etc/pluslokaal-agent/.firstboot-done
@@ -6062,9 +6090,18 @@ def _bake_agent_into_rootfs(build):
         "[Service]\nExecStart=/usr/bin/python3 /opt/pluslokaal-agent/pluslokaal_agent.py\n"
         "Restart=always\nRestartSec=5\n[Install]\nWantedBy=multi-user.target\n")
     fb = os.path.join(tmpd, 'firstboot'); open(fb, 'w').write(_firstboot_baked_sh(server))
+    # Console-melding op een aangesloten scherm (getty vervangt \\4 door het IP-adres).
+    issue = os.path.join(tmpd, 'issue'); open(issue, 'w').write(
+        "\n  \\e[1;32mPLUSLokaal Print-Agent\\e[0m\n"
+        "  --------------------------------------------\n"
+        "  Open op een pc of laptop:  \\e[1mhttp://\\4/\\e[0m\n"
+        "  en koppel daar de winkel met de sleutel.\n\n")
     cmds = [
         'mkdir /opt/pluslokaal-agent',
         'mkdir /etc/pluslokaal-agent',
+        'rm /etc/issue',
+        f'write {issue} /etc/issue',
+        'sif /etc/issue mode 0100644',
         f'write {_AGENT_FILE} /opt/pluslokaal-agent/pluslokaal_agent.py',
         'sif /opt/pluslokaal-agent/pluslokaal_agent.py mode 0100755',
         f'write {unit} /etc/systemd/system/pluslokaal-agent.service',
@@ -6170,7 +6207,7 @@ chmod 755 /opt/pluslokaal-agent/pluslokaal_agent.py
 python3 /opt/pluslokaal-agent/pluslokaal_agent.py --install || true
 S "Printersoftware instellen" 55
 usermod -aG lpadmin plus || true
-cupsctl --remote-admin || true
+cupsctl --remote-admin --remote-any --share-printers || true
 S "Beheer-software installeren" 75
 [ -f /opt/pluslokaal-rmm-install.sh ] && timeout 900 bash /opt/pluslokaal-rmm-install.sh || true
 [ -f /opt/pluslokaal-kiosk-install.sh ] && timeout 900 bash /opt/pluslokaal-kiosk-install.sh || true
@@ -6394,7 +6431,7 @@ runcmd:
   - chmod 755 /opt/pluslokaal-agent/pluslokaal_agent.py
   - python3 /opt/pluslokaal-agent/pluslokaal_agent.py --install
   - usermod -aG lpadmin ubuntu || true
-  - cupsctl --remote-admin || true
+  - cupsctl --remote-admin --remote-any --share-printers || true
 """
     log_action('agent_userdata', f'SD-bestand gedownload voor winkel {f.nummer}', filiaal=f.nummer)
     return Response(ud, mimetype='text/yaml',

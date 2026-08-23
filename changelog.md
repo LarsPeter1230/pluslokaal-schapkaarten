@@ -5,6 +5,19 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.40.0 - PA: schermweergave, zelfherstel, aparte printerkoppen en info in PLUSLokaal · 23 augustus 2026
+
+- **Schermweergave op de Pi**: op een aangesloten monitor toont de Pi nu een melding met het IP
+  ("open http://<ip>/") en, waar mogelijk, de webinterface zelf via een lichte kiosk.
+- **Zelfherstel**: de agent installeert bij het starten ontbrekende benodigdheden (printersoftware/CUPS)
+  vanzelf en zet CUPS open voor het winkelnetwerk. Bestaande Pi's pakken dit mee na de automatische update.
+- **CUPS bereikbaar vanaf je laptop**: de link naar CUPS wijst nu naar het juiste (lokale) IP van de Pi,
+  en CUPS staat open voor het winkelnetwerk (geen "Forbidden" meer).
+- **PA-webinterface: aparte kaarten** voor Labelprinter en Winkelprinter, en een knop
+  **"Pi opnieuw opstarten"** (naast "Agent herstarten").
+- **In PLUSLokaal zie je nu welke printers op de PA gekozen zijn** (label- en winkelprinter) op het
+  tabblad Printers, met een link om het op de PA te wijzigen.
+
 ## versie 2.38.0 - Koppelbevestiging, duidelijke logs en automatisch winkel-IP · 23 augustus 2026
 
 - **Na het invoeren van de sleutel krijg je een bevestiging**: "Aanmelding gelukt - gekoppeld aan

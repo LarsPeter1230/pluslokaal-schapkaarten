@@ -30,7 +30,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from http import cookies as http_cookies
 from urllib.parse import parse_qs, urlparse, quote as urlquote
 
-AGENT_VERSION = '1.6.0'
+AGENT_VERSION = '1.7.0'
 CONFIG_DIR = '/etc/pluslokaal-agent'
 CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.json')
 SETUP_STATUS_FILE = os.path.join(CONFIG_DIR, 'setup-status.json')
@@ -200,6 +200,39 @@ def set_hostname_for_store(nr):
         log(f'hostnaam instellen mislukt: {e}')
 
 
+def write_setup_status(step, pct, done=False):
+    try:
+        os.makedirs(CONFIG_DIR, exist_ok=True)
+        json.dump({'step': step, 'pct': pct, 'done': done}, open(SETUP_STATUS_FILE, 'w'))
+    except Exception:
+        pass
+
+
+def ensure_deps():
+    """Self-healing: installeer ontbrekende benodigdheden (CUPS) en zet CUPS open voor het winkel-
+    netwerk. Draait ook op reeds gekoppelde Pi's na een agent-update, zodat missende onderdelen
+    vanzelf worden bijgeplaatst."""
+    def _run():
+        try:
+            has_cups = os.path.exists('/usr/sbin/cupsd') or bool(shutil.which('lpstat'))
+            if not has_cups:
+                write_setup_status('Printersoftware (CUPS) installeren', 45)
+                env = dict(os.environ, DEBIAN_FRONTEND='noninteractive')
+                subprocess.run(['apt-get', 'update'], timeout=180, env=env, capture_output=True)
+                subprocess.run(['apt-get', 'install', '-y', '--no-install-recommends', 'cups', 'cups-client'],
+                               timeout=600, env=env, capture_output=True)
+                log('CUPS was niet aanwezig - achteraf geinstalleerd.')
+                server_log('deps', 'CUPS achteraf geinstalleerd op de Pi')
+                write_setup_status('Afronden', 100, True)
+            # CUPS bereikbaar maken vanaf het winkelnetwerk (idempotent, veilig om vaker te draaien)
+            subprocess.run(['cupsctl', '--remote-admin', '--remote-any', '--share-printers'],
+                           timeout=30, capture_output=True)
+            subprocess.run(['usermod', '-aG', 'lpadmin', 'ubuntu'], timeout=15, capture_output=True)
+        except Exception as e:
+            log(f'ensure_deps: {e}')
+    threading.Thread(target=_run, daemon=True).start()
+
+
 def server_log(kind, msg):
     """Stuur een gebeurtenis naar PLUSLokaal zodat die in de centrale logs verschijnt (best-effort)."""
     if not CFG.get('key'):
@@ -214,6 +247,9 @@ def server_log(kind, msg):
 
 def poll_once():
     info = {'hostname': os.uname().nodename, 'ip': primary_ip(),
+            'label_device': CFG.get('label_device') or '',
+            'doc_queue': CFG.get('doc_queue') or '',
+            'usb_count': len(usb_label_devices()),
             'printers': ([os.path.basename(CFG['label_device'])] if CFG.get('label_device') else [])
                         + ([CFG['doc_queue']] if CFG.get('doc_queue') else [])}
     res = api('/api/agent/poll', {'version': AGENT_VERSION, 'info': info})
@@ -537,32 +573,42 @@ MAIN_PAGE = """{header}
     <div><span class=sysk>Jobs</span>{done} geprint · {err} fout</div>
   </div>
   {lasterr_html}</div>
-<div class=card><h2>Printers &amp; instellingen</h2>
 <form method=post action=/save>
-  <div class=row>
-    <div><label>Labelprinter (USB)</label><select name=label_device><option value="">- uit -</option>{label_opts}</select></div>
-    <div><label>Winkelprinter (CUPS-queue)</label><select name=doc_queue><option value="">- uit -</option>{queue_opts}</select></div>
+  <div class=card><h2>&#127991; Labelprinter</h2>
+    <p><small>De labelprinter (bv. via USB) waarop schaplabels worden geprint.</small></p>
+    <label>Labelprinter (USB)</label>
+    <select name=label_device><option value="">- uit -</option>{label_opts}</select>
+    <small>{usb_count} USB-printer(s) gevonden · <a href="/">vernieuwen</a></small>
   </div>
-  <small>{usb_count} USB-printer(s) gevonden · <a href="/" >vernieuwen</a> · nieuwe USB-printer eerst toevoegen via <a href="http://{host}:631" target=_blank>CUPS (:631)</a></small>
-  <label>Papierlade per lade-code <small>(bv. tray-2=Tray2, tray-3=Tray3)</small></label>
-  <input name=tray_map value="{tray_map}" placeholder="tray-2=Tray2, tray-3=Tray3">
-  <div class=row>
-    <div><label>Standaard aantal kopieën</label><input name=default_copies value="{copies}"></div>
-    <div><label>Poll-interval (sec)</label><input name=poll_interval value="{poll}"></div>
-    <div><label>Auto-update</label><select name=auto_update><option value=1 {au1}>aan</option><option value=0 {au0}>uit</option></select></div>
+  <div class=card><h2>&#128424; Winkelprinter</h2>
+    <p><small>De kantoorprinter/copier voor schap- en scankaarten. Voeg 'm eventueel eerst toe in CUPS.</small></p>
+    <label>Winkelprinter (CUPS-queue)</label>
+    <select name=doc_queue><option value="">- uit -</option>{queue_opts}</select>
+    <small>Nieuwe USB-printer toevoegen via <a href="http://{cupsip}:631/admin" target=_blank>CUPS ({cupsip}:631)</a> <span style="color:#999">(op het winkelnetwerk)</span></small>
+    <label>Papierlade per lade-code <small>(bv. tray-2=Tray2, tray-3=Tray3)</small></label>
+    <input name=tray_map value="{tray_map}" placeholder="tray-2=Tray2, tray-3=Tray3">
+    <label>Standaard aantal kopieën</label>
+    <input name=default_copies value="{copies}" style="max-width:120px">
   </div>
-  <details style="margin-top:12px"><summary style="cursor:pointer;color:var(--green-d);font-weight:700">Geavanceerd (server &amp; sleutel)</summary>
+  <div class=card><h2>&#9881; Instellingen</h2>
     <div class=row>
-      <div><label>Server</label><input name=server value="{server}"></div>
-      <div><label>Agent-sleutel</label><input name=key value="{key}"></div>
-    </div></details>
-  <button>Opslaan</button>
-</form></div>
+      <div><label>Poll-interval (sec)</label><input name=poll_interval value="{poll}"></div>
+      <div><label>Auto-update</label><select name=auto_update><option value=1 {au1}>aan</option><option value=0 {au0}>uit</option></select></div>
+    </div>
+    <details style="margin-top:12px"><summary style="cursor:pointer;color:var(--green-d);font-weight:700">Geavanceerd (server &amp; sleutel)</summary>
+      <div class=row>
+        <div><label>Server</label><input name=server value="{server}"></div>
+        <div><label>Agent-sleutel</label><input name=key value="{key}"></div>
+      </div></details>
+    <button>Opslaan</button>
+  </div>
+</form>
 <div class=card><h2>Testen &amp; onderhoud</h2>
   <form method=post action=/test_label style="display:inline"><button class=ghost>Testlabel</button></form>
   <form method=post action=/test_doc style="display:inline"><button class=ghost>Testpagina (A4)</button></form>
   <form method=post action=/update style="display:inline"><button class=ghost>&#8635; Zoek naar updates</button></form>
-  <form method=post action=/restart style="display:inline"><button class=plain>Agent herstarten</button></form></div>
+  <form method=post action=/restart style="display:inline"><button class=plain>Agent herstarten</button></form>
+  <form method=post action=/reboot style="display:inline"><button class=plain onclick="return confirm('De hele Pi opnieuw opstarten? Dit duurt ongeveer een minuut.')">Pi opnieuw opstarten</button></form></div>
 <div class=card><h2>Log</h2><pre>{log}</pre></div>
 </main></body></html>"""
 
@@ -701,7 +747,7 @@ class Web(BaseHTTPRequestHandler):
             poll=CFG.get('poll_interval', 3),
             au1='selected' if CFG.get('auto_update') else '',
             au0='' if CFG.get('auto_update') else 'selected',
-            host=esc(host), log=logtxt))
+            host=esc(host), cupsip=esc(primary_ip()), log=logtxt))
 
     def do_POST(self):
         global CFG
@@ -808,8 +854,14 @@ class Web(BaseHTTPRequestHandler):
             except Exception as e:
                 return self._redirect('/', f'Testpagina mislukt: {e}')
         if path == '/restart':
+            log('Agent wordt herstart via de webinterface')
             threading.Timer(0.5, lambda: os._exit(0)).start()
             return self._redirect('/', 'Agent herstart…')
+        if path == '/reboot':
+            log('Pi wordt opnieuw opgestart via de webinterface')
+            server_log('reboot', 'Pi opnieuw opgestart via de webinterface')
+            threading.Timer(1.0, lambda: subprocess.run(['systemctl', 'reboot'])).start()
+            return self._redirect('/', 'De Pi start opnieuw op - een ogenblik geduld…')
         self._redirect('/')
 
     def log_message(self, *a):
@@ -870,6 +922,7 @@ def main():
     threading.Thread(target=poll_loop, daemon=True).start()
     threading.Thread(target=update_loop, daemon=True).start()
     threading.Thread(target=tunnel_loop, daemon=True).start()
+    ensure_deps()   # ontbrekende benodigdheden (CUPS) achteraf bijplaatsen + CUPS openzetten
     # Webinterface op poort 80 (gewoon het IP intypen - handig, ook via RMM) én 8080 (terugval).
     port = int(CFG.get('web_port') or 8080)
     try:

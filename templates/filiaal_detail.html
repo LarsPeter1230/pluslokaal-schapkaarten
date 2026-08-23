@@ -34,6 +34,12 @@
         <p class="muted small" style="margin:0 0 12px;line-height:1.55;">De server maakt van het ontwerp een
           afdruk (logo + barcode) en stuurt die naar de labelprinter{% if f.agent_key %} op de PA{% endif %}.
           Stel hier het label-formaat en de resolutie in.</p>
+        {% if f.agent_key %}
+        <div class="pa-note" style="margin-bottom:14px;">
+          {% if agent_info.get('label_device') %}<i class="fa fa-circle-check"></i> Op de PA gekozen: <b>{{ agent_info.get('label_device') }}</b>
+          {% else %}<i class="fa fa-circle-info"></i> Nog geen labelprinter gekozen op de PA.{% endif %}
+          <a href="{{ url_for('agent_web_proxy', nummer=f.nummer) }}" target="_blank" rel="noopener">wijzig op de PA</a></div>
+        {% endif %}
         {% if not f.agent_key %}
         <div class="grid cols-2" style="margin-bottom:2px;">
           <div class="field"><label>Printernaam</label><input type="text" name="printer_name" value="{{ f.printer_name or '' }}" placeholder="LW650XL PRO"></div>
@@ -66,6 +72,12 @@
         <input type="hidden" name="section" value="doc">
         <p class="muted small" style="margin:0 0 12px;line-height:1.55;">De gewone kantoorprinter/copier waar
           schap- en scankaarten op afgedrukt worden. Kies per kaartformaat welke papierlade gebruikt wordt.</p>
+        {% if f.agent_key %}
+        <div class="pa-note" style="margin-bottom:14px;">
+          {% if agent_info.get('doc_queue') %}<i class="fa fa-circle-check"></i> Op de PA gekozen: <b>{{ agent_info.get('doc_queue') }}</b>
+          {% else %}<i class="fa fa-circle-info"></i> Nog geen winkelprinter gekozen op de PA.{% endif %}
+          <a href="{{ url_for('agent_web_proxy', nummer=f.nummer) }}" target="_blank" rel="noopener">wijzig op de PA</a></div>
+        {% endif %}
         {% if not f.agent_key %}
         <div class="grid cols-2" style="margin-bottom:10px;">
           <div class="field"><label>Printernaam</label><input type="text" name="doc_printer_name" value="{{ f.doc_printer_name or '' }}" placeholder="Toshiba e-STUDIO3515AC"></div>
