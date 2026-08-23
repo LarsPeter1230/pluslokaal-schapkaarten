@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.26.0'
+APP_VERSION = '2.26.1'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -2962,6 +2962,17 @@ def signup():
 def forgot():
     if request.method == 'POST':
         ident = request.form.get('identifier','').strip()
+        # Rate-limit per IP én per doel-account (max 3 verzoeken/kwartier): voorkomt dat iemand met de
+        # bekende winkel-e-mailadressen massaal reset-mails laat sturen (spam + mailreputatie-schade).
+        now = time.time()
+        ip_key = f'forgot_ip:{client_ip()}'
+        id_key = f'forgot_id:{ident.lower()[:120]}'
+        ip_n, _ = sharedstate.rl_active(ip_key, 900, now)
+        id_n, _ = sharedstate.rl_active(id_key, 900, now)
+        if ip_n >= 10 or id_n >= 3:
+            flash('Te veel verzoeken. Probeer het over een kwartier opnieuw.', 'error')
+            return redirect(url_for('login'))
+        sharedstate.rl_record(ip_key); sharedstate.rl_record(id_key)
         user = find_user_by_name(ident) or find_user_by_email(ident)
         if user and user.email and mail_enabled():
             try:

@@ -5,6 +5,11 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.26.1 - Wachtwoord-vergeten beschermd tegen misbruik · 23 augustus 2026
+
+- **"Wachtwoord vergeten" heeft nu een limiet** (max. 3 verzoeken per account en 10 per computer per
+  kwartier). Zo kan niemand winkels bestoken met reset-mails, nu de winkel-e-mailadressen in de app staan.
+
 ## versie 2.26.0 - Alle PLUS-winkels toegevoegd + nette afzenders · 23 augustus 2026
 
 - **Alle PLUS-winkels staan nu als filiaal in de app**, met per winkel een **medewerker-account** op het
