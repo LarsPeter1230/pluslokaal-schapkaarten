@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.26.2'
+APP_VERSION = '2.27.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -7225,34 +7225,37 @@ def winkelpakketten_download_progress(job_id):
             'message': prog.get('message', '')}
     if job['status'] == 'error':
         resp['error'] = job['error']
+    if job['status'] == 'done' and job.get('files'):
+        resp['file_count'] = len(job['files'])         # → client downloadt elk formaat als losse PDF
     return jsonify(resp)
 
 @app.route('/winkelpakketten/download/file/<job_id>')
 @login_required
 def winkelpakketten_download_file(job_id):
+    """Serveer de PDF('s) van een afgeronde download-job. Standaard (zonder ``i``) het eerste bestand;
+    met ``?i=<index>`` een specifiek formaat. GEEN zip meer: de browser downloadt per formaat een losse
+    PDF (personeel hoeft niets uit te pakken). De job blijft staan tot alle bestanden zijn opgehaald
+    (bijgehouden in 'served'); daarna wordt 'ie opgeruimd - en anders door de 30-min-cleanup."""
     import base64
     job = sharedstate.job_get(job_id)
-    items = None
-    if job and job.get('status') == 'done' and job.get('files'):
-        # base64 → (fmt, bytes) terugdecoderen; daarna de job (en dus de bytes) opruimen.
-        items = [(fmt, base64.b64decode(b64)) for fmt, b64 in job['files']]
-        sharedstate.job_delete(job_id)
-    if not items:
+    if not (job and job.get('status') == 'done' and job.get('files')):
         abort(404)
+    files = job['files']
+    idx = request.args.get('i', 0, type=int)
+    if not (0 <= idx < len(files)):
+        abort(404)
+    fmt, b64 = files[idx]
+    data = base64.b64decode(b64)
+    served = set(job.get('served') or [])
+    served.add(idx)
+    if len(served) >= len(files):
+        sharedstate.job_delete(job_id)                 # alles opgehaald → bytes opruimen
+    else:
+        sharedstate.job_set(job_id, served=sorted(served))
     stamp = datetime.now().strftime('%Y%m%d-%H%M')
-    if len(items) == 1:
-        fmt, b = items[0]
-        bio = io.BytesIO(b); bio.seek(0)
-        return send_file(bio, mimetype='application/pdf', as_attachment=True,
-                         download_name=f'winkelpakket_{fmt}_{stamp}.pdf'.replace(' ', '_'))
-    import zipfile
-    zbio = io.BytesIO()
-    with zipfile.ZipFile(zbio, 'w', zipfile.ZIP_DEFLATED) as z:
-        for fmt, b in items:
-            z.writestr(f'{fmt}.pdf'.replace(' ', '_'), b)
-    zbio.seek(0)
-    return send_file(zbio, mimetype='application/zip', as_attachment=True,
-                     download_name=f'winkelpakketten_{stamp}.zip')
+    bio = io.BytesIO(data); bio.seek(0)
+    return send_file(bio, mimetype='application/pdf', as_attachment=True,
+                     download_name=f'winkelpakket_{fmt}_{stamp}.pdf'.replace(' ', '_'))
 
 def _w2p_sync_progress_response(job_id, state, detail_job_id=None, parallel_detail=False):
     import w2p_client

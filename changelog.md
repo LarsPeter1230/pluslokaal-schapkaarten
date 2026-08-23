@@ -5,6 +5,12 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.27.0 - Winkelpakketten downloaden zonder zip · 23 augustus 2026
+
+- **Geen zip meer bij het downloaden van winkelpakketten.** Kies je kaarten in meerdere formaten, dan
+  krijg je nu per formaat gewoon een **losse PDF** direct in je Downloads (bijv. `winkelpakket_A3_liggend_….pdf`,
+  `winkelpakket_SK_Maxi_….pdf`). Personeel hoeft dus niets meer uit te pakken - openen en printen.
+
 ## versie 2.26.2 - Winkelpakket-voorbeelden: direct én betrouwbaar · 23 augustus 2026
 
 - **Van gedownloade weken is nu élk voorbeeld direct zichtbaar** - ook de SK Maxi-kaarten (die op

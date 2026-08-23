@@ -682,24 +682,32 @@ function wpThumbRetry(img){
   function showToast(){ if(toast) toast.hidden = false; if(modal) modal.hidden = true; }
   function hideAll(){ if(modal) modal.hidden = true; if(toast) toast.hidden = true; }
 
-  function triggerFileDownload(jobId){
-    var a = document.createElement('a');
-    a.href = fileTpl.replace('__JOB__', jobId);
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(function(){ a.remove(); }, 1500);
+  function triggerFileDownload(jobId, fileCount){
+    // Elk formaat als LOSSE PDF downloaden (geen zip) - met korte tussenpauzes zodat de
+    // browser meerdere downloads accepteert.
+    var n = Math.max(1, fileCount || 1);
+    for (var i = 0; i < n; i++) (function(idx){
+      setTimeout(function(){
+        var a = document.createElement('a');
+        a.href = fileTpl.replace('__JOB__', jobId) + '?i=' + idx;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function(){ a.remove(); }, 1500);
+      }, idx * 700);
+    })(i);
   }
 
   function stopPolling(){
     if(pollTimer){ clearInterval(pollTimer); pollTimer = null; }
   }
 
-  function finishJob(jobId){
+  function finishJob(jobId, fileCount){
     localStorage.removeItem(JOB_KEY);
     stopPolling();
-    setBars(100, 'Klaar! Bestand wordt gedownload…');
-    triggerFileDownload(jobId);
+    setBars(100, (fileCount > 1) ? ('Klaar! ' + fileCount + ' PDF\'s worden gedownload…')
+                                 : 'Klaar! Bestand wordt gedownload…');
+    triggerFileDownload(jobId, fileCount);
     // Mandje legen: deze kaarten zijn nu gedownload, dus de selectie is niet meer nodig.
     cart.clear(); saveCart();
     boxes.forEach(function(b){ b.checked = false; });
@@ -722,7 +730,7 @@ function wpThumbRetry(img){
       fetch(progressTpl.replace('__JOB__', jobId))
         .then(function(r){ if(!r.ok) throw new Error('job niet gevonden'); return r.json(); })
         .then(function(p){
-          if(p.status === 'done'){ finishJob(jobId); }
+          if(p.status === 'done'){ finishJob(jobId, p.file_count || 1); }
           else if(p.status === 'error'){ failJob(p.error || 'Downloaden mislukt.'); }
           else { setBars(p.percent, p.message); }
         })
