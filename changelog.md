@@ -5,6 +5,13 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.28.1 - Print-agent: SD-kaart in één keer klaar · 23 augustus 2026
+
+- **De Pi is nu al tijdens het flashen volledig voor te bereiden.** Download per winkel een kant-en-klaar
+  SD-kaart-bestand (Beheer → Filialen → Print-agent) met de winkel-sleutel er al in, zet het na het
+  flashen (Ubuntu Server via Raspberry Pi Imager) op de SD-kaart, en de eerste boot installeert alles
+  vanzelf. Bij de winkel hoef je alleen nog naar het IP van de Pi om de printers te kiezen.
+
 ## versie 2.28.0 - Print-agent voor winkels (Raspberry Pi) · 23 augustus 2026
 
 - **Elke winkel kan nu direct printen via een Raspberry Pi.** Sluit de label- en/of winkelprinter via USB

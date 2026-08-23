@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.28.0'
+APP_VERSION = '2.28.1'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -5524,6 +5524,52 @@ def agent_install_sh():
     if not os.path.exists(_AGENT_INSTALL):
         abort(404)
     return send_file(_AGENT_INSTALL, mimetype='text/x-shellscript')
+
+@app.route('/filiaal/<int:nummer>/agent-userdata')
+@login_required
+def agent_userdata(nummer):
+    """Genereer een kant-en-klaar cloud-init 'user-data'-bestand voor op de SD-kaart (Ubuntu Server
+    voor Raspberry Pi). De winkel-sleutel zit er al in: SD-kaart flashen → dit bestand op de
+    'system-boot'-partitie over het bestaande 'user-data' heen zetten → Pi aansluiten → na de eerste
+    boot is de agent volledig geïnstalleerd en hoef je alleen nog printers te kiezen op :8080."""
+    u = get_current_user()
+    if not u or u.role != 'admin':
+        abort(403)
+    f = Filiaal.query.filter_by(nummer=nummer).first_or_404()
+    if not f.agent_key:
+        flash('Genereer eerst een agent-sleutel.', 'error')
+        return redirect(url_for('filiaal_detail', nummer=nummer))
+    server = 'https://pluslokaal.com'
+    cfg = json.dumps({'server': server, 'key': f.agent_key, 'label_device': '', 'doc_queue': '',
+                      'tray_map': {}, 'poll_interval': 3, 'web_port': 8080, 'auto_update': True},
+                     indent=2)
+    cfg_ind = '\n'.join('      ' + line for line in cfg.splitlines())
+    ud = f"""#cloud-config
+# PLUSLokaal Print-Agent - winkel {f.nummer} ({f.naam or ''})
+# Zet dit bestand als 'user-data' op de system-boot-partitie van een vers geflashte
+# Ubuntu Server (Raspberry Pi) SD-kaart. Bij de eerste boot installeert alles zichzelf.
+hostname: pluslokaal-agent-{f.nummer}
+package_update: true
+packages:
+  - python3
+  - cups
+  - cups-client
+write_files:
+  - path: /etc/pluslokaal-agent/config.json
+    permissions: '0600'
+    content: |
+{cfg_ind}
+runcmd:
+  - mkdir -p /opt/pluslokaal-agent
+  - curl -fsSL {server}/api/agent/download -o /opt/pluslokaal-agent/pluslokaal_agent.py
+  - chmod 755 /opt/pluslokaal-agent/pluslokaal_agent.py
+  - python3 /opt/pluslokaal-agent/pluslokaal_agent.py --install
+  - usermod -aG lpadmin ubuntu || true
+  - cupsctl --remote-admin || true
+"""
+    log_action('agent_userdata', f'SD-bestand gedownload voor winkel {f.nummer}', filiaal=f.nummer)
+    return Response(ud, mimetype='text/yaml',
+                    headers={'Content-Disposition': 'attachment; filename="user-data"'})
 
 def _build_label_payload(items, f, opts, quantities=None):
     """Bouw de printer-payload voor een lijst items volgens de winkel-printertaal. Geeft (bytes, aantal)."""

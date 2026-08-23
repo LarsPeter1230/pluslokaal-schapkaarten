@@ -109,10 +109,28 @@
           <input type="hidden" name="action" value="agent_key">
           <button type="submit" class="btn btn-primary btn-sm"><i class="fa fa-key"></i> Agent-sleutel genereren</button></form>
       {% endif %}
-      <div class="sec__h" style="margin:14px 0 8px;"><i class="fa fa-download"></i> Installatie op de Pi</div>
-      <p class="muted small" style="line-height:1.6;margin:0 0 6px;">Sluit de printers via USB aan, verbind de Pi met het netwerk (bv. de Fritz!Box) en draai:</p>
+      <div class="sec__h" style="margin:14px 0 8px;"><i class="fa fa-sd-card"></i> SD-kaart klaarmaken (aanrader)</div>
+      {% if f.agent_key %}
+      <p class="muted small" style="line-height:1.6;margin:0 0 8px;">
+        Alles staat er dan al op - bij de winkel alleen aansluiten en naar het IP gaan:</p>
+      <ol class="muted small" style="line-height:1.7;margin:0 0 8px;padding-left:18px;">
+        <li>Flash met <b>Raspberry Pi Imager</b>: kies <b>Ubuntu Server LTS (64-bit)</b>.</li>
+        <li>Na het flashen verschijnt de schijf <b>system-boot</b> in de Verkenner: vervang daar het
+            bestand <b>user-data</b> door
+            <a href="{{ url_for('agent_userdata', nummer=f.nummer) }}"><b>dit kant-en-klare bestand</b></a>
+            (sleutel van deze winkel zit er al in).</li>
+        <li>SD-kaart in de Pi, printers via USB, netwerkkabel in de Fritz!Box, stroom erop.
+            De eerste boot installeert alles vanzelf (± 5-10 min, internet vereist).</li>
+        <li>Open daarna <b>http://&lt;pi-adres&gt;:8080</b> en kies alleen nog de printers/lades.
+            (USB-winkelprinter eerst toevoegen in CUPS: <b>http://&lt;pi-adres&gt;:631</b>.)</li>
+      </ol>
+      {% else %}
+      <p class="muted small" style="margin:0 0 8px;">Genereer eerst een agent-sleutel; daarna kun je hier
+        het kant-en-klare SD-kaart-bestand downloaden.</p>
+      {% endif %}
+      <div class="sec__h" style="margin:14px 0 8px;"><i class="fa fa-download"></i> Of: installeren op een draaiende Pi</div>
       <pre style="background:#f4f5f3;border-radius:8px;padding:10px;font-size:.72rem;overflow-x:auto;white-space:pre-wrap;">curl -fsSL https://pluslokaal.com/agent/install.sh | sudo bash</pre>
-      <p class="muted small" style="line-height:1.6;">Daarna open je op de Pi <b>http://&lt;pi-adres&gt;:8080</b>, vul je de agent-sleutel in en kies je de USB-printers. De agent werkt zichzelf automatisch bij.</p>
+      <p class="muted small" style="line-height:1.6;">Daarna op <b>http://&lt;pi-adres&gt;:8080</b> de sleutel invullen. De agent werkt zichzelf automatisch bij via pluslokaal.com.</p>
     </div>
   </div>
   <div class="panel" style="flex:0 1 300px;">
