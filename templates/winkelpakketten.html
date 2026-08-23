@@ -170,8 +170,7 @@
             <div class="wp-kaart__fmt">{{ d.formaat }}</div>
             <div class="kaart__prev">
               <img src="{{ url_for('winkelpakketten_thumb', doc_id=d.promotion_document_id) }}"
-                   alt="{{ d.naam }}" loading="lazy"
-                   onerror="this.parentElement.style.background='#f1f1ee'">
+                   alt="{{ d.naam }}" loading="lazy" data-tries="0" onerror="wpThumbRetry(this)">
               {% if d.unavailable %}<span class="wp-gone"><i class="fa fa-ban"></i> Niet meer beschikbaar</span>{% endif %}
             </div>
             <div class="kaart__body">
@@ -497,6 +496,15 @@
 
 {% block extra_scripts %}
 <script>
+// Thumbnail die de eerste keer faalt (bv. nog even bezig met genereren) automatisch 1-3x opnieuw
+// proberen met oplopende vertraging, zodat de grid altijd in één keer goed vult i.p.v. pas na F5.
+function wpThumbRetry(img){
+  var n = (parseInt(img.getAttribute('data-tries'))||0) + 1;
+  img.setAttribute('data-tries', n);
+  if (n > 3){ img.parentElement.style.background = '#f1f1ee'; return; }
+  var base = img.src.split('?')[0];
+  setTimeout(function(){ img.src = base + '?r=' + n; }, n * 900);
+}
 (function(){
   var CART_KEY = 'wp_cart_v1';
 

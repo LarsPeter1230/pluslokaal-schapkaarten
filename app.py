@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.24.5'
+APP_VERSION = '2.25.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -6173,20 +6173,32 @@ def _w2p_pdf_dir():
 # geen bruikbare weekpakketten en worden bewust overgeslagen.
 W2P_CATEGORIES = [(7, 'Weekpakketten'), (8, 'Slijterij')]
 
+# Bekende fysieke papierformaten (de W2P-downloadbuckets). Elke tegel-tekst met decoratie eromheen
+# (bv. "Briljant …", "… OLF", "… Dagdeal ma", of een TOEKOMSTIGE campagne-suffix) hoort bij het
+# basisformaat dat erin voorkomt. Zo hoeven we niet elke nieuwe variant handmatig toe te voegen.
+_W2P_BASE_FORMATS = [
+    'A3 liggend', 'A3 staand', 'A4 liggend', 'A4 staand', 'A5 liggend', 'A5 staand',
+    'A6 liggend', 'A6 staand', 'SK Maxi', 'SK Middel', 'SK Mini',
+]
+
 def _normalize_formaat(formaat):
-    """W2P's downloadpagina bundelt kaarten per fysiek papierformaat, niet per exacte tegel-tekst:
-    ontwerpvarianten als "Briljant X" en campagne-suffixen als "X OLF" landen allemaal in dezelfde
-    "Group=X"-downloadbucket. Zonder deze normalisatie klopt onze verwachte paginacount nooit en
-    wordt er niets gecached (empirisch gevonden: alle 8 varianten van bv. "Briljant A3 liggend OLF"
-    en "A3 liggend OLF" bleken in de site's ene "A3 liggend"-PDF te zitten)."""
+    """Koppel een tegel-formaat aan het fysieke papierformaat (W2P-downloadbucket). W2P bundelt alle
+    varianten van een formaat (Briljant/OLF/Dagdeal/…) in ÉÉN per-formaat-PDF; deze normalisatie zorgt
+    dat onze paginacount klopt en de lokale cache gebruikt wordt i.p.v. onnodig live te bestellen.
+
+    Zelf-aanpassend: bevat de tekst een bekend basisformaat, dan geeft die het basisformaat terug -
+    ook voor nog-onbekende suffixen. Alleen als geen basisformaat herkend wordt, valt 'ie terug op
+    het strippen van bekende decoraties."""
     f = (formaat or '').strip()
+    low = f.lower()
+    for base in _W2P_BASE_FORMATS:
+        if base.lower() in low:
+            return base
+    # Terugval voor een onbekend basisformaat: strip bekende decoraties.
     if f.startswith('Briljant '):
         f = f[len('Briljant '):]
     if f.endswith(' OLF'):
         f = f[:-len(' OLF')]
-    # Dagdeal-varianten (bv. "A3 liggend Dagdeal ma/di/zo") zitten bij W2P in DEZELFDE per-formaat-PDF
-    # als het basisformaat; zonder deze normalisatie klopt de paginacount niet en wordt er telkens
-    # onnodig live besteld (empirisch geverifieerd: 32 pagina's = basis + Dagdeal, 1-op-1 op tegel-volgorde).
     f = re.sub(r'\s+Dagdeal\b.*$', '', f, flags=re.I)
     return f.strip()
 
@@ -6747,18 +6759,58 @@ def winkelpakketten():
                            meta_syncing=_w2p_meta_state['running'], pdf_syncing=_w2p_pdf_state['running'],
                            can_sync=can(u, 'w2p_sync'))
 
+def _w2p_local_thumb(doc_id):
+    """Render de thumbnail rechtstreeks uit een al lokaal gecachte PDF (voor gedownloade weken).
+    Snel en betrouwbaar - geen plus.nl-verkeer, dus geen 'laadt pas na F5' onder een grid vol tegels.
+    Alleen voor single-up formaten (1 pagina per kaart), waar we de exacte pagina kennen."""
+    d = db.session.get(W2PDocument, int(doc_id))
+    if not d:
+        return None
+    nf = _normalize_formaat(d.formaat)
+    row = W2PCachedPdf.query.filter_by(category_id=d.category_id, period_id=d.period_id,
+                                       group_id=d.group_id, formaat=nf).first()
+    if not row:
+        return None
+    try:
+        doc_ids = json.loads(row.doc_ids or '[]')
+    except Exception:
+        doc_ids = []
+    if d.promotion_document_id not in doc_ids or row.page_count != len(doc_ids):
+        return None                                   # multi-up of onbekende pagina → geen lokale render
+    idx = doc_ids.index(d.promotion_document_id)
+    path = os.path.join(_w2p_pdf_dir(), row.path)
+    if not os.path.exists(path):
+        return None
+    try:
+        import fitz, io as _io
+        src = fitz.open(path)
+        if idx >= src.page_count:
+            src.close(); return None
+        pix = src[idx].get_pixmap(matrix=fitz.Matrix(0.5, 0.5))   # ~halve resolutie = nette thumbnail
+        bio = _io.BytesIO(pix.tobytes('png')); src.close()
+        return bio.getvalue()
+    except Exception:
+        return None
+
 @app.route('/winkelpakketten/thumb/<int:doc_id>')
 @login_required
 def winkelpakketten_thumb(doc_id):
     tp = os.path.join(_w2p_thumb_dir(), f'{doc_id}.png')
     if not os.path.exists(tp):
-        try:
-            import w2p_client
-            b = w2p_client.thumbnail(doc_id)
-            if isinstance(b, (bytes, bytearray)) and len(b) > 500:
+        # 1) Snelste + betrouwbaarste: render uit de al lokaal gecachte PDF (gedownloade weken).
+        b = _w2p_local_thumb(doc_id)
+        # 2) Terugval: nog niet gedownload → on-demand bij plus.nl ophalen.
+        if not (isinstance(b, (bytes, bytearray)) and len(b) > 500):
+            try:
+                import w2p_client
+                b = w2p_client.thumbnail(doc_id)
+            except Exception:
+                b = None
+        if isinstance(b, (bytes, bytearray)) and len(b) > 500:
+            try:
                 open(tp, 'wb').write(b)
-        except Exception:
-            pass
+            except Exception:
+                pass
     if os.path.exists(tp):
         return send_file(tp, mimetype='image/png')
     abort(404)
@@ -6799,6 +6851,28 @@ def _wp_assemble_items(ids, known, targets, job_id, quantities=None):
     for cat, pid, gid in seen_triples:
         for row in W2PCachedPdf.query.filter_by(category_id=cat, period_id=pid, group_id=gid).all():
             cache_rows[(cat, pid, gid, row.formaat)] = row
+
+    # Zelf-herstel: synchroniseer de opgeslagen kaart-indeling (doc_ids) met de HUIDIGE documenten van
+    # dit formaat. Verandert de normalisatie of duikt er een nieuwe formaat-variant op, dan corrigeert de
+    # cache zichzelf bij de eerste download (i.p.v. voor altijd onnodig live te bestellen). De gecachte
+    # PDF-bestanden blijven ongewijzigd; alleen de metadata (welke kaart bij welke pagina) wordt bijgewerkt.
+    _healed = False
+    for (cat, pid, gid, fmt), row in list(cache_rows.items()):
+        try:
+            cur_ids = json.loads(row.doc_ids or '[]')
+        except Exception:
+            cur_ids = []
+        fresh = [d.promotion_document_id for d in
+                 W2PDocument.query.filter_by(category_id=cat, period_id=pid, group_id=gid)
+                 .order_by(W2PDocument.sort_index).all()
+                 if _normalize_formaat(d.formaat) == fmt]
+        if fresh and fresh != cur_ids:
+            row.doc_ids = json.dumps(fresh); _healed = True
+    if _healed:
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
 
     from collections import defaultdict as _dd
     cached_hits = []       # (formaat, cache_row, page_index) - single-up: exact per kaart knipbaar

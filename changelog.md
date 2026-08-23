@@ -5,6 +5,16 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.25.0 - Winkelpakketten: zelf-herstellend + thumbnails altijd in één keer · 23 augustus 2026
+
+- **Lost zichzelf voortaan automatisch op.** Duikt er in de toekomst een nieuwe formaat-variant op (zoals
+  eerder "Dagdeal"), dan koppelt de app die nu vanzelf aan het juiste basisformaat en corrigeert de lokale
+  opslag zichzelf bij de eerstvolgende download - je hoeft niets opnieuw te downloaden en er wordt niet
+  onnodig live besteld.
+- **Afbeeldingen in Winkelpakketten laden nu altijd in één keer goed** (geen F5 meer nodig). Voor weken die
+  al op de server staan, worden de voorbeelden rechtstreeks uit de lokale bestanden gemaakt - snel en
+  betrouwbaar. Een enkele tegel die toch hapert, probeert zichzelf automatisch opnieuw.
+
 ## versie 2.24.5 - Winkelpakketten: gedownloade weken worden nu echt gebruikt · 23 augustus 2026
 
 - **Opgelost: kaarten van al-gedownloade weken plaatsten tóch een nieuwe bestelling.** De "Dagdeal"-kaarten
