@@ -5,6 +5,13 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.37.1 - Voortgangsbalk in de webinterface (ook vanaf je laptop) · 23 augustus 2026
+
+- **Bij het openen van de Pi (op z'n IP, ook vanaf een laptop op het winkelnetwerk) zie je meteen het
+  koppelscherm met bovenin een balkje** dat toont wat er nog op de achtergrond draait: printersoftware
+  (CUPS), de beheer-agent (RMM) en de update-controle, met een percentage. Het balkje verdwijnt vanzelf
+  zodra alles klaar is - je kunt ondertussen gewoon de winkel koppelen.
+
 ## versie 2.37.0 - Kant-en-klaar Pi-image: de agent zit er al in · 23 augustus 2026
 
 - **De agent zit nu kant-en-klaar in het Pi-image gebakken en start meteen bij de eerste boot.** Er hoeft

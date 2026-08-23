@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.37.0'
+APP_VERSION = '2.37.1'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -5983,12 +5983,21 @@ def _firstboot_baked_sh(server):
     installeren alleen nog de printersoftware (CUPS) en de beheer-agent (RMM), met time-outs."""
     return f"""#!/usr/bin/env bash
 # PLUSLokaal - de agent is al kant-en-klaar geinstalleerd; alleen CUPS + RMM nog.
+# De statusregels (S) voeden de voortgangsbalk bovenaan de webinterface.
+D=/etc/pluslokaal-agent
+mkdir -p "$D"
+S(){{ printf '{{"step":"%s","pct":%s,"done":%s}}\\n' "$1" "$2" "${{3:-false}}" > "$D/setup-status.json"; }}
+S "Printersoftware (CUPS) installeren" 40
 export DEBIAN_FRONTEND=noninteractive
 timeout 180 apt-get update || true
 timeout 600 apt-get install -y --no-install-recommends cups cups-client || true
 usermod -aG lpadmin ubuntu 2>/dev/null || true
 cupsctl --remote-admin 2>/dev/null || true
+S "Beheer-agent (RMM) installeren" 70
 [ -f /opt/pluslokaal-rmm-install.sh ] && timeout 900 bash /opt/pluslokaal-rmm-install.sh || true
+S "Updates controleren" 90
+python3 /opt/pluslokaal-agent/pluslokaal_agent.py --check-update 2>/dev/null || true
+S "Afronden" 100 true
 touch /etc/pluslokaal-agent/.firstboot-done
 """
 

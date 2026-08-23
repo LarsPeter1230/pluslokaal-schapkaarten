@@ -30,7 +30,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from http import cookies as http_cookies
 from urllib.parse import parse_qs, urlparse, quote as urlquote
 
-AGENT_VERSION = '1.5.1'
+AGENT_VERSION = '1.5.2'
 CONFIG_DIR = '/etc/pluslokaal-agent'
 CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.json')
 SETUP_STATUS_FILE = os.path.join(CONFIG_DIR, 'setup-status.json')
@@ -391,6 +391,7 @@ background:var(--green);color:#fff;font-weight:800;display:flex;align-items:cent
 .sysgrid > div{font-size:.9rem}
 .sysk{display:block;font-size:.7rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
 .spinner{width:46px;height:46px;border-radius:50%;border:5px solid #e6ebdd;border-top-color:var(--green);margin:6px auto 8px;animation:spin 1s linear infinite}
+.plspin{width:15px;height:15px;flex:0 0 15px;border-radius:50%;border:2px solid #e0cf86;border-top-color:#7a5b00;display:inline-block;animation:spin .9s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .bar{height:12px;border-radius:20px;background:#e9eee0;overflow:hidden;margin-top:14px}
 .bar__fill{height:100%;background:linear-gradient(90deg,var(--green),#a6d94b);border-radius:20px;transition:width .5s ease}
@@ -407,7 +408,17 @@ background:var(--green);color:#fff;font-weight:800;display:flex;align-items:cent
 
 HEAD = ("<!doctype html><html lang=nl><head><meta charset=utf-8>"
         "<meta name=viewport content='width=device-width,initial-scale=1'>"
-        "<title>PLUSLokaal Print-Agent</title><style>" + CSS + "</style></head><body>")
+        "<title>PLUSLokaal Print-Agent</title><style>" + CSS + "</style></head><body>"
+        "<div id=plsetup style=\"display:none;position:sticky;top:0;z-index:999;background:#fff7e0;"
+        "border-bottom:1px solid #ecd98a;color:#7a5b00;padding:9px 16px;font-size:.85rem;font-weight:700;"
+        "align-items:center;gap:9px\"><span class=plspin></span><span id=plsetuptxt></span></div>"
+        "<script>(function(){"
+        "function u(d){var b=document.getElementById('plsetup');if(!b)return;"
+        "if(d&&d.done===false){b.style.display='flex';"
+        "document.getElementById('plsetuptxt').textContent='Nog even bezig op de achtergrond: '"
+        "+(d.step||'installeren')+' ('+(d.pct||0)+'%)';}else{b.style.display='none';}}"
+        "function p(){fetch('/setup-status').then(function(r){return r.json();}).then(u).catch(function(){});}"
+        "setInterval(p,2500);p();})();</script>")
 
 
 def esc(s):
@@ -481,7 +492,7 @@ LOGIN_PAGE = """{header}
 SETUP_PAGE = """{header}
 <main>
 <div class="msg" style="background:#eaf5da;color:#3d6b0f;display:flex;align-items:center;gap:8px">
-  <b>&#10003; Installatie voltooid.</b> Deze Pi is bereikbaar op <b>http://{ip}/</b> - je kunt 'm hier instellen.</div>
+  <b>&#10003;</b> Deze Pi is bereikbaar op <b>http://{ip}/</b> - vul hieronder de winkel-sleutel in om te koppelen.</div>
 <div class=card><h2>Welkom - deze Pi instellen</h2>{msg}
 <ol class=steps>
   <li><b>Controleer eerst op een nieuwere versie</b> van de agent:<br>
@@ -619,13 +630,9 @@ class Web(BaseHTTPRequestHandler):
             if 'plagent' in c:
                 _sessions.pop(c['plagent'].value, None)
             return self._redirect('/', set_cookie='plagent=; Max-Age=0; Path=/')
-        setup = read_setup_status()
         if path == '/setup-status':
-            return self._json(setup or {'done': True})
-        if setup:   # eerste installatie loopt nog → toon voortgangspagina
-            return self._html(INSTALL_PAGE.format(header=header_html(),
-                                                  step=esc(setup.get('step', 'Installeren…')),
-                                                  pct=int(setup.get('pct', 0))))
+            # Voortgang van de achtergrond-installatie (voor de statusbalk bovenaan elke pagina).
+            return self._json(read_setup_status() or {'done': True})
         if not is_coupled():
             return self._html(SETUP_PAGE.format(header=header_html(), msg=self._msg(), ip=esc(primary_ip()),
                                                 key=esc(CFG.get('key', '')), server=esc(CFG.get('server', ''))))
@@ -794,6 +801,8 @@ def install():
 def main():
     if '--install' in sys.argv:
         install(); return
+    if '--check-update' in sys.argv:
+        print(check_update(force=True)); return
     log(f'PLUSLokaal Print-Agent v{AGENT_VERSION} gestart')
     threading.Thread(target=poll_loop, daemon=True).start()
     threading.Thread(target=update_loop, daemon=True).start()
