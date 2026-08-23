@@ -5,6 +5,15 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.26.2 - Winkelpakket-voorbeelden: direct én betrouwbaar · 23 augustus 2026
+
+- **Van gedownloade weken is nu élk voorbeeld direct zichtbaar** - ook de SK Maxi-kaarten (die op
+  gedeelde vellen staan) worden nu rechtstreeks uit de lokale bestanden geknipt, met naam-verificatie
+  zodat nooit de verkeerde kaart getoond wordt.
+- **Nog-niet-gedownloade weken blokkeren de app niet meer:** ontbrekende voorbeelden gaan in een rustige
+  achtergrondrij en de tegels vullen zichzelf automatisch zodra ze binnen zijn (geen F5 nodig; de rest
+  van de app blijft vlot).
+
 ## versie 2.26.1 - Wachtwoord-vergeten beschermd tegen misbruik · 23 augustus 2026
 
 - **"Wachtwoord vergeten" heeft nu een limiet** (max. 3 verzoeken per account en 10 per computer per

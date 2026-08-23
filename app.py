@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.26.1'
+APP_VERSION = '2.26.2'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -6794,22 +6794,92 @@ def _w2p_local_thumb(doc_id):
         doc_ids = json.loads(row.doc_ids or '[]')
     except Exception:
         doc_ids = []
-    if d.promotion_document_id not in doc_ids or row.page_count != len(doc_ids):
-        return None                                   # multi-up of onbekende pagina → geen lokale render
-    idx = doc_ids.index(d.promotion_document_id)
     path = os.path.join(_w2p_pdf_dir(), row.path)
     if not os.path.exists(path):
         return None
+    import fitz, io as _io
+    if d.promotion_document_id in doc_ids and row.page_count == len(doc_ids):
+        # Single-up: 1 pagina per kaart → render die pagina.
+        idx = doc_ids.index(d.promotion_document_id)
+        try:
+            src = fitz.open(path)
+            if idx >= src.page_count:
+                src.close(); return None
+            pix = src[idx].get_pixmap(matrix=fitz.Matrix(0.5, 0.5))   # ~halve resolutie = nette thumbnail
+            bio = _io.BytesIO(pix.tobytes('png')); src.close()
+            return bio.getvalue()
+        except Exception:
+            return None
+    # Multi-up (bv. SK Maxi): knip de kaart-cel uit het gecachte vel (zelfde logica als bij downloaden,
+    # incl. tekst-verificatie zodat we nooit de verkeerde kaart tonen).
+    layout = _MULTIUP_LAYOUTS.get(nf)
+    if not layout or _is_briljant(d.formaat):
+        return None
+    ordered = [x for x in (W2PDocument.query.filter_by(category_id=d.category_id, period_id=d.period_id,
+                                                       group_id=d.group_id)
+                           .order_by(W2PDocument.sort_index).all())
+               if _normalize_formaat(x.formaat) == nf and not _is_briljant(x.formaat)]
+    pos = {x.promotion_document_id: i for i, x in enumerate(ordered)}
+    idx = pos.get(d.promotion_document_id)
+    if idx is None:
+        return None
     try:
-        import fitz, io as _io
         src = fitz.open(path)
-        if idx >= src.page_count:
+        ppp = layout['plain_per_page']
+        page_no, cell = idx // ppp, idx % ppp
+        if page_no >= src.page_count:
             src.close(); return None
-        pix = src[idx].get_pixmap(matrix=fitz.Matrix(0.5, 0.5))   # ~halve resolutie = nette thumbnail
+        W, H = src[0].rect.width, src[0].rect.height
+        r = layout['src_cells'][cell]
+        clip = fitz.Rect(r[0] * W, r[1] * H, r[2] * W, r[3] * H)
+        text = src[page_no].get_text('text', clip=clip).lower()
+        kws = _card_keywords(d.naam or '')
+        if not kws or not all(k in text for k in kws):
+            src.close(); return None                # verificatie faalt → geen (mogelijk verkeerde) thumb
+        pix = src[page_no].get_pixmap(matrix=fitz.Matrix(1.0, 1.0), clip=clip)
         bio = _io.BytesIO(pix.tobytes('png')); src.close()
         return bio.getvalue()
     except Exception:
         return None
+
+# Achtergrond-ophaler voor W2P-thumbnails: één werker haalt ze serieel op, zodat een grid vol tegels
+# nooit alle webserver-threads blokkeert (dat was de oorzaak van 'laadt pas na F5'). De browser vraagt
+# een ontbrekende thumbnail gewoon opnieuw op (auto-retry) tot 'ie er is.
+_thumb_fetch_lock = threading.Lock()
+_thumb_fetch_pending = []      # doc_ids in volgorde van aanvraag
+_thumb_fetch_set = set()       # zelfde inhoud, voor snelle dedupe
+_thumb_fetch_running = False
+
+def _thumb_fetch_worker():
+    global _thumb_fetch_running
+    import w2p_client
+    while True:
+        with _thumb_fetch_lock:
+            if not _thumb_fetch_pending:
+                _thumb_fetch_running = False
+                return
+            did = _thumb_fetch_pending.pop(0)
+            _thumb_fetch_set.discard(did)
+        tp = os.path.join(_w2p_thumb_dir(), f'{did}.png')
+        if os.path.exists(tp):
+            continue
+        try:
+            b = w2p_client.thumbnail(did, timeout=45)
+            if isinstance(b, (bytes, bytearray)) and len(b) > 500:
+                open(tp, 'wb').write(b)
+        except Exception:
+            pass
+
+def _thumb_fetch_enqueue(doc_id):
+    """Zet een thumbnail in de achtergrond-ophaalrij (dedupe) en start de werker indien nodig."""
+    global _thumb_fetch_running
+    with _thumb_fetch_lock:
+        if doc_id not in _thumb_fetch_set:
+            _thumb_fetch_pending.append(doc_id)
+            _thumb_fetch_set.add(doc_id)
+        if not _thumb_fetch_running:
+            _thumb_fetch_running = True
+            threading.Thread(target=_thumb_fetch_worker, daemon=True).start()
 
 @app.route('/winkelpakketten/thumb/<int:doc_id>')
 @login_required
@@ -6818,21 +6888,20 @@ def winkelpakketten_thumb(doc_id):
     if not os.path.exists(tp):
         # 1) Snelste + betrouwbaarste: render uit de al lokaal gecachte PDF (gedownloade weken).
         b = _w2p_local_thumb(doc_id)
-        # 2) Terugval: nog niet gedownload → on-demand bij plus.nl ophalen.
-        if not (isinstance(b, (bytes, bytearray)) and len(b) > 500):
-            try:
-                import w2p_client
-                b = w2p_client.thumbnail(doc_id)
-            except Exception:
-                b = None
         if isinstance(b, (bytes, bytearray)) and len(b) > 500:
             try:
                 open(tp, 'wb').write(b)
             except Exception:
                 pass
+        else:
+            # 2) Nog niet gedownload → in de achtergrondrij zetten en NIET blokkeren; de browser
+            #    probeert het vanzelf opnieuw en de tegel vult zich zodra de werker 'm heeft.
+            _thumb_fetch_enqueue(int(doc_id))
     if os.path.exists(tp):
         return send_file(tp, mimetype='image/png')
-    abort(404)
+    resp = Response('', status=404)
+    resp.headers['Cache-Control'] = 'no-store'      # browser mag de 404 niet onthouden
+    return resp
 
 # Achtergrond-jobs voor het (trage) bestellen+downloaden bij W2P, zodat de gebruiker niet op een
 # hangende pagina hoeft te wachten: job_id -> {'status':'running'|'done'|'error','error','files'}.

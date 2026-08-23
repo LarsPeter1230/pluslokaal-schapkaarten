@@ -501,9 +501,11 @@
 function wpThumbRetry(img){
   var n = (parseInt(img.getAttribute('data-tries'))||0) + 1;
   img.setAttribute('data-tries', n);
-  if (n > 3){ img.parentElement.style.background = '#f1f1ee'; return; }
+  if (n > 10){ img.parentElement.style.background = '#f1f1ee'; return; }
+  // De server zet ontbrekende voorbeelden in een achtergrondrij; blijf rustig opnieuw proberen
+  // (oplopend tot ~6s tussenpozen) tot het voorbeeld er is - de tegel vult zich dan vanzelf.
   var base = img.src.split('?')[0];
-  setTimeout(function(){ img.src = base + '?r=' + n; }, n * 900);
+  setTimeout(function(){ img.src = base + '?r=' + n; }, Math.min(6000, 700 + n * 700));
 }
 (function(){
   var CART_KEY = 'wp_cart_v1';
