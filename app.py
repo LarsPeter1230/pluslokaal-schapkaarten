@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.32.0'
+APP_VERSION = '2.33.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -177,6 +177,24 @@ class AgentJob(db.Model):
     error      = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.now)
     done_at    = db.Column(db.DateTime, nullable=True)
+
+class AgentWebReq(db.Model):
+    """Eén browserverzoek voor de webinterface van een print-agent, doorgegeven via de
+    DB zodat het over gunicorn-workers heen werkt. De agent haalt 'pending' op, voert het
+    lokaal uit en schrijft het antwoord terug ('answered')."""
+    id          = db.Column(db.Integer, primary_key=True)
+    filiaal     = db.Column(db.Integer, nullable=False, index=True)
+    req_id      = db.Column(db.String(32), nullable=False, index=True)
+    method      = db.Column(db.String(8), nullable=False)
+    path        = db.Column(db.Text, nullable=False)
+    ctype       = db.Column(db.String(120), nullable=True)
+    body        = db.Column(db.Text, nullable=True)                # base64
+    status      = db.Column(db.String(12), default='pending', index=True)  # pending|answered
+    resp_status = db.Column(db.Integer, nullable=True)
+    resp_ctype  = db.Column(db.String(120), nullable=True)
+    resp_loc    = db.Column(db.Text, nullable=True)
+    resp_body   = db.Column(db.Text, nullable=True)                # base64
+    created_at  = db.Column(db.DateTime, default=datetime.now, index=True)
 
 # ─── LABELS-MODULE (geïntegreerd uit PLUS Label Manager) ──────────────────────
 class Product(db.Model):
@@ -1990,7 +2008,8 @@ def _guard_export_files():
 
 # ─── CSRF-BESCHERMING (lichtgewicht, session-token) ───────────────────────────
 _CSRF_EXEMPT = {'portaal_view',           # de proxy zet pluslokaal.nl-formulieren (hún eigen tokens) door
-                'agent_poll', 'agent_result'}   # print-agent authenticeert met X-Agent-Key, geen sessie
+                'agent_poll', 'agent_result',   # print-agent authenticeert met X-Agent-Key, geen sessie
+                'agent_webpoll', 'agent_webresult'}
 
 @app.context_processor
 def _inject_csrf():
@@ -5501,7 +5520,8 @@ def agent_poll():
     return jsonify({'jobs': out, 'agent_version': ver,
                     'store': {'nummer': f.nummer, 'naam': f.naam or ''},
                     'web_pass_sha256': (_hl.sha256(f.agent_web_pass.encode()).hexdigest()
-                                        if f.agent_web_pass else '')})
+                                        if f.agent_web_pass else ''),
+                    'web_tunnel_until': _tunnel_active_until(f.nummer)})
 
 @app.route('/api/agent/result', methods=['POST'])
 def agent_result():
@@ -5517,6 +5537,137 @@ def agent_result():
     j.done_at = datetime.now()
     db.session.commit()
     return jsonify({'ok': True})
+
+# ─── Webinterface van de Pi/mini-pc op afstand tonen (via de uitgaande verbinding) ──
+# Geen open poorten in de winkel: als een admin in PLUSLokaal de interface opent, zet
+# de server het browserverzoek in de DB; de agent haalt het op (webpoll), voert het lokaal
+# uit en schrijft het antwoord terug (webresult). Via de DB werkt dit over alle gunicorn-
+# workers heen. On-demand: de agent tunnelt alleen zolang er recent activiteit is.
+_TUNNEL_WINDOW = 120        # sec dat de agent blijft tunnelen na de laatste actie
+
+def _ver_tuple(s):
+    try:
+        return tuple(int(x) for x in str(s or '0').split('.')[:3])
+    except Exception:
+        return (0,)
+
+def _tunnel_active_until(nr):
+    row = (AgentWebReq.query.filter_by(filiaal=nr)
+           .order_by(AgentWebReq.created_at.desc()).first())
+    if not row:
+        return 0
+    until = row.created_at.timestamp() + _TUNNEL_WINDOW
+    return until if until > time.time() else 0
+
+def _tunnel_cleanup():
+    cutoff = datetime.now() - timedelta(seconds=_TUNNEL_WINDOW)
+    AgentWebReq.query.filter(AgentWebReq.created_at < cutoff).delete()
+    db.session.commit()
+
+@app.route('/api/agent/webpoll', methods=['POST'])
+def agent_webpoll():
+    f = _agent_by_key()
+    if not f:
+        abort(401)
+    # Long-poll: wacht tot er een openstaand verzoek is (of tot de time-out).
+    deadline = time.time() + 25
+    while time.time() < deadline:
+        row = (AgentWebReq.query.filter_by(filiaal=f.nummer, status='pending')
+               .order_by(AgentWebReq.id).first())
+        if row:
+            return jsonify({'id': row.req_id, 'method': row.method, 'path': row.path,
+                            'ctype': row.ctype or '', 'body_b64': row.body or ''})
+        time.sleep(0.3)
+        db.session.remove()     # verse sessie voor de volgende ronde
+    return jsonify({})
+
+@app.route('/api/agent/webresult', methods=['POST'])
+def agent_webresult():
+    f = _agent_by_key()
+    if not f:
+        abort(401)
+    body = request.get_json(silent=True) or {}
+    row = AgentWebReq.query.filter_by(filiaal=f.nummer, req_id=str(body.get('id') or '')).first()
+    if row:
+        row.resp_status = int(body.get('status') or 502)
+        row.resp_ctype = (body.get('ctype') or 'text/html; charset=utf-8')[:120]
+        row.resp_loc = body.get('location') or ''
+        row.resp_body = body.get('body_b64') or ''
+        row.status = 'answered'
+        db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/filialen/<int:nummer>/agent-web/', methods=['GET', 'POST'])
+@app.route('/filialen/<int:nummer>/agent-web/<path:sub>', methods=['GET', 'POST'])
+@login_required
+def agent_web_proxy(nummer, sub=''):
+    import base64 as _b64
+    u = get_current_user()
+    if not u or u.role != 'admin':
+        abort(403)
+    f = Filiaal.query.filter_by(nummer=nummer).first()
+    if not f or not f.agent_key:
+        abort(404)
+    if not _agent_online(f):
+        return ("<h3 style='font-family:sans-serif'>Agent offline</h3>"
+                "<p style='font-family:sans-serif'>Deze Pi/mini-pc is nu niet verbonden. "
+                "Zodra 'ie online is kun je de webinterface hier openen.</p>"), 503
+    # Toegang op afstand vereist agent v1.3.0+; oudere agents kunnen niet tunnelen.
+    if _ver_tuple(f.agent_version) < (1, 3, 0):
+        return ("<div style='font-family:sans-serif;max-width:520px;margin:40px auto'>"
+                "<h3>Agent bijwerken nodig</h3><p>Deze winkel draait nog agent "
+                f"v{f.agent_version or '?'}. Toegang op afstand werkt vanaf v1.3.0.</p>"
+                "<p>Open op de Pi zelf de webinterface en klik op <b>Zoek naar updates</b> "
+                "(of wacht tot 'ie zichzelf bijwerkt). Daarna werkt deze knop.</p></div>"), 409
+    base = url_for('agent_web_proxy', nummer=nummer)   # .../agent-web/
+    _tunnel_cleanup()
+    path = '/' + sub
+    if request.query_string:
+        path += '?' + request.query_string.decode()
+    rid = secrets.token_hex(8)
+    row = AgentWebReq(filiaal=nummer, req_id=rid, method=request.method, path=path,
+                      ctype=request.headers.get('Content-Type', '')[:120],
+                      body=_b64.b64encode(request.get_data() or b'').decode(), status='pending')
+    db.session.add(row)
+    db.session.commit()
+    # wacht op het antwoord van de agent (die via webpoll/webresult werkt)
+    resp, deadline = None, time.time() + 30
+    while time.time() < deadline:
+        db.session.remove()
+        r2 = AgentWebReq.query.filter_by(filiaal=nummer, req_id=rid).first()
+        if r2 and r2.status == 'answered':
+            resp = {'status': r2.resp_status, 'ctype': r2.resp_ctype,
+                    'location': r2.resp_loc, 'body_b64': r2.resp_body}
+            db.session.delete(r2)
+            db.session.commit()
+            break
+        time.sleep(0.2)
+    if resp is None:
+        AgentWebReq.query.filter_by(filiaal=nummer, req_id=rid).delete()
+        db.session.commit()
+        return ("<h3 style='font-family:sans-serif'>Geen antwoord van de agent</h3>"
+                "<p style='font-family:sans-serif'>De Pi/mini-pc reageert nu niet. Probeer het zo nog eens.</p>"), 504
+    status = int(resp.get('status') or 502)
+    ctype = resp.get('ctype') or 'text/html; charset=utf-8'
+    data = _b64.b64decode(resp.get('body_b64') or '')
+    if 'text/html' in ctype:
+        html = data.decode('utf-8', 'replace')
+        # root-relatieve links/acties naar het proxy-pad wijzen
+        html = re.sub(r"(action|href|src)=(['\"]?)/(?!/)",
+                      lambda m: f"{m.group(1)}={m.group(2)}{base}", html)
+        # onze CSRF-token in elk agent-formulier zetten zodat POSTs door de proxy heen mogen
+        tok = session.get('csrf_token', '')
+        html = re.sub(r"(<form\b[^>]*>)",
+                      lambda m: f"{m.group(1)}<input type=hidden name=_csrf value=\"{tok}\">", html)
+        data = html.encode('utf-8')
+    r = app.response_class(data, status=status, content_type=ctype)
+    loc = resp.get('location') or ''
+    if loc.startswith('/') and not loc.startswith('//'):
+        loc = base + loc[1:]
+    if loc:
+        r.headers['Location'] = loc
+    r.headers['X-Robots-Tag'] = 'noindex, nofollow'
+    return r
 
 @app.route('/api/agent/update')
 def agent_update():
@@ -5549,6 +5700,56 @@ def agent_userdata_generic():
     return Response(_agent_userdata_text(), mimetype='text/yaml',
                     headers={'Content-Disposition': 'attachment; filename="user-data"'})
 
+def _kiosk_enabled():
+    return (get_setting('agent_kiosk', '1') or '1') == '1'
+
+def _kiosk_install_sh(user):
+    """Bash die een minimaal bureaublad + kioskbrowser installeert die de lokale webinterface
+    (http://localhost/) toont. Zo is de interface zichtbaar op een aangesloten scherm EN via
+    RMM remote-desktop (MeshCentral pakt de X-sessie van de automatisch ingelogde gebruiker)."""
+    return r'''#!/usr/bin/env bash
+# PLUSLokaal kiosk - toont de webinterface op een scherm en via RMM remote-desktop.
+export DEBIAN_FRONTEND=noninteractive
+apt-get update || true
+apt-get install -y --no-install-recommends xserver-xorg xinit openbox unclutter chromium-browser \
+  || apt-get install -y --no-install-recommends xserver-xorg xinit openbox unclutter chromium || true
+U="__USER__"
+H="$(getent passwd "$U" | cut -d: -f6)"
+[ -z "$H" ] && H="/home/$U"
+cat >/opt/pluslokaal-kiosk.sh <<'K'
+#!/bin/bash
+xset -dpms 2>/dev/null; xset s off 2>/dev/null; unclutter -idle 1 &
+B="$(command -v chromium-browser || command -v chromium)"
+while true; do
+  "$B" --kiosk --noerrdialogs --disable-infobars --disable-session-crashed-bubble \
+       --incognito --check-for-update-interval=31536000 http://localhost/ || true
+  sleep 3
+done
+K
+chmod 755 /opt/pluslokaal-kiosk.sh
+cat >"$H/.xinitrc" <<'X'
+#!/bin/sh
+openbox-session &
+exec /opt/pluslokaal-kiosk.sh
+X
+chown "$U:$U" "$H/.xinitrc"; chmod 755 "$H/.xinitrc"
+mkdir -p /etc/systemd/system/getty@tty1.service.d
+cat >/etc/systemd/system/getty@tty1.service.d/override.conf <<O
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin $U --noclear %I \$TERM
+O
+PROF="$H/.bash_profile"
+if ! grep -q pluslokaal-kiosk-startx "$PROF" 2>/dev/null; then
+cat >>"$PROF" <<'P'
+# pluslokaal-kiosk-startx
+if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then exec startx; fi
+P
+fi
+chown "$U:$U" "$PROF" 2>/dev/null || true
+systemctl set-default graphical.target 2>/dev/null || true
+'''.replace('__USER__', user)
+
 def _agent_userdata_text():
     """De generieke cloud-init user-data (incl. inline RMM-script) - gedeeld door de download-route
     en de .img-bouwer."""
@@ -5556,22 +5757,26 @@ def _agent_userdata_text():
     # Optioneel: het RMM-installatiescript (Beheer → Filialen → Print-agent) wordt INLINE (base64)
     # meegebakken - zo staan de RMM-enrollment-tokens nooit op een publieke URL en hoeft de Pi niets
     # extra's op te halen. '|| true' zodat een RMM-hapering de printer-installatie niet blokkeert.
+    import base64 as _b64
     rmm = (get_setting('agent_rmm_cmd', '') or '').strip()
-    write_files = ''
-    rmm_cmd = ''
+    wf = []                 # write_files-items
+    extra_cmds = ''
     if rmm:
-        import base64 as _b64
         script = rmm if rmm.startswith('#!') else '#!/usr/bin/env bash\n' + rmm
-        b64 = _b64.b64encode(script.encode()).decode()
-        write_files = ("write_files:\n"
-                       "  - path: /opt/pluslokaal-rmm-install.sh\n"
-                       "    permissions: '0700'\n"
-                       "    encoding: b64\n"
-                       f"    content: {b64}\n")
-        rmm_cmd = "  - [bash, -lc, 'bash /opt/pluslokaal-rmm-install.sh || true']\n"
+        wf.append(('/opt/pluslokaal-rmm-install.sh', _b64.b64encode(script.encode()).decode()))
+        extra_cmds += "  - [bash, -lc, 'bash /opt/pluslokaal-rmm-install.sh || true']\n"
+    if _kiosk_enabled():
+        wf.append(('/opt/pluslokaal-kiosk-install.sh',
+                   _b64.b64encode(_kiosk_install_sh('ubuntu').encode()).decode()))
+        extra_cmds += "  - [bash, -lc, 'bash /opt/pluslokaal-kiosk-install.sh || true']\n"
+    write_files = ''
+    if wf:
+        write_files = "write_files:\n" + ''.join(
+            ("  - path: %s\n    permissions: '0700'\n    encoding: b64\n    content: %s\n" % (p, b))
+            for p, b in wf)
     ud = f"""#cloud-config
 # PLUSLokaal Print-Agent - generieke installatie (voor elke winkel gelijk).
-# Na de eerste boot: open http://<pi-adres>:8080 en plak daar de winkel-sleutel.
+# Na de eerste boot: open http://<pi-adres>/ en plak daar de winkel-sleutel.
 hostname: pluslokaal-agent
 package_update: true
 packages:
@@ -5585,7 +5790,7 @@ packages:
   - python3 /opt/pluslokaal-agent/pluslokaal_agent.py --install
   - usermod -aG lpadmin ubuntu || true
   - cupsctl --remote-admin || true
-{rmm_cmd}"""
+{extra_cmds}"""
     return ud
 
 # ─── Kant-en-klaar .IMG bouwen (flashen → aansluiten → klaar) ─────────────────
@@ -5698,6 +5903,7 @@ python3 /opt/pluslokaal-agent/pluslokaal_agent.py --install || true
 usermod -aG lpadmin plus || true
 cupsctl --remote-admin || true
 [ -f /opt/pluslokaal-rmm-install.sh ] && bash /opt/pluslokaal-rmm-install.sh || true
+[ -f /opt/pluslokaal-kiosk-install.sh ] && bash /opt/pluslokaal-kiosk-install.sh || true
 touch /etc/pluslokaal-agent/.firstboot-done
 """
     unit = """[Unit]
@@ -5726,6 +5932,9 @@ WantedBy=multi-user.target
         script = rmm if rmm.startswith('#!') else '#!/usr/bin/env bash\n' + rmm
         rmm_b64 = _b64.b64encode(script.encode()).decode()
         late.insert(0, f"curtin in-target -- bash -c \"echo {rmm_b64} | base64 -d > /opt/pluslokaal-rmm-install.sh && chmod 700 /opt/pluslokaal-rmm-install.sh\"")
+    if _kiosk_enabled():
+        kiosk_b64 = _b64.b64encode(_kiosk_install_sh('plus').encode()).decode()
+        late.insert(0, f"curtin in-target -- bash -c \"echo {kiosk_b64} | base64 -d > /opt/pluslokaal-kiosk-install.sh && chmod 700 /opt/pluslokaal-kiosk-install.sh\"")
     late_yaml = '\n'.join(f'    - {json.dumps(c)}' for c in late)
     return f"""#cloud-config
 # PLUSLokaal Print-Agent - volautomatische installatie voor mini-pc's.
@@ -6599,20 +6808,12 @@ def filiaal_detail(nummer):
         # zodat het opslaan van de ene printer de andere niet wist.
         section = request.form.get('section', 'label')
         if section == 'label':
-            f.naam = request.form.get('naam', '').strip() or None
-            f.printer_name = request.form.get('printer_name', '').strip() or None
-            f.printer_ip = request.form.get('printer_ip', '').strip() or None
-            f.printer_port = request.form.get('printer_port', type=int) or 9100
+            # Label-render-instellingen (het IP/poort vervalt: printers gaan via de Print-agent).
             f.printer_dpi = request.form.get('printer_dpi', type=int) or 300
             f.printer_protocol = request.form.get('printer_protocol', 'tspl')
             f.printer_label_w = _num(request.form.get('printer_label_w')) or 45.0
             f.printer_label_h = _num(request.form.get('printer_label_h')) or 40.0
-            f.allowed_ips = request.form.get('allowed_ips', '').strip() or None
-            f.login_hint = request.form.get('login_hint', '').strip() or None
         elif section == 'doc':
-            f.doc_printer_name = request.form.get('doc_printer_name', '').strip() or None
-            f.doc_printer_ip = request.form.get('doc_printer_ip', '').strip() or None
-            f.doc_printer_port = request.form.get('doc_printer_port', type=int) or 631
             f.print_only = bool(request.form.get('print_only'))
             trays = {}
             for fmt in _DOC_TRAY_FORMATS:
@@ -6620,6 +6821,10 @@ def filiaal_detail(nummer):
                 if v:
                     trays[fmt] = v
             f.doc_printer_trays = json.dumps(trays) if trays else None
+        elif section == 'filiaal':
+            f.naam = request.form.get('naam', '').strip() or None
+            f.allowed_ips = request.form.get('allowed_ips', '').strip() or None
+            f.login_hint = request.form.get('login_hint', '').strip() or None
         db.session.commit()
         log_action('filiaal_config', f'winkel {f.nummer}', filiaal=f.nummer)
         flash('Filiaal opgeslagen.', 'success')

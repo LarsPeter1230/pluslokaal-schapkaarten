@@ -30,7 +30,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from http import cookies as http_cookies
 from urllib.parse import parse_qs, urlparse, quote as urlquote
 
-AGENT_VERSION = '1.3.0'
+AGENT_VERSION = '1.4.0'
 CONFIG_DIR = '/etc/pluslokaal-agent'
 CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.json')
 DEFAULTS = {
@@ -45,7 +45,20 @@ DEFAULTS = {
     'web_pass_sha256': '',        # gesynct vanaf PLUSLokaal (login: admin)
     'store_nummer': None,
     'store_naam': '',
+    'default_copies': 1,          # standaard aantal kopieën voor documenten
 }
+
+
+def primary_ip():
+    import socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return '-'
 
 state = {'last_ok': 0, 'online': False, 'jobs_done': 0, 'jobs_err': 0, 'last_error': '', 'log': []}
 _log_lock = threading.Lock()
@@ -113,7 +126,8 @@ def print_document(pdf: bytes, meta: dict):
     q = CFG.get('doc_queue')
     if not q:
         raise RuntimeError('geen winkelprinter (CUPS-queue) ingesteld op de Pi')
-    args = ['lp', '-d', q, '-n', str(max(1, int(meta.get('copies') or 1)))]
+    copies = int(meta.get('copies') or CFG.get('default_copies') or 1)
+    args = ['lp', '-d', q, '-n', str(max(1, copies))]
     media = (meta.get('media') or '').strip()
     if media:
         args += ['-o', f'media={media}']
@@ -182,6 +196,8 @@ def poll_once():
     if wp and wp != CFG.get('web_pass_sha256'):
         CFG['web_pass_sha256'] = wp; changed = True
         log('weblogin-wachtwoord gesynct vanaf PLUSLokaal')
+    # Vlag voor toegang op afstand vanuit PLUSLokaal (tunnel actief tot dit tijdstip)
+    state['tunnel_until'] = float(res.get('web_tunnel_until') or 0)
     if changed:
         save_config(CFG)
     for job in res.get('jobs', []):
@@ -221,6 +237,54 @@ def poll_loop():
             state['online'] = False
             state['last_error'] = str(e)[:200]
         time.sleep(max(2, int(CFG.get('poll_interval') or 3)))
+
+
+# ─── Toegang op afstand (webinterface via PLUSLokaal) ─────────────────────────
+# PLUSLokaal kan de webinterface van deze Pi op afstand tonen zonder open poorten:
+# de server zet een verzoek klaar, deze agent haalt het op (uitgaand), voert het
+# LOKAAL uit op 127.0.0.1 en stuurt het antwoord terug. Alleen actief als een
+# beheerder in PLUSLokaal de interface opent (web_tunnel_until in de poll-respons).
+def local_exec(req):
+    import http.client
+    port = int(CFG.get('web_port') or 8080)
+    method = (req.get('method') or 'GET').upper()
+    path = req.get('path') or '/'
+    body = base64.b64decode(req.get('body_b64') or '')
+    headers = {'X-PL-Tunnel': '1'}
+    if req.get('ctype'):
+        headers['Content-Type'] = req['ctype']
+    conn = http.client.HTTPConnection('127.0.0.1', port, timeout=30)
+    conn.request(method, path, body=(body or None), headers=headers)
+    r = conn.getresponse()
+    data = r.read()
+    out = {'id': req['id'], 'status': r.status,
+           'location': r.getheader('Location') or '',
+           'ctype': r.getheader('Content-Type') or 'text/html; charset=utf-8',
+           'body_b64': base64.b64encode(data).decode()}
+    conn.close()
+    return out
+
+
+def tunnel_loop():
+    while True:
+        try:
+            if not CFG.get('key') or time.time() > state.get('tunnel_until', 0):
+                time.sleep(2); continue
+            req = api('/api/agent/webpoll', {}, timeout=30)   # long-poll
+            if not req or not req.get('id'):
+                continue
+            try:
+                resp = local_exec(req)
+            except Exception as e:
+                resp = {'id': req['id'], 'status': 502, 'location': '',
+                        'ctype': 'text/plain; charset=utf-8',
+                        'body_b64': base64.b64encode(f'agent-tunnel fout: {e}'.encode()).decode()}
+            try:
+                api('/api/agent/webresult', resp)
+            except Exception:
+                pass
+        except Exception:
+            time.sleep(1)
 
 
 # ─── Auto-update ──────────────────────────────────────────────────────────────
@@ -293,6 +357,9 @@ small{color:#777}
 .steps li{counter-increment:s;padding:8px 0 8px 40px;position:relative;line-height:1.5}
 .steps li::before{content:counter(s);position:absolute;left:0;top:6px;width:26px;height:26px;border-radius:50%;
 background:var(--green);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:.85rem}
+.sysgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px 18px}
+.sysgrid > div{font-size:.9rem}
+.sysk{display:block;font-size:.7rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
 """
 
 HEAD = ("<!doctype html><html lang=nl><head><meta charset=utf-8>"
@@ -346,6 +413,18 @@ def valid_session(handler):
     return bool(exp and exp > time.time())
 
 
+def is_tunnel(handler):
+    """Verzoek dat via de PLUSLokaal-tunnel binnenkomt: uitsluitend vanaf localhost
+    (de tunnel-loop verbindt naar 127.0.0.1) met de tunnel-header. Zo kan niemand op
+    het winkelnetwerk de login omzeilen door zelf die header mee te sturen."""
+    return bool(handler.headers.get('X-PL-Tunnel')) and \
+        handler.client_address[0] in ('127.0.0.1', '::1')
+
+
+def authed(handler):
+    return valid_session(handler) or is_tunnel(handler)
+
+
 LOGIN_PAGE = """{header}
 <main><div class=card style="max-width:420px;margin:40px auto;">
 <h2>Inloggen</h2>{msg}
@@ -376,19 +455,27 @@ en kun je de printers instellen.</small></p></div>
 MAIN_PAGE = """{header}
 <main>
 {msg}
-<div class=card><h2>Status</h2>
-  <p>Server: <span class="badge {online_cls}">{online_txt}</span> &nbsp; {server}<br>
-  <small>Jobs geprint: {done} · fouten: {err} · laatste fout: {lasterr}</small></p></div>
+<div class=card><h2>Systeem</h2>
+  <div class=sysgrid>
+    <div><span class=sysk>Winkel</span>{winkel}</div>
+    <div><span class=sysk>Verbinding</span><span class="badge {online_cls}">{online_txt}</span></div>
+    <div><span class=sysk>Hostnaam</span>{hostname}</div>
+    <div><span class=sysk>IP-adres</span>{ip}</div>
+    <div><span class=sysk>Agent-versie</span>v{ver}</div>
+    <div><span class=sysk>Jobs</span>{done} geprint · {err} fout</div>
+  </div>
+  {lasterr_html}</div>
 <div class=card><h2>Printers &amp; instellingen</h2>
 <form method=post action=/save>
   <div class=row>
     <div><label>Labelprinter (USB)</label><select name=label_device><option value="">- uit -</option>{label_opts}</select></div>
-    <div><label>Winkelprinter (CUPS-queue)</label><select name=doc_queue><option value="">- uit -</option>{queue_opts}</select>
-      <small>USB-printer eerst toevoegen via <a href="http://{host}:631" target=_blank>CUPS (:631)</a></small></div>
+    <div><label>Winkelprinter (CUPS-queue)</label><select name=doc_queue><option value="">- uit -</option>{queue_opts}</select></div>
   </div>
+  <small>{usb_count} USB-printer(s) gevonden · <a href="/" >vernieuwen</a> · nieuwe USB-printer eerst toevoegen via <a href="http://{host}:631" target=_blank>CUPS (:631)</a></small>
   <label>Papierlade per lade-code <small>(bv. tray-2=Tray2, tray-3=Tray3)</small></label>
   <input name=tray_map value="{tray_map}" placeholder="tray-2=Tray2, tray-3=Tray3">
   <div class=row>
+    <div><label>Standaard aantal kopieën</label><input name=default_copies value="{copies}"></div>
     <div><label>Poll-interval (sec)</label><input name=poll_interval value="{poll}"></div>
     <div><label>Auto-update</label><select name=auto_update><option value=1 {au1}>aan</option><option value=0 {au0}>uit</option></select></div>
   </div>
@@ -441,22 +528,30 @@ class Web(BaseHTTPRequestHandler):
         if not is_coupled():
             return self._html(SETUP_PAGE.format(header=header_html(), msg=self._msg(),
                                                 key=esc(CFG.get('key', '')), server=esc(CFG.get('server', ''))))
-        if login_required_now() and not valid_session(self):
+        if login_required_now() and not authed(self):
             return self._html(LOGIN_PAGE.format(header=header_html(), msg=self._msg()))
+        usb_devs = usb_label_devices()
         label_opts = ''.join(f'<option value="{esc(d)}" {"selected" if CFG.get("label_device")==d else ""}>{esc(d)}</option>'
-                             for d in usb_label_devices() + cups_queues())
+                             for d in usb_devs + cups_queues())
         queue_opts = ''.join(f'<option value="{esc(d)}" {"selected" if CFG.get("doc_queue")==d else ""}>{esc(d)}</option>'
                              for d in cups_queues())
         tray = ', '.join(f'{k}={v}' for k, v in (CFG.get('tray_map') or {}).items())
         with _log_lock:
             logtxt = esc('\n'.join(state['log'][-120:]))
         host = (self.headers.get('Host') or 'pi').split(':')[0]
+        naam = CFG.get('store_naam') or ''
+        nr = CFG.get('store_nummer')
+        winkel = f'PLUS {esc(naam)} ({nr})' if nr else 'nog niet gekoppeld'
+        lasterr = state['last_error']
         self._html(MAIN_PAGE.format(
             header=header_html(), msg=self._msg(),
             server=esc(CFG.get('server', '')), key=esc(CFG.get('key', '')),
             online_cls='ok' if state['online'] else 'err',
             online_txt='verbonden' if state['online'] else 'geen verbinding',
-            done=state['jobs_done'], err=state['jobs_err'], lasterr=esc(state['last_error'] or '-'),
+            done=state['jobs_done'], err=state['jobs_err'],
+            lasterr_html=(f"<p><small>Laatste fout: {esc(lasterr)}</small></p>" if lasterr else ''),
+            winkel=winkel, hostname=esc(os.uname().nodename), ip=esc(primary_ip()), ver=AGENT_VERSION,
+            usb_count=len(usb_devs), copies=CFG.get('default_copies', 1),
             label_opts=label_opts, queue_opts=queue_opts, tray_map=esc(tray),
             poll=CFG.get('poll_interval', 3),
             au1='selected' if CFG.get('auto_update') else '',
@@ -496,11 +591,11 @@ class Web(BaseHTTPRequestHandler):
                                        'Stel hieronder de printers in.',
                                   set_cookie=f'plagent={tok}; Path=/; HttpOnly; SameSite=Lax')
 
-        if path == '/update' and (not is_coupled() or valid_session(self) or not login_required_now()):
+        if path == '/update' and (not is_coupled() or authed(self) or not login_required_now()):
             return self._redirect('/', str(check_update(force=True)))
 
-        # vanaf hier: alleen ingelogd (of vlak na koppelen, zolang het wachtwoord nog niet gesynct is)
-        if not (is_coupled() and (valid_session(self) or not login_required_now())):
+        # vanaf hier: alleen ingelogd (of via de PLUSLokaal-tunnel, of vlak na koppelen)
+        if not (is_coupled() and (authed(self) or not login_required_now())):
             return self._redirect('/', 'Log eerst in.')
 
         if path == '/save':
@@ -512,6 +607,10 @@ class Web(BaseHTTPRequestHandler):
                 CFG['poll_interval'] = max(2, int(g('poll_interval', '3')))
             except ValueError:
                 CFG['poll_interval'] = 3
+            try:
+                CFG['default_copies'] = max(1, int(g('default_copies', '1')))
+            except ValueError:
+                CFG['default_copies'] = 1
             CFG['auto_update'] = g('auto_update', '1') == '1'
             tm = {}
             for part in re.split(r'[,\n]+', g('tray_map')):
@@ -597,6 +696,7 @@ def main():
     log(f'PLUSLokaal Print-Agent v{AGENT_VERSION} gestart')
     threading.Thread(target=poll_loop, daemon=True).start()
     threading.Thread(target=update_loop, daemon=True).start()
+    threading.Thread(target=tunnel_loop, daemon=True).start()
     # Webinterface op poort 80 (gewoon het IP intypen - handig, ook via RMM) én 8080 (terugval).
     port = int(CFG.get('web_port') or 8080)
     try:

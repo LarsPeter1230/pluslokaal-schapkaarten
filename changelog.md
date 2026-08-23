@@ -5,6 +5,23 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.33.0 - Webinterface op afstand, tabs op de filiaalpagina en uitgebreidere PA · 23 augustus 2026
+
+- **Webinterface van de Pi/mini-pc op afstand openen vanuit PLUSLokaal**: in Beheer → Filialen staat nu
+  een knop "Webinterface op afstand openen". De agent tunnelt zijn interface veilig via de bestaande
+  uitgaande verbinding - geen open poorten in de winkel, geen RMM nodig. (Werkt vanaf agent v1.3.0; oudere
+  agents vragen eerst om bijwerken.)
+- **De filiaalpagina is opnieuw ingedeeld met echte tabbladen**: Printers, Print-agent en
+  Filiaal-instellingen. Veel overzichtelijker.
+- **Geen losse IP-instellingen meer**: omdat de winkels via de Print-agent printen, kies je de printers
+  op de PA. Op de filiaalpagina stel je alleen nog in hoe een label eruitziet en welke lade elk
+  kaartformaat gebruikt.
+- **De PA-webinterface heeft uitgebreidere instellingen**: een Systeem-kaart (winkel, verbinding,
+  hostnaam, IP-adres, versie, aantal jobs), een teller van gevonden USB-printers met verversknop, en een
+  instelbaar standaard aantal kopieën.
+- **Webinterface ook zichtbaar via RMM en op een aangesloten scherm**: nieuwe images bevatten een
+  kioskweergave die de webinterface toont (zodat RMM remote-desktop en een lokaal scherm 'm laten zien).
+
 ## versie 2.32.0 - Print-agent: echt PLUS-logo + direct door na koppelen · 23 augustus 2026
 
 - **De webinterface van de Pi/mini-pc gebruikt nu het echte PLUS-logo en de huisstijl 1:1 zoals
