@@ -97,6 +97,12 @@
           {% if f.agent_version %}<span class="muted small"> · agent v{{ f.agent_version }}</span>{% endif %}
           {% if f.agent_seen %}<span class="muted small"> · laatst gezien {{ f.agent_seen.strftime('%d-%m %H:%M') }}</span>{% endif %}
         </p>
+        <div style="background:#f4f5f3;border-radius:8px;padding:10px 12px;margin:0 0 10px;font-size:.82rem;">
+          <div style="font-weight:800;color:var(--green-d);margin-bottom:4px;"><i class="fa fa-key"></i> Voor op de Pi (kopieer &amp; plak)</div>
+          <div><b>Agent-sleutel:</b> <code style="word-break:break-all;">{{ f.agent_key }}</code></div>
+          <div style="margin-top:4px;"><b>Webinterface-login:</b> gebruiker <code>admin</code> · wachtwoord <code>{{ f.agent_web_pass or '- genereer opnieuw -' }}</code>
+            <span class="muted small">(synct automatisch naar de Pi)</span></div>
+        </div>
         {% if agent_info.get('hostname') %}<p class="muted small" style="margin:0 0 10px;">Pi: {{ agent_info.get('hostname') }}{% if agent_info.get('printers') %} · printers: {{ agent_info.get('printers')|join(', ') }}{% endif %}</p>{% endif %}
         <form method="post" style="display:inline;"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
           <input type="hidden" name="action" value="agent_key">
@@ -109,25 +115,28 @@
           <input type="hidden" name="action" value="agent_key">
           <button type="submit" class="btn btn-primary btn-sm"><i class="fa fa-key"></i> Agent-sleutel genereren</button></form>
       {% endif %}
-      <div class="sec__h" style="margin:14px 0 8px;"><i class="fa fa-sd-card"></i> SD-kaart klaarmaken (aanrader)</div>
-      {% if f.agent_key %}
-      <p class="muted small" style="line-height:1.6;margin:0 0 8px;">
-        Alles staat er dan al op - bij de winkel alleen aansluiten en naar het IP gaan:</p>
+      <div class="sec__h" style="margin:14px 0 8px;"><i class="fa fa-sd-card"></i> SD-kaart flashen (voor elke winkel gelijk)</div>
       <ol class="muted small" style="line-height:1.7;margin:0 0 8px;padding-left:18px;">
         <li>Flash met <b>Raspberry Pi Imager</b>: kies <b>Ubuntu Server LTS (64-bit)</b>.</li>
-        <li>Na het flashen verschijnt de schijf <b>system-boot</b> in de Verkenner: vervang daar het
-            bestand <b>user-data</b> door
-            <a href="{{ url_for('agent_userdata', nummer=f.nummer) }}"><b>dit kant-en-klare bestand</b></a>
-            (sleutel van deze winkel zit er al in).</li>
+        <li>Vervang op de schijf <b>system-boot</b> het bestand <b>user-data</b> door
+            <a href="{{ url_for('agent_userdata_generic') }}"><b>het generieke installatiebestand</b></a>
+            (zelfde bestand voor élke winkel - geen geheimen erin).</li>
         <li>SD-kaart in de Pi, printers via USB, netwerkkabel in de Fritz!Box, stroom erop.
             De eerste boot installeert alles vanzelf (± 5-10 min, internet vereist).</li>
-        <li>Open daarna <b>http://&lt;pi-adres&gt;:8080</b> en kies alleen nog de printers/lades.
-            (USB-winkelprinter eerst toevoegen in CUPS: <b>http://&lt;pi-adres&gt;:631</b>.)</li>
+        <li>Open <b>http://&lt;pi-adres&gt;:8080</b>: het welkomstscherm zoekt eerst naar updates, daarna
+            plak je de <b>agent-sleutel</b> van deze winkel (hierboven) en kies je de printers/lades.
+            Inloggen op de Pi: <code>admin</code> + het wachtwoord hierboven.</li>
       </ol>
-      {% else %}
-      <p class="muted small" style="margin:0 0 8px;">Genereer eerst een agent-sleutel; daarna kun je hier
-        het kant-en-klare SD-kaart-bestand downloaden.</p>
-      {% endif %}
+      <div class="sec__h" style="margin:14px 0 8px;"><i class="fa fa-screwdriver-wrench"></i> RMM automatisch mee-installeren <small style="font-weight:400;color:var(--muted);">(geldt voor alle winkels)</small></div>
+      <form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="agent_rmm">
+        <p class="muted small" style="line-height:1.6;margin:0 0 6px;">Plak hier het <b>Linux-installatiecommando</b>
+          uit je RMM (bv. Tactical RMM → Agents → Install → Linux). Elke nieuwe Pi voert dit bij de eerste
+          boot automatisch uit. <b>Let op:</b> deployment-links kunnen verlopen - vernieuw dit veld dan.</p>
+        <textarea name="rmm_cmd" rows="2" style="width:100%;font-size:.75rem;font-family:monospace;"
+                  placeholder="bijv. wget -q -O - 'https://rmm.ictlp.nl/…' | sudo bash">{{ rmm_cmd }}</textarea>
+        <button type="submit" class="btn btn-outline btn-sm" style="margin-top:6px;"><i class="fa fa-floppy-disk"></i> Opslaan</button>
+      </form>
       <div class="sec__h" style="margin:14px 0 8px;"><i class="fa fa-download"></i> Of: installeren op een draaiende Pi</div>
       <pre style="background:#f4f5f3;border-radius:8px;padding:10px;font-size:.72rem;overflow-x:auto;white-space:pre-wrap;">curl -fsSL https://pluslokaal.com/agent/install.sh | sudo bash</pre>
       <p class="muted small" style="line-height:1.6;">Daarna op <b>http://&lt;pi-adres&gt;:8080</b> de sleutel invullen. De agent werkt zichzelf automatisch bij via pluslokaal.com.</p>

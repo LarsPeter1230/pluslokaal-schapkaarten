@@ -6,11 +6,12 @@ opdrachten lokaal op de via USB aangesloten printers:
   - labelprinter  : rauwe TSPL/ZPL-bytes naar /dev/usb/lp*  (of een CUPS-raw-queue)
   - winkelprinter : PDF via CUPS (lp), met papierlade per formaat
 
-Webinterface op poort 8080 voor alle instellingen. Werkt zichzelf automatisch bij
-(controleert dagelijks op pluslokaal.com). Alleen Python-standaardbibliotheek.
+Webinterface op poort 8080 (PLUS-huisstijl, beveiligd met admin-login die door
+PLUSLokaal wordt gegenereerd en automatisch synct). Welkomstscherm bij eerste
+gebruik: eerst update-check, dan winkel-sleutel plakken. Auto-update via
+pluslokaal.com. Alleen Python-standaardbibliotheek.
 
 Installatie (als root):   python3 pluslokaal_agent.py --install
-Handmatig draaien:        python3 pluslokaal_agent.py
 """
 import base64
 import glob
@@ -26,27 +27,30 @@ import time
 import urllib.request
 import urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http import cookies as http_cookies
 from urllib.parse import parse_qs, urlparse, quote as urlquote
 
-AGENT_VERSION = '1.0.0'
+AGENT_VERSION = '1.1.0'
 CONFIG_DIR = '/etc/pluslokaal-agent'
 CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.json')
 DEFAULTS = {
     'server': 'https://pluslokaal.com',
     'key': '',
-    'label_device': '',          # bv. /dev/usb/lp0 (leeg = labelprinten uit)
-    'doc_queue': '',             # CUPS-queuenaam van de winkelprinter (leeg = documentprinten uit)
-    'tray_map': {},              # {'A3': 'tray-3', 'A4': 'tray-2', ...} → lp -o InputSlot=...
+    'label_device': '',
+    'doc_queue': '',
+    'tray_map': {},
     'poll_interval': 3,
     'web_port': 8080,
     'auto_update': True,
+    'web_pass_sha256': '',        # gesynct vanaf PLUSLokaal (login: admin)
+    'store_nummer': None,
+    'store_naam': '',
 }
 
-state = {
-    'last_poll': 0, 'last_ok': 0, 'online': False, 'jobs_done': 0, 'jobs_err': 0,
-    'last_error': '', 'log': [],
-}
+state = {'last_ok': 0, 'online': False, 'jobs_done': 0, 'jobs_err': 0, 'last_error': '', 'log': []}
 _log_lock = threading.Lock()
+_sessions = {}                    # token -> vervaltijd
+_login_fails = {'n': 0, 't': 0}
 
 
 def log(msg):
@@ -72,7 +76,7 @@ def save_config(cfg):
     tmp = CONFIG_FILE + '.tmp'
     json.dump(cfg, open(tmp, 'w'), indent=2)
     os.replace(tmp, CONFIG_FILE)
-    os.chmod(CONFIG_FILE, 0o600)          # sleutel niet wereld-leesbaar
+    os.chmod(CONFIG_FILE, 0o600)
 
 
 CFG = load_config()
@@ -94,12 +98,11 @@ def cups_queues():
 def print_label(payload: bytes):
     dev = CFG.get('label_device')
     if not dev:
-        raise RuntimeError('geen labelprinter ingesteld op de Pi (webinterface → Labelprinter)')
-    if '/' in dev:                       # devicepad (bv. /dev/usb/lp0) → rauw schrijven
+        raise RuntimeError('geen labelprinter ingesteld op de Pi (webinterface)')
+    if '/' in dev:
         with open(dev, 'wb') as fh:
             fh.write(payload)
         return
-    # anders: CUPS-raw-queue (queuenaam)
     p = subprocess.run(['lp', '-d', dev, '-o', 'raw', '-'], input=payload,
                        capture_output=True, timeout=60)
     if p.returncode != 0:
@@ -116,7 +119,6 @@ def print_document(pdf: bytes, meta: dict):
         args += ['-o', f'media={media}']
     if (meta.get('orient') or '') == 'landscape':
         args += ['-o', 'landscape']
-    # lade: server stuurt bv. 'tray-3'; vertaal via de mapping in de webinterface (formaat→InputSlot)
     src = (meta.get('source') or '').strip()
     tray_map = CFG.get('tray_map') or {}
     slot = tray_map.get(meta.get('label') or '', '') or tray_map.get(src, '') or src
@@ -147,6 +149,19 @@ def poll_once():
     res = api('/api/agent/poll', {'version': AGENT_VERSION, 'info': info})
     state['online'] = True
     state['last_ok'] = time.time()
+    # Winkelnaam + weblogin-wachtwoord(hash) syncen vanaf PLUSLokaal
+    changed = False
+    st = res.get('store') or {}
+    if st.get('nummer') and st.get('nummer') != CFG.get('store_nummer'):
+        CFG['store_nummer'] = st['nummer']; CFG['store_naam'] = st.get('naam') or ''; changed = True
+    elif st.get('naam') and st.get('naam') != CFG.get('store_naam'):
+        CFG['store_naam'] = st['naam']; changed = True
+    wp = res.get('web_pass_sha256') or ''
+    if wp and wp != CFG.get('web_pass_sha256'):
+        CFG['web_pass_sha256'] = wp; changed = True
+        log('weblogin-wachtwoord gesynct vanaf PLUSLokaal')
+    if changed:
+        save_config(CFG)
     for job in res.get('jobs', []):
         jid = job['id']
         try:
@@ -168,12 +183,10 @@ def poll_once():
                 api('/api/agent/result', {'job_id': jid, 'ok': False, 'error': str(e)[:300]})
             except Exception:
                 pass
-    return res
 
 
 def poll_loop():
     while True:
-        state['last_poll'] = time.time()
         try:
             if CFG.get('key'):
                 poll_once()
@@ -207,12 +220,12 @@ def check_update(force=False):
             open(tmp, 'wb').write(data)
             os.chmod(tmp, 0o755)
             os.replace(tmp, target)
-            log(f'update: {AGENT_VERSION} → {latest}; herstarten…')
-            threading.Timer(1.0, lambda: os._exit(42)).start()   # systemd Restart=always start ons opnieuw
-            return f'bijgewerkt naar {latest}, herstart…'
-        return f'al actueel (v{AGENT_VERSION})'
+            log(f'update: {AGENT_VERSION} -> {latest}; herstarten…')
+            threading.Timer(1.0, lambda: os._exit(42)).start()
+            return f'Bijgewerkt naar v{latest} - de agent herstart nu…'
+        return f'Je hebt al de nieuwste versie (v{AGENT_VERSION}).'
     except Exception as e:
-        return f'update-controle mislukt: {e}'
+        return f'Update-controle mislukt: {e}'
 
 
 def update_loop():
@@ -221,90 +234,197 @@ def update_loop():
         log('update-controle: ' + str(check_update()))
 
 
-# ─── Webinterface ─────────────────────────────────────────────────────────────
-PAGE = """<!doctype html><html lang=nl><head><meta charset=utf-8>
-<meta name=viewport content="width=device-width,initial-scale=1">
-<title>PLUSLokaal Print-Agent</title><style>
-:root{{--green:#80bd1d;--dgreen:#115013;--bg:#f4f5f3}}
-*{{box-sizing:border-box}}body{{font-family:system-ui,sans-serif;margin:0;background:var(--bg);color:#231f20}}
-header{{background:var(--green);color:#fff;padding:14px 20px;font-weight:800;font-size:1.15rem}}
-main{{max-width:760px;margin:20px auto;padding:0 14px}}
-.card{{background:#fff;border-radius:12px;padding:18px;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,.06)}}
-h2{{margin:0 0 12px;font-size:1rem;color:var(--dgreen);text-transform:uppercase;letter-spacing:.04em}}
-label{{display:block;font-size:.8rem;font-weight:700;color:#666;margin:10px 0 4px}}
-input,select{{width:100%;padding:9px 10px;border:1px solid #ddd;border-radius:8px;font-size:.95rem}}
-button{{background:var(--green);color:#fff;border:0;border-radius:20px;padding:10px 18px;font-weight:700;cursor:pointer;margin-top:12px}}
-button.ghost{{background:#fff;color:var(--dgreen);border:1px solid #ccc}}
-.badge{{display:inline-block;border-radius:12px;padding:3px 10px;color:#fff;font-size:.8rem;font-weight:700}}
-.ok{{background:var(--green)}}.err{{background:#dd350d}}
-pre{{background:#1d221c;color:#cde6a8;padding:12px;border-radius:8px;font-size:.72rem;max-height:280px;overflow:auto}}
-.row{{display:flex;gap:10px;flex-wrap:wrap}}.row>*{{flex:1;min-width:180px}}
-small{{color:#777}}</style></head><body>
-<header>&#10010; PLUSLokaal · Print-Agent <span style="font-weight:400;font-size:.8rem">v{version}</span></header>
+# ─── Webinterface (PLUS-huisstijl) ────────────────────────────────────────────
+CSS = """
+:root{--green:#80bd1d;--green-d:#115013;--red:#dd350d;--bg:#f4f5f3;--text:#231f20;
+--radius:18px 18px 18px 4px}
+*{box-sizing:border-box}body{font-family:'Segoe UI',system-ui,sans-serif;margin:0;background:var(--bg);color:var(--text)}
+header{background:var(--green);color:#fff;padding:13px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.logo{font-weight:900;font-size:1.25rem;letter-spacing:.5px}
+.logo b{background:#fff;color:var(--green);border-radius:6px;padding:1px 7px;margin-right:6px}
+.sub{font-size:.8rem;opacity:.9}
+header .sp{flex:1}
+header a{color:#fff;font-size:.8rem}
+main{max-width:780px;margin:22px auto;padding:0 14px}
+.card{background:#fff;border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,.07)}
+h2{margin:0 0 12px;font-size:.82rem;color:var(--green-d);text-transform:uppercase;letter-spacing:.05em}
+label{display:block;font-size:.78rem;font-weight:700;color:#666;margin:12px 0 4px}
+input,select{width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:var(--radius);font-size:.95rem;outline:none}
+input:focus,select:focus{border-color:var(--green-d)}
+button{background:var(--green);color:#fff;border:0;border-radius:var(--radius);padding:11px 20px;font-weight:800;cursor:pointer;margin-top:14px;font-size:.95rem}
+button:hover{filter:brightness(1.05)}
+button.ghost{background:#fff;color:var(--green-d);border:1.5px solid var(--green)}
+button.plain{background:#fff;color:#666;border:1px solid #ccc}
+.badge{display:inline-block;border-radius:12px;padding:3px 12px;color:#fff;font-size:.8rem;font-weight:700}
+.ok{background:var(--green)}.err{background:var(--red)}
+pre{background:#1d221c;color:#cde6a8;padding:12px;border-radius:10px;font-size:.72rem;max-height:280px;overflow:auto}
+.row{display:flex;gap:12px;flex-wrap:wrap}.row>*{flex:1;min-width:200px}
+small{color:#777}
+.msg{background:#eef6e1;color:var(--green-d);border-radius:10px;padding:10px 14px;font-weight:600;margin-bottom:14px}
+.steps{counter-reset:s;list-style:none;padding:0;margin:0 0 6px}
+.steps li{counter-increment:s;padding:8px 0 8px 40px;position:relative;line-height:1.5}
+.steps li::before{content:counter(s);position:absolute;left:0;top:6px;width:26px;height:26px;border-radius:50%;
+background:var(--green);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:.85rem}
+"""
+
+HEAD = ("<!doctype html><html lang=nl><head><meta charset=utf-8>"
+        "<meta name=viewport content='width=device-width,initial-scale=1'>"
+        "<title>PLUSLokaal Print-Agent</title><style>" + CSS + "</style></head><body>")
+
+
+def esc(s):
+    return str(s if s is not None else '').replace('&', '&amp;').replace('<', '&lt;').replace('"', '&quot;')
+
+
+def header_html():
+    naam = CFG.get('store_naam') or ''
+    nr = CFG.get('store_nummer')
+    winkel = f'PLUS {esc(naam)} ({nr})' if nr else 'nog niet gekoppeld'
+    out = (f"<header><span class=logo><b>&#10010;</b>PLUS<span style='font-weight:400'>Lokaal</span></span>"
+           f"<span class=sub>Print-Agent v{AGENT_VERSION} · {winkel}</span><span class=sp></span>")
+    if is_configured():
+        out += "<a href='/logout'>Uitloggen</a>"
+    return out + "</header>"
+
+
+def is_configured():
+    return bool(CFG.get('key') and CFG.get('web_pass_sha256'))
+
+
+def check_pass(pw):
+    return bool(CFG.get('web_pass_sha256')) and \
+        hashlib.sha256((pw or '').encode()).hexdigest() == CFG['web_pass_sha256']
+
+
+def new_session():
+    tok = base64.urlsafe_b64encode(os.urandom(24)).decode()
+    _sessions[tok] = time.time() + 12 * 3600
+    return tok
+
+
+def valid_session(handler):
+    c = http_cookies.SimpleCookie(handler.headers.get('Cookie') or '')
+    tok = c['plagent'].value if 'plagent' in c else ''
+    exp = _sessions.get(tok)
+    return bool(exp and exp > time.time())
+
+
+LOGIN_PAGE = """{header}
+<main><div class=card style="max-width:420px;margin:40px auto;">
+<h2>Inloggen</h2>{msg}
+<p><small>Log in met de gegevens uit PLUSLokaal (Beheer &rarr; Filialen &rarr; Print-agent).</small></p>
+<form method=post action=/login>
+  <label>Gebruikersnaam</label><input name=user value="admin" readonly>
+  <label>Wachtwoord</label><input name=pw type=password autofocus>
+  <button>Inloggen</button>
+</form></div></main></body></html>"""
+
+SETUP_PAGE = """{header}
 <main>
+<div class=card><h2>Welkom - deze Pi instellen</h2>{msg}
+<ol class=steps>
+  <li><b>Controleer eerst op een nieuwere versie</b> van de agent:<br>
+    <form method=post action=/update style="display:inline"><button class=ghost>&#8635; Zoek naar updates</button></form></li>
+  <li><b>Plak de agent-sleutel</b> van deze winkel (PLUSLokaal &rarr; Beheer &rarr; Filialen &rarr; winkel &rarr; Print-agent):
+    <form method=post action=/setup>
+      <label>Agent-sleutel</label><input name=key value="{key}" placeholder="plak hier de sleutel" autofocus>
+      <label>Server <small>(normaal laten staan)</small></label><input name=server value="{server}">
+      <button>Koppelen</button>
+    </form></li>
+</ol>
+<p><small>Na het koppelen verschijnt de winkelnaam bovenin, wordt de login automatisch gesynct
+en kun je de printers instellen.</small></p></div>
+</main></body></html>"""
+
+MAIN_PAGE = """{header}
+<main>
+{msg}
 <div class=card><h2>Status</h2>
   <p>Server: <span class="badge {online_cls}">{online_txt}</span> &nbsp; {server}<br>
   <small>Jobs geprint: {done} · fouten: {err} · laatste fout: {lasterr}</small></p></div>
-<div class=card><h2>Instellingen</h2>
+<div class=card><h2>Printers &amp; instellingen</h2>
 <form method=post action=/save>
   <div class=row>
-    <div><label>Server</label><input name=server value="{server}"></div>
-    <div><label>Agent-sleutel (uit Beheer &rarr; Filialen)</label><input name=key value="{key}" placeholder="plak hier de sleutel"></div>
-  </div>
-  <div class=row>
     <div><label>Labelprinter (USB)</label><select name=label_device><option value="">- uit -</option>{label_opts}</select></div>
-    <div><label>Winkelprinter (CUPS-queue)</label><select name=doc_queue><option value="">- uit -</option>{queue_opts}</select></div>
+    <div><label>Winkelprinter (CUPS-queue)</label><select name=doc_queue><option value="">- uit -</option>{queue_opts}</select>
+      <small>USB-printer eerst toevoegen via <a href="http://{host}:631" target=_blank>CUPS (:631)</a></small></div>
   </div>
-  <label>Papierlade per lade-code <small>(server-code &rarr; CUPS InputSlot, bv. tray-3=Tray3; regel per mapping)</small></label>
+  <label>Papierlade per lade-code <small>(bv. tray-2=Tray2, tray-3=Tray3)</small></label>
   <input name=tray_map value="{tray_map}" placeholder="tray-2=Tray2, tray-3=Tray3">
   <div class=row>
     <div><label>Poll-interval (sec)</label><input name=poll_interval value="{poll}"></div>
     <div><label>Auto-update</label><select name=auto_update><option value=1 {au1}>aan</option><option value=0 {au0}>uit</option></select></div>
   </div>
+  <details style="margin-top:12px"><summary style="cursor:pointer;color:var(--green-d);font-weight:700">Geavanceerd (server &amp; sleutel)</summary>
+    <div class=row>
+      <div><label>Server</label><input name=server value="{server}"></div>
+      <div><label>Agent-sleutel</label><input name=key value="{key}"></div>
+    </div></details>
   <button>Opslaan</button>
 </form></div>
 <div class=card><h2>Testen &amp; onderhoud</h2>
   <form method=post action=/test_label style="display:inline"><button class=ghost>Testlabel</button></form>
   <form method=post action=/test_doc style="display:inline"><button class=ghost>Testpagina (A4)</button></form>
-  <form method=post action=/update style="display:inline"><button class=ghost>Nu bijwerken</button></form>
-  <p><small>{msg}</small></p></div>
+  <form method=post action=/update style="display:inline"><button class=ghost>&#8635; Zoek naar updates</button></form>
+  <form method=post action=/restart style="display:inline"><button class=plain>Agent herstarten</button></form></div>
 <div class=card><h2>Log</h2><pre>{log}</pre></div>
 </main></body></html>"""
 
 
 class Web(BaseHTTPRequestHandler):
-    def _html(self, body, code=200):
-        data = body.encode()
+    def _html(self, body, code=200, set_cookie=None):
+        data = (HEAD + body).encode()
         self.send_response(code)
         self.send_header('Content-Type', 'text/html; charset=utf-8')
         self.send_header('Content-Length', str(len(data)))
+        if set_cookie:
+            self.send_header('Set-Cookie', set_cookie)
         self.end_headers()
         self.wfile.write(data)
 
-    def _redirect(self, msg=''):
+    def _redirect(self, loc='/', msg='', set_cookie=None):
         self.send_response(303)
-        self.send_header('Location', '/?msg=' + urlquote(msg))
+        self.send_header('Location', loc + (('?msg=' + urlquote(msg)) if msg else ''))
+        if set_cookie:
+            self.send_header('Set-Cookie', set_cookie)
         self.end_headers()
 
-    def do_GET(self):
+    def _msg(self):
         q = parse_qs(urlparse(self.path).query)
-        esc = lambda s: str(s).replace('&', '&amp;').replace('<', '&lt;')
-        label_opts = ''.join(f'<option value="{d}" {"selected" if CFG.get("label_device")==d else ""}>{d}</option>'
+        m = (q.get('msg') or [''])[0]
+        return f"<div class=msg>{esc(m)}</div>" if m else ''
+
+    def do_GET(self):
+        path = urlparse(self.path).path
+        if path == '/logout':
+            c = http_cookies.SimpleCookie(self.headers.get('Cookie') or '')
+            if 'plagent' in c:
+                _sessions.pop(c['plagent'].value, None)
+            return self._redirect('/', set_cookie='plagent=; Max-Age=0; Path=/')
+        if not is_configured():
+            return self._html(SETUP_PAGE.format(header=header_html(), msg=self._msg(),
+                                                key=esc(CFG.get('key', '')), server=esc(CFG.get('server', ''))))
+        if not valid_session(self):
+            return self._html(LOGIN_PAGE.format(header=header_html(), msg=self._msg()))
+        label_opts = ''.join(f'<option value="{esc(d)}" {"selected" if CFG.get("label_device")==d else ""}>{esc(d)}</option>'
                              for d in usb_label_devices() + cups_queues())
-        queue_opts = ''.join(f'<option value="{d}" {"selected" if CFG.get("doc_queue")==d else ""}>{d}</option>'
+        queue_opts = ''.join(f'<option value="{esc(d)}" {"selected" if CFG.get("doc_queue")==d else ""}>{esc(d)}</option>'
                              for d in cups_queues())
         tray = ', '.join(f'{k}={v}' for k, v in (CFG.get('tray_map') or {}).items())
-        online = state['online']
         with _log_lock:
             logtxt = esc('\n'.join(state['log'][-120:]))
-        self._html(PAGE.format(
-            version=AGENT_VERSION, server=esc(CFG.get('server', '')), key=esc(CFG.get('key', '')),
-            online_cls='ok' if online else 'err', online_txt='verbonden' if online else 'geen verbinding',
+        host = (self.headers.get('Host') or 'pi').split(':')[0]
+        self._html(MAIN_PAGE.format(
+            header=header_html(), msg=self._msg(),
+            server=esc(CFG.get('server', '')), key=esc(CFG.get('key', '')),
+            online_cls='ok' if state['online'] else 'err',
+            online_txt='verbonden' if state['online'] else 'geen verbinding',
             done=state['jobs_done'], err=state['jobs_err'], lasterr=esc(state['last_error'] or '-'),
             label_opts=label_opts, queue_opts=queue_opts, tray_map=esc(tray),
             poll=CFG.get('poll_interval', 3),
-            au1='selected' if CFG.get('auto_update') else '', au0='' if CFG.get('auto_update') else 'selected',
-            msg=esc((q.get('msg') or [''])[0]), log=logtxt))
+            au1='selected' if CFG.get('auto_update') else '',
+            au0='' if CFG.get('auto_update') else 'selected',
+            host=esc(host), log=logtxt))
 
     def do_POST(self):
         global CFG
@@ -312,9 +432,40 @@ class Web(BaseHTTPRequestHandler):
         form = parse_qs(self.rfile.read(ln).decode())
         g = lambda k, d='': (form.get(k) or [d])[0].strip()
         path = urlparse(self.path).path
-        if path == '/save':
-            CFG['server'] = g('server', DEFAULTS['server'])
+
+        if path == '/login':
+            # simpele brute-force-rem: na 5 missers 30s wachten
+            if _login_fails['n'] >= 5 and time.time() - _login_fails['t'] < 30:
+                return self._redirect('/', 'Te veel pogingen - wacht 30 seconden.')
+            if check_pass(g('pw')):
+                _login_fails['n'] = 0
+                tok = new_session()
+                return self._redirect('/', set_cookie=f'plagent={tok}; Path=/; HttpOnly; SameSite=Lax')
+            _login_fails['n'] += 1; _login_fails['t'] = time.time()
+            return self._redirect('/', 'Onjuist wachtwoord.')
+
+        if path == '/setup' and not is_configured():
             CFG['key'] = g('key')
+            CFG['server'] = g('server', DEFAULTS['server']) or DEFAULTS['server']
+            save_config(CFG)
+            log('sleutel ingesteld via welkomstscherm')
+            try:
+                poll_once()   # meteen koppelen → winkelnaam + weblogin binnenhalen
+                return self._redirect('/', f"Gekoppeld aan {CFG.get('store_naam') or 'de winkel'}! "
+                                           'Log in met admin + het wachtwoord uit PLUSLokaal.')
+            except Exception as e:
+                return self._redirect('/', f'Koppelen mislukt: {e}')
+
+        if path == '/update' and (not is_configured() or valid_session(self)):
+            return self._redirect('/', str(check_update(force=True)))
+
+        # vanaf hier: alleen ingelogd
+        if not (is_configured() and valid_session(self)):
+            return self._redirect('/', 'Log eerst in.')
+
+        if path == '/save':
+            CFG['server'] = g('server', DEFAULTS['server']) or DEFAULTS['server']
+            CFG['key'] = g('key') or CFG.get('key')
             CFG['label_device'] = g('label_device')
             CFG['doc_queue'] = g('doc_queue')
             try:
@@ -331,31 +482,30 @@ class Web(BaseHTTPRequestHandler):
             CFG['tray_map'] = tm
             save_config(CFG)
             log('instellingen opgeslagen')
-            return self._redirect('Opgeslagen.')
+            return self._redirect('/', 'Opgeslagen.')
         if path == '/test_label':
             try:
-                # simpel TSPL-testlabel
                 tspl = b'SIZE 45 mm,40 mm\r\nGAP 3 mm,0\r\nCLS\r\nTEXT 30,40,"3",0,1,1,"PLUS TEST"\r\nBARCODE 30,90,"EAN13",60,1,0,2,2,"871040014582"\r\nPRINT 1\r\n'
                 print_label(tspl)
-                return self._redirect('Testlabel verstuurd.')
+                return self._redirect('/', 'Testlabel verstuurd.')
             except Exception as e:
-                return self._redirect(f'Testlabel mislukt: {e}')
+                return self._redirect('/', f'Testlabel mislukt: {e}')
         if path == '/test_doc':
             try:
                 pdf = base64.b64decode(_TEST_PDF_B64)
                 print_document(pdf, {'media': 'iso_a4_210x297mm', 'copies': 1, 'job_name': 'pluslokaal-test'})
-                return self._redirect('Testpagina verstuurd.')
+                return self._redirect('/', 'Testpagina verstuurd.')
             except Exception as e:
-                return self._redirect(f'Testpagina mislukt: {e}')
-        if path == '/update':
-            return self._redirect(str(check_update(force=True)))
-        self._redirect('')
+                return self._redirect('/', f'Testpagina mislukt: {e}')
+        if path == '/restart':
+            threading.Timer(0.5, lambda: os._exit(0)).start()
+            return self._redirect('/', 'Agent herstart…')
+        self._redirect('/')
 
     def log_message(self, *a):
         pass
 
 
-# Mini-PDF (1 pagina, "PLUS TEST") - vooraf gegenereerd, ~600 bytes
 _TEST_PDF_B64 = (
     'JVBERi0xLjQKMSAwIG9iajw8L1R5cGUvQ2F0YWxvZy9QYWdlcyAyIDAgUj4+ZW5kb2JqCjIgMCBv'
     'Ymo8PC9UeXBlL1BhZ2VzL0tpZHNbMyAwIFJdL0NvdW50IDE+PmVuZG9iagozIDAgb2JqPDwvVHlw'
@@ -369,12 +519,12 @@ _TEST_PDF_B64 = (
     'cjw8L1NpemUgNi9Sb290IDEgMCBSPj4Kc3RhcnR4cmVmCjM5MgolJUVPRgo=')
 
 
-SYSTEMD_UNIT = f"""[Unit]
+SYSTEMD_UNIT = """[Unit]
 Description=PLUSLokaal Print-Agent
 After=network-online.target cups.service
 
 [Service]
-ExecStart=/usr/bin/python3 {os.path.abspath(__file__)}
+ExecStart=/usr/bin/python3 /opt/pluslokaal-agent/pluslokaal_agent.py
 Restart=always
 RestartSec=5
 
@@ -395,8 +545,7 @@ def install():
     if os.path.abspath(__file__) != dest:
         shutil.copy2(os.path.abspath(__file__), dest)
         os.chmod(dest, 0o755)
-    unit = SYSTEMD_UNIT.replace(os.path.abspath(__file__), dest)
-    open('/etc/systemd/system/pluslokaal-agent.service', 'w').write(unit)
+    open('/etc/systemd/system/pluslokaal-agent.service', 'w').write(SYSTEMD_UNIT)
     subprocess.run(['systemctl', 'daemon-reload'])
     subprocess.run(['systemctl', 'enable', '--now', 'pluslokaal-agent'])
     print('Geinstalleerd. Open http://<pi-adres>:8080 om in te stellen.')

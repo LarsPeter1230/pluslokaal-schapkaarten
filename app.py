@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.28.1'
+APP_VERSION = '2.29.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -160,6 +160,7 @@ class Filiaal(db.Model):
     agent_seen        = db.Column(db.DateTime,    nullable=True)    # laatste poll (online = < 2 min geleden)
     agent_version     = db.Column(db.String(20),  nullable=True)
     agent_info        = db.Column(db.Text,        nullable=True)    # JSON (hostname, printers, ip)
+    agent_web_pass    = db.Column(db.String(40),  nullable=True)    # login (admin/…) voor de Pi-webinterface
 
 class Setting(db.Model):
     key   = db.Column(db.String(60), primary_key=True)
@@ -5490,7 +5491,11 @@ def agent_poll():
                     'payload_b64': j.payload})
     db.session.commit()
     ver, sha = _agent_version_info()
-    return jsonify({'jobs': out, 'agent_version': ver})
+    import hashlib as _hl
+    return jsonify({'jobs': out, 'agent_version': ver,
+                    'store': {'nummer': f.nummer, 'naam': f.naam or ''},
+                    'web_pass_sha256': (_hl.sha256(f.agent_web_pass.encode()).hexdigest()
+                                        if f.agent_web_pass else '')})
 
 @app.route('/api/agent/result', methods=['POST'])
 def agent_result():
@@ -5524,6 +5529,37 @@ def agent_install_sh():
     if not os.path.exists(_AGENT_INSTALL):
         abort(404)
     return send_file(_AGENT_INSTALL, mimetype='text/x-shellscript')
+
+@app.route('/agent/user-data')
+def agent_userdata_generic():
+    """GENERIEK cloud-init-bestand (zelfde voor élke winkel, geen geheimen): flash Ubuntu Server,
+    vervang 'user-data' door dit bestand, en de Pi installeert zichzelf. De winkel-sleutel plak je
+    daarna ter plekke in de Pi-webinterface (welkomstscherm)."""
+    server = 'https://pluslokaal.com'
+    ud = f"""#cloud-config
+# PLUSLokaal Print-Agent - generieke installatie (voor elke winkel gelijk).
+# Na de eerste boot: open http://<pi-adres>:8080 en plak daar de winkel-sleutel.
+hostname: pluslokaal-agent
+package_update: true
+packages:
+  - python3
+  - cups
+  - cups-client
+runcmd:
+  - mkdir -p /opt/pluslokaal-agent /etc/pluslokaal-agent
+  - curl -fsSL {server}/api/agent/download -o /opt/pluslokaal-agent/pluslokaal_agent.py
+  - chmod 755 /opt/pluslokaal-agent/pluslokaal_agent.py
+  - python3 /opt/pluslokaal-agent/pluslokaal_agent.py --install
+  - usermod -aG lpadmin ubuntu || true
+  - cupsctl --remote-admin || true
+"""
+    # Optioneel: RMM-agent automatisch mee-installeren (opdracht instelbaar in Beheer → Filialen →
+    # Print-agent). Wordt als laatste stap gedraaid; '|| true' zodat een RMM-hapering de rest niet blokkeert.
+    rmm = (get_setting('agent_rmm_cmd', '') or '').strip()
+    if rmm:
+        ud += f"  - [bash, -lc, {json.dumps(rmm + ' || true')}]\n"
+    return Response(ud, mimetype='text/yaml',
+                    headers={'Content-Disposition': 'attachment; filename="user-data"'})
 
 @app.route('/filiaal/<int:nummer>/agent-userdata')
 @login_required
@@ -6194,12 +6230,19 @@ def filiaal_detail(nummer):
     if request.method == 'POST':
         act = request.form.get('action', 'save')
         if act == 'agent_key':
-            # Nieuwe agent-sleutel genereren (en de oude ongeldig maken). Eén keer getoond.
+            # Nieuwe agent-sleutel + webinterface-login genereren (oude worden ongeldig).
             f.agent_key = secrets.token_urlsafe(32)
+            import string as _string
+            alfabet = _string.ascii_letters + _string.digits
+            f.agent_web_pass = ''.join(secrets.choice(alfabet) for _ in range(14))
             f.agent_seen = None; f.agent_version = None
             db.session.commit()
             log_action('agent_sleutel', f'nieuwe sleutel voor winkel {f.nummer}', filiaal=f.nummer)
-            flash(f'Nieuwe agent-sleutel (kopieer nu, wordt niet nog eens getoond): {f.agent_key}', 'success')
+            flash(f'Nieuwe agent-sleutel: {f.agent_key}', 'success')
+            return redirect(url_for('filiaal_detail', nummer=nummer))
+        if act == 'agent_rmm':
+            set_setting('agent_rmm_cmd', (request.form.get('rmm_cmd') or '').strip())
+            flash('RMM-installatieopdracht opgeslagen (geldt voor alle nieuwe Pi-installaties).', 'success')
             return redirect(url_for('filiaal_detail', nummer=nummer))
         if act == 'agent_revoke':
             f.agent_key = None; f.agent_seen = None; f.agent_version = None; f.agent_info = None
@@ -6273,7 +6316,8 @@ def filiaal_detail(nummer):
                            doc_trays=_doc_trays(f), doc_formats=_DOC_TRAY_FORMATS,
                            formaat_labels=FORMAAT_LABELS,
                            agent_online=_agent_online(f),
-                           agent_info=(json.loads(f.agent_info) if f.agent_info else {}))
+                           agent_info=(json.loads(f.agent_info) if f.agent_info else {}),
+                           rmm_cmd=get_setting('agent_rmm_cmd', ''))
 
 # ─── ROLLENBEHEER (admin) ─────────────────────────────────────────────────────
 def _slugify_role(txt):
@@ -8024,7 +8068,8 @@ def _migrate_db():
     for sql in ["ALTER TABLE filiaal ADD COLUMN agent_key VARCHAR(64)",
                 "ALTER TABLE filiaal ADD COLUMN agent_seen DATETIME",
                 "ALTER TABLE filiaal ADD COLUMN agent_version VARCHAR(20)",
-                "ALTER TABLE filiaal ADD COLUMN agent_info TEXT"]:
+                "ALTER TABLE filiaal ADD COLUMN agent_info TEXT",
+                "ALTER TABLE filiaal ADD COLUMN agent_web_pass VARCHAR(40)"]:
         try:
             with db.engine.connect() as conn:
                 conn.execute(text(sql)); conn.commit()

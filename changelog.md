@@ -5,6 +5,20 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.29.0 - Print-agent: welkomstscherm, PLUS-stijl en beveiligde login · 23 augustus 2026
+
+- **Eén generiek SD-kaart-bestand voor álle winkels** (geen geheimen erin): flash de kaart, sluit de Pi
+  aan, en doe de rest ter plekke via de webinterface.
+- **Nieuw welkomstscherm op de Pi**: stap 1 is een knop die **eerst naar een nieuwere versie zoekt**,
+  stap 2 is de **agent-sleutel plakken** (kopieer 'm uit Beheer → Filialen). Na het koppelen verschijnt
+  de winkelnaam bovenin.
+- **De webinterface is nu in PLUS-huisstijl én beveiligd met inloggen**: gebruiker `admin` met een
+  **sterk wachtwoord dat PLUSLokaal genereert** (zichtbaar in Beheer → Filialen) en dat **automatisch
+  naar de Pi synct**. Inclusief uitloggen en een rem op inlogpogingen.
+- In Beheer staan sleutel + Pi-login nu overzichtelijk bij elkaar in een kopieer-en-plak-blok.
+- **RMM installeert automatisch mee**: plak in Beheer eenmalig het Linux-installatiecommando van je RMM
+  (bv. Tactical RMM) en elke nieuwe Pi voert het bij de eerste boot vanzelf uit.
+
 ## versie 2.28.1 - Print-agent: SD-kaart in één keer klaar · 23 augustus 2026
 
 - **De Pi is nu al tijdens het flashen volledig voor te bereiden.** Download per winkel een kant-en-klaar
