@@ -85,87 +85,125 @@
   <div class="panel" style="flex:1 1 380px;">
     <div class="panel__head"><i class="fa fa-microchip"></i><h3>Print-agent (Raspberry Pi)</h3></div>
     <div class="panel__body">
-      <p class="muted small" style="line-height:1.6;margin:0 0 10px;">
-        Voor winkels waar de server niet bij de printers kan: een <b>Raspberry Pi</b> in de winkel
-        (printers via <b>USB</b>) verbindt zelf beveiligd naar pluslokaal.com en print lokaal.
-        Geen wijzigingen aan de winkel-firewall nodig.</p>
-      {% if f.agent_key %}
-        <p style="margin:0 0 10px;">
-          Status:
-          {% if agent_online %}<span class="badge" style="background:var(--green);color:#fff;">● online</span>
-          {% else %}<span class="badge" style="background:#b45309;color:#fff;">● offline</span>{% endif %}
-          {% if f.agent_version %}<span class="muted small"> · agent v{{ f.agent_version }}</span>{% endif %}
-          {% if f.agent_seen %}<span class="muted small"> · laatst gezien {{ f.agent_seen.strftime('%d-%m %H:%M') }}</span>{% endif %}
-        </p>
-        <div style="background:#f4f5f3;border-radius:8px;padding:10px 12px;margin:0 0 10px;font-size:.82rem;">
-          <div style="font-weight:800;color:var(--green-d);margin-bottom:4px;"><i class="fa fa-key"></i> Voor op de Pi (kopieer &amp; plak)</div>
-          <div><b>Agent-sleutel:</b> <code style="word-break:break-all;">{{ f.agent_key }}</code></div>
-          <div style="margin-top:4px;"><b>Webinterface-login:</b> gebruiker <code>admin</code> · wachtwoord <code>{{ f.agent_web_pass or '- genereer opnieuw -' }}</code>
-            <span class="muted small">(synct automatisch naar de Pi)</span></div>
+      <p class="muted small" style="line-height:1.6;margin:0 0 12px;">
+        Een <b>Raspberry Pi</b> in de winkel (printers via <b>USB</b>) verbindt zelf beveiligd met
+        pluslokaal.com en print lokaal - geen wijzigingen aan de winkel-firewall nodig.</p>
+
+      <!-- STATUS & KOPPELING -->
+      <div class="pa-box">
+        <div class="pa-box__h"><i class="fa fa-link"></i> Status &amp; koppeling
+          {% if f.agent_key %}
+            {% if agent_online %}<span class="badge" style="background:var(--green);color:#fff;margin-left:auto;">● online</span>
+            {% else %}<span class="badge" style="background:#b45309;color:#fff;margin-left:auto;">● offline</span>{% endif %}
+          {% endif %}
         </div>
-        {% if agent_info.get('hostname') %}<p class="muted small" style="margin:0 0 10px;">Pi: {{ agent_info.get('hostname') }}{% if agent_info.get('printers') %} · printers: {{ agent_info.get('printers')|join(', ') }}{% endif %}</p>{% endif %}
-        <form method="post" style="display:inline;"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-          <input type="hidden" name="action" value="agent_key">
-          <button type="submit" class="btn btn-outline btn-sm" onclick="return confirm('Nieuwe sleutel genereren? De huidige Pi verliest dan de verbinding tot je de nieuwe sleutel invoert.')"><i class="fa fa-rotate"></i> Nieuwe sleutel</button></form>
-        <form method="post" style="display:inline;"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-          <input type="hidden" name="action" value="agent_revoke">
-          <button type="submit" class="btn btn-ghost btn-sm" onclick="return confirm('Sleutel intrekken? De agent kan dan niet meer printen.')"><i class="fa fa-ban"></i> Intrekken</button></form>
-      {% else %}
-        <form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-          <input type="hidden" name="action" value="agent_key">
-          <button type="submit" class="btn btn-primary btn-sm"><i class="fa fa-key"></i> Agent-sleutel genereren</button></form>
-      {% endif %}
-      <div class="sec__h" style="margin:14px 0 8px;"><i class="fa fa-compact-disc"></i> Kant-en-klaar .img (aanrader - flashen en klaar)</div>
-      <p class="muted small" style="line-height:1.6;margin:0 0 6px;">Eén image met alles erin (agent + RMM):
-        in Raspberry Pi Imager kies je <b>"Gebruik eigen bestand"</b>, flashen, Pi aansluiten - na de eerste
-        boot (±5-10 min, internet vereist) is 'ie bereikbaar op z'n IP (poort 8080). Na het koppelen
-        hernoemt de Pi zichzelf naar <b>PA-&lt;winkelnr&gt;-PLUSLokaal</b>.</p>
-      {% if img_state.status == 'building' %}
-        <p class="muted small"><i class="fa fa-spinner fa-spin"></i> Bezig: {{ img_state.message }} <a href="">(ververs)</a></p>
-      {% elif img_state.status == 'error' %}
-        <p class="muted small" style="color:#dd350d;">Bouwen mislukt: {{ img_state.error }}</p>
-      {% endif %}
-      {% if img_info %}
-        <p class="muted small" style="margin:0 0 6px;"><i class="fa fa-file-zipper"></i>
-          <a href="{{ url_for('agent_img_download') }}"><b>pluslokaal-agent.img.gz downloaden</b></a>
-          ({{ img_info.size_mb }} MB · gebouwd {{ img_info.mtime }})</p>
-      {% endif %}
-      <form method="post" action="{{ url_for('agent_img_build') }}" style="display:inline;">
-        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-        <input type="hidden" name="next" value="{{ url_for('filiaal_detail', nummer=f.nummer) }}">
-        <button type="submit" class="btn btn-outline btn-sm" {{ 'disabled' if img_state.status=='building' }}>
-          <i class="fa fa-hammer"></i> {{ 'Opnieuw bouwen (na RMM-wijziging)' if img_info else 'Image bouwen (±10 min)' }}</button>
-      </form>
-      <div class="sec__h" style="margin:14px 0 8px;"><i class="fa fa-sd-card"></i> Of: zelf Ubuntu flashen + bestand vervangen</div>
-      <ol class="muted small" style="line-height:1.7;margin:0 0 8px;padding-left:18px;">
-        <li>Flash met <b>Raspberry Pi Imager</b>: kies <b>Ubuntu Server LTS (64-bit)</b>.</li>
-        <li>Vervang op de schijf <b>system-boot</b> het bestand <b>user-data</b> door
-            <a href="{{ url_for('agent_userdata_generic') }}"><b>het generieke installatiebestand</b></a>
-            (zelfde bestand voor élke winkel - geen geheimen erin).</li>
-        <li>SD-kaart in de Pi, printers via USB, netwerkkabel in de Fritz!Box, stroom erop.
-            De eerste boot installeert alles vanzelf (± 5-10 min, internet vereist).</li>
-        <li>Open <b>http://&lt;pi-adres&gt;:8080</b>: het welkomstscherm zoekt eerst naar updates, daarna
-            plak je de <b>agent-sleutel</b> van deze winkel (hierboven) en kies je de printers/lades.
-            Inloggen op de Pi: <code>admin</code> + het wachtwoord hierboven.</li>
-      </ol>
-      <div class="sec__h" style="margin:14px 0 8px;"><i class="fa fa-screwdriver-wrench"></i> RMM automatisch mee-installeren <small style="font-weight:400;color:var(--muted);">(geldt voor alle winkels)</small></div>
-      <form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-        <input type="hidden" name="action" value="agent_rmm">
-        <p class="muted small" style="line-height:1.6;margin:0 0 6px;">Plak hier het <b>volledige
-          Linux-installatiescript</b> uit je RMM (Tactical RMM → Add agent → Download Linux Install Script)
-          of een one-liner. Elke nieuwe Pi voert dit bij de eerste boot automatisch uit. Het script wordt
-          <b>versleuteld in het SD-bestand meegebakken</b> (alleen ingelogde admins kunnen dat downloaden) -
-          de tokens komen dus nergens publiek te staan. <b>Let op:</b> tokens kunnen verlopen - vernieuw dan
-          dit veld.</p>
-        <textarea name="rmm_cmd" rows="4" style="width:100%;font-size:.72rem;font-family:monospace;"
-                  placeholder="#!/usr/bin/env bash&#10;… (plak het hele script)">{{ rmm_cmd }}</textarea>
-        <button type="submit" class="btn btn-outline btn-sm" style="margin-top:6px;"><i class="fa fa-floppy-disk"></i> Opslaan</button>
-      </form>
-      <div class="sec__h" style="margin:14px 0 8px;"><i class="fa fa-download"></i> Of: installeren op een draaiende Pi</div>
-      <pre style="background:#f4f5f3;border-radius:8px;padding:10px;font-size:.72rem;overflow-x:auto;white-space:pre-wrap;">curl -fsSL https://pluslokaal.com/agent/install.sh | sudo bash</pre>
-      <p class="muted small" style="line-height:1.6;">Daarna op <b>http://&lt;pi-adres&gt;:8080</b> de sleutel invullen. De agent werkt zichzelf automatisch bij via pluslokaal.com.</p>
+        {% if f.agent_key %}
+          <p class="muted small" style="margin:0 0 8px;">
+            {% if f.agent_version %}agent v{{ f.agent_version }}{% endif %}
+            {% if f.agent_seen %} · laatst gezien {{ f.agent_seen.strftime('%d-%m %H:%M') }}{% endif %}
+            {% if agent_info.get('hostname') %} · {{ agent_info.get('hostname') }}{% endif %}
+            {% if agent_info.get('printers') %} · printers: {{ agent_info.get('printers')|join(', ') }}{% endif %}
+          </p>
+          <div class="pa-kv"><span>Agent-sleutel</span><code>{{ f.agent_key }}</code></div>
+          <div class="pa-kv"><span>Pi-login</span><code>admin</code> / <code>{{ f.agent_web_pass or '-' }}</code>
+            <small class="muted">(synct automatisch)</small></div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+            <form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+              <input type="hidden" name="action" value="agent_key">
+              <button type="submit" class="btn btn-outline btn-sm" onclick="return confirm('Nieuwe sleutel genereren? De huidige Pi verliest dan de verbinding tot je de nieuwe sleutel invoert.')"><i class="fa fa-rotate"></i> Nieuwe sleutel</button></form>
+            <form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+              <input type="hidden" name="action" value="agent_revoke">
+              <button type="submit" class="btn btn-ghost btn-sm" onclick="return confirm('Sleutel intrekken? De agent kan dan niet meer printen.')"><i class="fa fa-ban"></i> Intrekken</button></form>
+          </div>
+        {% else %}
+          <p class="muted small" style="margin:0 0 10px;">Nog geen sleutel voor deze winkel.</p>
+          <form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="agent_key">
+            <button type="submit" class="btn btn-primary"><i class="fa fa-key"></i> Agent-sleutel genereren</button></form>
+        {% endif %}
+      </div>
+
+      <!-- STAP 1: IMAGE -->
+      <div class="pa-box">
+        <div class="pa-box__h"><span class="pa-step">1</span> Pi-image downloaden</div>
+        {% if img_state.status == 'building' %}
+          <p class="muted small" style="margin:0 0 8px;"><i class="fa fa-spinner fa-spin"></i>
+            Bezig met bouwen: {{ img_state.message }} - <a href="">ververs de pagina</a></p>
+        {% elif img_state.status == 'error' %}
+          <p class="small" style="color:#dd350d;margin:0 0 8px;">Bouwen mislukt: {{ img_state.error }}</p>
+        {% endif %}
+        {% if img_info %}
+          <a href="{{ url_for('agent_img_download') }}" class="btn btn-primary btn-block" style="padding:12px;">
+            <i class="fa fa-download"></i> Download Pi-image ({{ img_info.size_mb }} MB)</a>
+          <p class="muted small" style="margin:6px 0 8px;text-align:center;">pluslokaal-agent.img.gz · gebouwd {{ img_info.mtime }} · met agent + RMM erin</p>
+        {% endif %}
+        <form method="post" action="{{ url_for('agent_img_build') }}">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="next" value="{{ url_for('filiaal_detail', nummer=f.nummer) }}">
+          <button type="submit" class="btn {{ 'btn-outline btn-sm' if img_info else 'btn-primary btn-block' }}" {{ 'disabled' if img_state.status=='building' }}>
+            <i class="fa fa-hammer"></i> {{ 'Opnieuw bouwen (na RMM-wijziging)' if img_info else 'Image bouwen (±10 min)' }}</button>
+        </form>
+      </div>
+
+      <!-- STAP 2: FLASHEN & INSTELLEN -->
+      <div class="pa-box">
+        <div class="pa-box__h"><span class="pa-step">2</span> Flashen &amp; instellen</div>
+        <ol class="muted small" style="line-height:1.7;margin:0;padding-left:18px;">
+          <li>Raspberry Pi Imager → <b>"Gebruik eigen bestand"</b> → het gedownloade image → flashen.</li>
+          <li>Printers via USB, netwerkkabel in de router, stroom erop. Eerste boot installeert alles
+              vanzelf (±5-10 min, internet vereist).</li>
+          <li>Typ het <b>IP van de Pi</b> in de browser → update-check → <b>sleutel plakken</b> (hierboven)
+              → inloggen met <code>admin</code> → printers/lades kiezen. De Pi hernoemt zichzelf naar
+              <b>PA-{{ f.nummer }}-PLUSLokaal</b>.</li>
+        </ol>
+      </div>
+
+      <!-- RMM -->
+      <details class="pa-details">
+        <summary><i class="fa fa-screwdriver-wrench"></i> RMM automatisch mee-installeren <small class="muted">(geldt voor alle winkels)</small></summary>
+        <form method="post" style="margin-top:10px;"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="agent_rmm">
+          <p class="muted small" style="line-height:1.6;margin:0 0 6px;">Plak het <b>volledige Linux-installatiescript</b>
+            uit je RMM (of een one-liner). Elke nieuwe Pi voert dit bij de eerste boot uit. Het script wordt
+            veilig in het image meegebakken (alleen admins kunnen dat downloaden). Na een wijziging:
+            <b>image opnieuw bouwen</b>.</p>
+          <textarea name="rmm_cmd" rows="4" style="width:100%;font-size:.72rem;font-family:monospace;"
+                    placeholder="#!/usr/bin/env bash&#10;… (plak het hele script)">{{ rmm_cmd }}</textarea>
+          <button type="submit" class="btn btn-outline btn-sm" style="margin-top:6px;"><i class="fa fa-floppy-disk"></i> Opslaan</button>
+        </form>
+      </details>
+
+      <!-- ALTERNATIEVEN -->
+      <details class="pa-details">
+        <summary><i class="fa fa-sd-card"></i> Alternatief: zelf Ubuntu flashen + bestand vervangen</summary>
+        <ol class="muted small" style="line-height:1.7;margin:10px 0 8px;padding-left:18px;">
+          <li>Flash <b>Ubuntu Server LTS (64-bit)</b> met Raspberry Pi Imager.</li>
+          <li>Vervang op de schijf <b>system-boot</b> het bestand <b>user-data</b> door het bestand hieronder.</li>
+          <li>Verder identiek aan stap 2 hierboven.</li>
+        </ol>
+        <a href="{{ url_for('agent_userdata_generic') }}" class="btn btn-outline btn-sm">
+          <i class="fa fa-download"></i> Download user-data (installatiebestand)</a>
+      </details>
+      <details class="pa-details">
+        <summary><i class="fa fa-terminal"></i> Alternatief: installeren op een al draaiende Pi</summary>
+        <pre style="background:#f4f5f3;border-radius:8px;padding:10px;font-size:.72rem;overflow-x:auto;white-space:pre-wrap;margin:10px 0 6px;">curl -fsSL https://pluslokaal.com/agent/install.sh | sudo bash</pre>
+        <p class="muted small" style="line-height:1.6;margin:0;">Daarna het IP van de Pi openen en de sleutel invullen.</p>
+      </details>
     </div>
   </div>
+  <style>
+    .pa-box{border:1px solid var(--border,#e4e7e2);border-radius:12px;padding:12px 14px;margin:0 0 12px;}
+    .pa-box__h{display:flex;align-items:center;gap:8px;font-weight:800;color:var(--green-d);font-size:.85rem;
+      text-transform:uppercase;letter-spacing:.03em;margin-bottom:10px;}
+    .pa-step{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;
+      background:var(--green);color:#fff;font-size:.8rem;}
+    .pa-kv{display:flex;gap:8px;align-items:baseline;font-size:.8rem;margin:4px 0;flex-wrap:wrap;}
+    .pa-kv > span{flex:0 0 92px;font-weight:700;color:var(--muted);}
+    .pa-kv code{background:#f4f5f3;border-radius:6px;padding:2px 6px;word-break:break-all;}
+    .pa-details{border:1px solid var(--border,#e4e7e2);border-radius:12px;padding:10px 14px;margin:0 0 10px;}
+    .pa-details summary{cursor:pointer;font-weight:700;color:var(--green-d);font-size:.85rem;}
+    .pa-details summary i{margin-right:6px;}
+  </style>
   <div class="panel" style="flex:0 1 300px;">
     <div class="panel__head"><i class="fa fa-circle-info"></i><h3>Uitleg</h3></div>
     <div class="panel__body">

@@ -5,6 +5,12 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.30.1 - Print-agent-blok overzichtelijker · 23 augustus 2026
+
+- **Het Print-agent-blok in Beheer → Filialen is opgeruimd**: duidelijke kaarten voor "Status & koppeling",
+  "Stap 1: Pi-image downloaden" (met een echte, grote downloadknop) en "Stap 2: Flashen & instellen".
+  De alternatieven en het RMM-script staan netjes inklapbaar onderaan.
+
 ## versie 2.30.0 - Print-agent: kant-en-klaar .img + RMM veilig meegebakken · 23 augustus 2026
 
 - **Kant-en-klaar .img-bestand**: bouw in Beheer met één knop een compleet Pi-image (agent + RMM er al
