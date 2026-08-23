@@ -30,7 +30,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from http import cookies as http_cookies
 from urllib.parse import parse_qs, urlparse, quote as urlquote
 
-AGENT_VERSION = '1.4.0'
+AGENT_VERSION = '1.4.1'
 CONFIG_DIR = '/etc/pluslokaal-agent'
 CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.json')
 DEFAULTS = {
@@ -47,6 +47,13 @@ DEFAULTS = {
     'store_naam': '',
     'default_copies': 1,          # standaard aantal kopieën voor documenten
 }
+
+
+def _ver_tuple(s):
+    try:
+        return tuple(int(x) for x in str(s or '0').split('.')[:3])
+    except Exception:
+        return (0,)
 
 
 def primary_ip():
@@ -200,6 +207,13 @@ def poll_once():
     state['tunnel_until'] = float(res.get('web_tunnel_until') or 0)
     if changed:
         save_config(CFG)
+    # Direct bijwerken zodra de server een nieuwere versie aanbiedt (niet pas na 6 uur).
+    srv_ver = res.get('agent_version') or ''
+    if (CFG.get('auto_update') and _ver_tuple(srv_ver) > _ver_tuple(AGENT_VERSION)
+            and not state.get('updating')):
+        state['updating'] = True
+        log(f'nieuwe versie beschikbaar (v{srv_ver}) - bijwerken…')
+        threading.Thread(target=check_update, daemon=True).start()
     for job in res.get('jobs', []):
         jid = job['id']
         try:

@@ -5,6 +5,13 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.33.2 - Print-agents werken zichzelf direct bij · 23 augustus 2026
+
+- **Print-agents updaten nu meteen** zodra de server een nieuwere versie aanbiedt, in plaats van pas bij
+  de 6-uurs-controle. Zo staat een nieuwe functie (zoals de webinterface op afstand) snel op alle winkels.
+- De knop "Webinterface op afstand openen" toont een duidelijke "agent bijwerken"-melding als een winkel
+  nog een te oude agent draait (vanaf v1.4.0 werkt de tunnel), in plaats van een lange time-out.
+
 ## versie 2.33.1 - Directe-IP-winkels (PLUS Koelhuis) tonen weer al hun instellingen · 23 augustus 2026
 
 - Winkels die **zonder** Print-agent printen (zoals PLUS Koelhuis) tonen op het tabblad Printers weer de

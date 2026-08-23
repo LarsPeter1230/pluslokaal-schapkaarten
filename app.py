@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.33.1'
+APP_VERSION = '2.33.2'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -5612,13 +5612,13 @@ def agent_web_proxy(nummer, sub=''):
         return ("<h3 style='font-family:sans-serif'>Agent offline</h3>"
                 "<p style='font-family:sans-serif'>Deze Pi/mini-pc is nu niet verbonden. "
                 "Zodra 'ie online is kun je de webinterface hier openen.</p>"), 503
-    # Toegang op afstand vereist agent v1.3.0+; oudere agents kunnen niet tunnelen.
-    if _ver_tuple(f.agent_version) < (1, 3, 0):
+    # Toegang op afstand vereist agent v1.4.0+ (daarin zit de tunnel).
+    if _ver_tuple(f.agent_version) < (1, 4, 0):
         return ("<div style='font-family:sans-serif;max-width:520px;margin:40px auto'>"
                 "<h3>Agent bijwerken nodig</h3><p>Deze winkel draait nog agent "
-                f"v{f.agent_version or '?'}. Toegang op afstand werkt vanaf v1.3.0.</p>"
-                "<p>Open op de Pi zelf de webinterface en klik op <b>Zoek naar updates</b> "
-                "(of wacht tot 'ie zichzelf bijwerkt). Daarna werkt deze knop.</p></div>"), 409
+                f"v{f.agent_version or '?'}. Toegang op afstand werkt vanaf v1.4.0.</p>"
+                "<p>De agent werkt zichzelf automatisch bij (binnen enkele uren). Sneller: open op "
+                "de Pi zelf de webinterface en klik op <b>Zoek naar updates</b>. Daarna werkt deze knop.</p></div>"), 409
     base = url_for('agent_web_proxy', nummer=nummer)   # .../agent-web/
     _tunnel_cleanup()
     path = '/' + sub
