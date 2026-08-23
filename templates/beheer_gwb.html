@@ -31,7 +31,7 @@
           <option value="">Alle rollen</option>
           {% for r in roles %}<option value="{{ r.name }}">{{ r.label }}</option>{% endfor %}
         </select>
-        <a href="{{ url_for('register') }}" class="gwb-btn primary"><i class="fa fa-plus"></i> Gebruiker</a>
+        <button type="button" class="gwb-btn primary" onclick="gwbOpen('mUser')"><i class="fa fa-plus"></i> Gebruiker</button>
       </div>
     </div>
     <div id="uFilterInfo" class="gwb-finfo" style="display:none"></div>
@@ -75,7 +75,7 @@
       <div class="gwb-th"><h3>Winkels</h3><span class="gwb-count" id="sCount">{{ stores|length }}</span></div>
       <div class="gwb-controls">
         <div class="gwb-search"><i class="fa fa-magnifying-glass"></i><input id="sSearch" placeholder="Zoek winkel op naam of nummer..."></div>
-        <a href="{{ url_for('filialen') }}" class="gwb-btn primary"><i class="fa fa-plus"></i> Winkel toevoegen</a>
+        <button type="button" class="gwb-btn primary" onclick="gwbOpen('mStore')"><i class="fa fa-plus"></i> Winkel toevoegen</button>
       </div>
     </div>
     <div class="gwb-grid" id="sGrid">
@@ -95,6 +95,63 @@
       {% endfor %}
     </div>
     <div id="sEmpty" class="gwb-empty" style="display:none">Geen winkels gevonden.</div>
+  </div>
+</div>
+
+<!-- ══ MODAL: nieuwe gebruiker ══ -->
+<div class="gwb-modal" id="mUser" role="dialog" aria-modal="true" aria-labelledby="mUserT">
+  <div class="gwb-modal-card">
+    <div class="gwb-modal-h"><h3 id="mUserT"><i class="fa fa-user-plus"></i> Nieuwe gebruiker</h3>
+      <button type="button" class="gwb-x" onclick="gwbClose('mUser')" aria-label="Sluiten"><i class="fa fa-xmark"></i></button></div>
+    <form method="post" action="{{ url_for('register') }}">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="next" value="{{ url_for('gebruikers_winkels') }}">
+      <div class="gwb-modal-b">
+        <label class="gwb-lbl">Naam</label>
+        <input class="gwb-in" name="username" placeholder="bijv. Jan Jansen" required autofocus>
+        <label class="gwb-lbl">E-mailadres <span class="muted">(inlogadres)</span></label>
+        <input class="gwb-in" name="email" type="email" placeholder="naam@voorbeeld.nl" required>
+        <div class="gwb-hint"><i class="fa fa-wand-magic-sparkles"></i> Je hoeft geen wachtwoord in te stellen. De gebruiker krijgt automatisch een uitnodiging met een tijdelijk wachtwoord gemaild en kiest bij de eerste aanmelding een eigen wachtwoord.</div>
+        <div class="gwb-2col">
+          <div><label class="gwb-lbl">Rol</label>
+            <select class="gwb-in" name="role">{% for r in roles %}<option value="{{ r.name }}" {{ 'selected' if r.name=='medewerker' }}>{{ r.label }}</option>{% endfor %}</select></div>
+          <div><label class="gwb-lbl">Filiaal</label>
+            <div class="gwb-combo" id="fCombo" style="min-width:0">
+              <i class="fa fa-store gwb-pin"></i>
+              <input id="fInput" placeholder="Kies of typ winkel..." autocomplete="off" role="combobox" aria-expanded="false">
+              <button type="button" class="gwb-car" id="fCaret" aria-label="Open"><i class="fa fa-chevron-down"></i></button>
+              <input type="hidden" name="filiaal" id="fHidden">
+              <div class="gwb-list" id="fList"></div>
+            </div></div>
+        </div>
+      </div>
+      <div class="gwb-modal-f">
+        <button type="button" class="gwb-btn" onclick="gwbClose('mUser')">Annuleren</button>
+        <button type="submit" class="gwb-btn primary"><i class="fa fa-user-plus"></i> Gebruiker aanmaken</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ MODAL: nieuw filiaal ══ -->
+<div class="gwb-modal" id="mStore" role="dialog" aria-modal="true" aria-labelledby="mStoreT">
+  <div class="gwb-modal-card">
+    <div class="gwb-modal-h"><h3 id="mStoreT"><i class="fa fa-store"></i> Nieuw filiaal</h3>
+      <button type="button" class="gwb-x" onclick="gwbClose('mStore')" aria-label="Sluiten"><i class="fa fa-xmark"></i></button></div>
+    <form method="post" action="{{ url_for('filialen') }}">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="next" value="{{ url_for('gebruikers_winkels') }}">
+      <div class="gwb-modal-b">
+        <label class="gwb-lbl">Winkelnummer</label>
+        <input class="gwb-in" name="nummer" inputmode="numeric" placeholder="bijv. 0001" required autofocus>
+        <label class="gwb-lbl">Naam <span class="muted">(optioneel)</span></label>
+        <input class="gwb-in" name="naam" placeholder="bijv. Centrum">
+      </div>
+      <div class="gwb-modal-f">
+        <button type="button" class="gwb-btn" onclick="gwbClose('mStore')">Annuleren</button>
+        <button type="submit" class="gwb-btn primary"><i class="fa fa-plus"></i> Filiaal aanmaken</button>
+      </div>
+    </form>
   </div>
 </div>
 </div>
@@ -177,11 +234,37 @@
   .gwb-scard .row b{color:var(--txt)}
   .gwb-scard .go{margin-top:12px;font-size:.82rem;font-weight:700;color:var(--gd);display:inline-flex;gap:6px;align-items:center}
   .gwb .muted{color:var(--mut)}
+  /* modals */
+  .gwb-modal{position:fixed;inset:0;z-index:1000;background:rgba(20,26,16,.5);backdrop-filter:blur(2px);
+    display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
+  .gwb-modal.open{display:flex}
+  .gwb-modal-card{background:var(--pnl);border:1px solid var(--bd);border-radius:16px;width:100%;max-width:460px;
+    box-shadow:0 24px 60px -20px rgba(20,26,16,.5);overflow:visible;animation:gwbpop .16s ease}
+  .gwb-modal-h{border-radius:16px 16px 0 0}
+  .gwb-modal-f{border-radius:0 0 16px 16px}
+  @keyframes gwbpop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+  .gwb-modal-h{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--bd)}
+  .gwb-modal-h h3{margin:0;font-size:1.05rem;display:flex;align-items:center;gap:9px}
+  .gwb-modal-h h3 .fa{color:var(--gd)}
+  .gwb-x{border:none;background:none;color:var(--mut2);font-size:1.05rem;cursor:pointer;padding:6px;border-radius:8px;line-height:0}
+  .gwb-x:hover{background:var(--pnl2);color:var(--txt)}
+  .gwb-modal-b{padding:18px}
+  .gwb-lbl{display:block;font-size:.78rem;font-weight:700;color:var(--mut);margin:12px 0 5px}
+  .gwb-lbl:first-child{margin-top:0}
+  .gwb-in{width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--pnl);color:var(--txt);font-size:.92rem;font-family:inherit;outline:none}
+  .gwb-in:focus{border-color:var(--g);box-shadow:0 0 0 3px color-mix(in srgb,var(--g) 20%,transparent)}
+  select.gwb-in{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b917f' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer}
+  .gwb-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .gwb-hint{background:#eef6e1;border:1px solid #cfe6ab;border-radius:10px;padding:11px 13px;margin:14px 0 4px;font-size:.82rem;line-height:1.5;color:#3d6b0f}
+  .gwb-hint .fa{margin-right:5px}
+  .gwb-modal-f{display:flex;justify-content:flex-end;gap:9px;padding:14px 18px;border-top:1px solid var(--bd);background:var(--pnl2)}
+  @media (max-width:460px){ .gwb-2col{grid-template-columns:1fr} }
 </style>
 
 <script>
+window.GWB_STORES = {{ stores_json|safe }};
 (function(){
-  const STORES = {{ stores_json|safe }};
+  const STORES = window.GWB_STORES;
   const TOTAL = {{ users|length }};
   const rows = Array.from(document.querySelectorAll('#uBody .gwb-row'));
   const uSearch=document.getElementById('uSearch'), uRole=document.getElementById('uRole');
@@ -253,5 +336,45 @@
 
   apply();
 })();
+// modals (globaal zodat onclick werkt)
+function gwbOpen(id){document.getElementById(id).classList.add('open');document.body.style.overflow='hidden';
+  const inp=document.querySelector('#'+id+' [autofocus]');if(inp)setTimeout(()=>inp.focus(),50);}
+function gwbClose(id){document.getElementById(id).classList.remove('open');document.body.style.overflow='';}
+// typbare filiaal-combobox in de 'nieuwe gebruiker'-modal
+(function(){
+  const S=window.GWB_STORES||[], wrap=document.getElementById('fCombo');
+  if(!wrap)return;
+  const inp=document.getElementById('fInput'), list=document.getElementById('fList'), hid=document.getElementById('fHidden'), caret=document.getElementById('fCaret');
+  let hi=-1;
+  const disp=s=>`${s.nr}${s.naam?' - '+s.naam:''}`;
+  function render(q){
+    q=(q||'').toLowerCase().trim();
+    const ms=S.filter(s=>!q||String(s.nr).includes(q)||(s.naam||'').toLowerCase().includes(q)).slice(0,60);
+    list.innerHTML = ms.length? ms.map(s=>`<div class="gwb-opt" data-nr="${s.nr}"><span class="d"></span>${disp(s)}</div>`).join('')
+      : `<div class="gwb-cempty">Geen winkel gevonden.</div>`;
+    list.querySelectorAll('.gwb-opt').forEach(el=>el.onmousedown=e=>{e.preventDefault();choose(parseInt(el.dataset.nr));});
+    hi=-1;
+  }
+  function open(){list.classList.add('open');inp.setAttribute('aria-expanded','true');render(inp.dataset.free?inp.value:'');}
+  function close(){list.classList.remove('open');inp.setAttribute('aria-expanded','false');}
+  function choose(nr){const s=S.find(x=>x.nr===nr);if(!s)return;hid.value=nr;inp.value=disp(s);inp.dataset.free='';wrap.classList.add('sel');close();}
+  inp.addEventListener('focus',open);
+  inp.addEventListener('input',()=>{inp.dataset.free='1';wrap.classList.remove('sel');hid.value='';open();});
+  caret.addEventListener('mousedown',e=>{e.preventDefault();list.classList.contains('open')?close():(inp.focus(),open());});
+  inp.addEventListener('keydown',e=>{
+    const opts=list.querySelectorAll('.gwb-opt');
+    if(e.key==='ArrowDown'){e.preventDefault();if(!list.classList.contains('open'))open();hi=Math.min(hi+1,opts.length-1);}
+    else if(e.key==='ArrowUp'){e.preventDefault();hi=Math.max(hi-1,0);}
+    else if(e.key==='Enter'){e.preventDefault();const el=opts[hi]||opts[0];if(el)choose(parseInt(el.dataset.nr));return;}
+    else if(e.key==='Escape'){close();return;}
+    opts.forEach((el,i)=>el.classList.toggle('hi',i===hi));
+  });
+  document.addEventListener('mousedown',e=>{if(!wrap.contains(e.target))close();});
+  if(S.length)choose(S[0].nr);   // standaard eerste winkel
+})();
+document.querySelectorAll('.gwb-modal').forEach(m=>{
+  m.addEventListener('mousedown',e=>{if(e.target===m)gwbClose(m.id);});
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.gwb-modal.open').forEach(m=>gwbClose(m.id));});
 </script>
 {% endblock %}

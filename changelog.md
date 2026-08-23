@@ -5,6 +5,13 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.34.1 - Gebruiker of winkel aanmaken in de nieuwe stijl · 23 augustus 2026
+
+- **Een gebruiker of winkel aanmaken gebeurt nu in een venster op dezelfde pagina**, in de nieuwe stijl -
+  je wordt niet meer naar een oud scherm gestuurd.
+- In het venster "Nieuwe gebruiker" kun je bij **Filiaal** gewoon typen om snel de juiste winkel te
+  vinden (net als de winkelfilter).
+
 ## versie 2.34.0 - Gebruikers- en winkelbeheer samengevoegd tot één pagina · 23 augustus 2026
 
 - **Gebruikers en filialen staan nu samen op één overzichtelijke pagina** (Beheer → Gebruikers &amp; winkels),

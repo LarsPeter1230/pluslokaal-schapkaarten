@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.34.0'
+APP_VERSION = '2.34.1'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -3268,6 +3268,13 @@ def delete_card(card_id):
     flash('Kaart verwijderd.', 'success')
     return redirect(url_for('dashboard'))
 
+def _safe_next(default_endpoint):
+    """Interne redirect-URL uit het 'next'-veld (voor modals op andere pagina's), met terugval."""
+    nxt = request.values.get('next', '')
+    if nxt.startswith('/') and not nxt.startswith('//'):
+        return nxt
+    return url_for(default_endpoint)
+
 @app.route('/register', methods=['GET','POST'])
 @login_required
 def register():
@@ -3281,20 +3288,20 @@ def register():
         fi   = int(request.form.get('filiaal', user.filiaal) or user.filiaal)
         if not Role.query.filter_by(name=ro).first():
             flash('Ongeldige rol.', 'error')
-            return redirect(url_for('register'))
+            return redirect(_safe_next('register'))
         if not un:
             flash('Vul een naam in.', 'error')
-            return redirect(url_for('register'))
+            return redirect(_safe_next('register'))
         if find_user_by_name(un):
             flash('Er bestaat al een gebruiker met deze naam.', 'error')
-            return redirect(url_for('register'))
+            return redirect(_safe_next('register'))
         email = (request.form.get('email','').strip().lower() or None)
         if not email:
             flash('E-mailadres is verplicht (dit is het inlogadres).', 'error')
-            return redirect(url_for('register'))
+            return redirect(_safe_next('register'))
         if find_user_by_email(email):
             flash('Er bestaat al een gebruiker met dit e-mailadres.', 'error')
-            return redirect(url_for('register'))
+            return redirect(_safe_next('register'))
         f_obj = Filiaal.query.filter_by(nummer=fi).first()
         fn = f_obj.naam if f_obj else None
         # Account aanmaken zoals in de Label Manager: geen wachtwoord invoeren; het systeem maakt een
@@ -3308,7 +3315,7 @@ def register():
         else:
             flash(f'Gebruiker "{un}" aangemaakt, maar de uitnodiging kon niet worden verstuurd ({err}). '
                   f'Tijdelijk wachtwoord: {temp} - geef dit persoonlijk door.', 'warning')
-        return redirect(url_for('register'))
+        return redirect(_safe_next('register'))
     users = User.query.all()
     filialen = Filiaal.query.order_by(Filiaal.nummer).all()
     roles = Role.query.order_by(Role.is_system.desc(), Role.label).all()
@@ -3511,15 +3518,15 @@ def filialen():
             nummer = int(request.form.get('nummer','').strip())
         except ValueError:
             flash('Winkelnummer moet een getal zijn.', 'error')
-            return redirect(url_for('filialen'))
+            return redirect(_safe_next('filialen'))
         naam = request.form.get('naam','').strip() or None
         if Filiaal.query.filter_by(nummer=nummer).first():
             flash(f'Filiaal met winkelnummer {nummer} bestaat al.', 'error')
-            return redirect(url_for('filialen'))
+            return redirect(_safe_next('filialen'))
         db.session.add(Filiaal(nummer=nummer, naam=naam))
         db.session.commit()
         flash(f'Filiaal {nummer} aangemaakt.', 'success')
-        return redirect(url_for('filialen'))
+        return redirect(_safe_next('filialen'))
     items = Filiaal.query.order_by(Filiaal.nummer).all()
     counts = {f.nummer: User.query.filter_by(filiaal=f.nummer).count() for f in items}
     return render_template('filialen.html', filialen=items, counts=counts, user=user)
