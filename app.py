@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.41.0'
+APP_VERSION = '2.42.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -2151,15 +2151,66 @@ def demo_enabled():
     return get_setting('demo_enabled', '1') == '1'
 
 # Toewijsbare permissies voor rollen (winkel-niveau). Admin heeft altijd alles.
-ASSIGNABLE_PERMS = [
-    ('labels_make',    'Labels maken'),
-    ('labels_history', 'Labelhistorie bekijken'),
-    ('products',       'Producten beheren'),
-    ('team',           'Eigen team beheren (leden + uitnodigen + goedkeuren)'),
-    ('view_audit',     'Logboek van eigen winkel bekijken'),
-    ('w2p_sync',       'Winkelpakketten synchroniseren met printsysteem'),
+# Rechten per FUNCTIE, elk met bekijken (view) en wijzigen (edit) - zoals een rechten-matrix.
+# Per functie ontstaan de keys "<feat>_view" en "<feat>_edit". 'noedit' = alleen bekijken zinvol.
+PERM_FEATURES = [
+    ('Algemeen', 'fa-tags', [
+        ('schapkaarten', 'Schapkaarten', False),
+        ('scankaarten',  'Scankaarten', False),
+        ('labels',       'Labels', False),
+        ('products',     'Producten', False),
+        ('w2p',          'Weekpakketten', False),
+        ('designer',     'Designer', False),
+        ('portaal',      'Portaal', False),
+    ]),
+    ('Data', 'fa-right-left', [
+        ('export',       'Exporteren', False),
+        ('import',       'Importeren', False),
+    ]),
+    ('Beheer', 'fa-sliders', [
+        ('users',        'Gebruikers', False),
+        ('stores',       'Winkels', False),
+        ('roles',        'Rollen & rechten', False),
+        ('agent',        'Print-agents', False),
+        ('mail',         'Mailinstellingen', False),
+        ('logboek',      'Logboek', True),   # alleen bekijken
+        ('team',         'Eigen team', False),
+    ]),
 ]
-_ASSIGNABLE_KEYS = [k for k, _ in ASSIGNABLE_PERMS]
+def _feat_keys():
+    ks = []
+    for _g, _i, feats in PERM_FEATURES:
+        for fid, _lbl, noedit in feats:
+            ks.append(fid + '_view')
+            if not noedit:
+                ks.append(fid + '_edit')
+    return ks
+_ASSIGNABLE_KEYS = _feat_keys()
+ASSIGNABLE_PERMS = [(k, k) for k in _ASSIGNABLE_KEYS]
+
+# Oude platte rechten → nieuwe view/edit-keys (migratie van bestaande rollen).
+_PERM_MIGRATE = {
+    'labels_make': ['labels_view', 'labels_edit'], 'labels_history': ['labels_view'],
+    'products': ['products_view', 'products_edit'], 'team': ['team_view', 'team_edit'],
+    'view_audit': ['logboek_view'], 'w2p_sync': ['w2p_view', 'w2p_edit'],
+    'w2p_view': ['w2p_view'], 'w2p_download': ['w2p_view', 'w2p_edit'],
+    'schapkaarten': ['schapkaarten_view', 'schapkaarten_edit'],
+    'scankaarten': ['scankaarten_view', 'scankaarten_edit'],
+    'designer': ['designer_view', 'designer_edit'], 'portaal': ['portaal_view', 'portaal_edit'],
+    'export_data': ['export_view', 'export_edit'], 'import_data': ['import_view', 'import_edit'],
+    'agent_edit': ['agent_view', 'agent_edit'], 'mail_edit': ['mail_view', 'mail_edit'],
+    'users_view': ['users_view'], 'users_edit': ['users_edit', 'users_view'],
+    'stores_view': ['stores_view'], 'stores_edit': ['stores_edit', 'stores_view'],
+    'roles_view': ['roles_view'], 'roles_edit': ['roles_edit', 'roles_view'],
+}
+
+# Standaardrechten (nieuwe keys) voor de ingebouwde rollen.
+_ROLE_SEED = {
+    'ondernemer': (['%s_view' % f for f in ['schapkaarten','scankaarten','labels','products','w2p','designer','portaal','export','import','team','logboek']]
+                   + ['%s_edit' % f for f in ['schapkaarten','scankaarten','labels','products','w2p','designer','portaal','export','import','team']]),
+    'medewerker': (['%s_view' % f for f in ['schapkaarten','scankaarten','labels','w2p','designer','portaal']]
+                   + ['%s_edit' % f for f in ['schapkaarten','scankaarten','labels','w2p','designer']]),
+}
 
 _role_perm_cache = {}
 def _role_perms(name):
@@ -2181,8 +2232,8 @@ def can(user, capability):
     if perms is not None:
         return capability in perms
     # Terugval als de rol (nog) niet in de tabel staat
-    return capability in {'ondernemer': {'labels_make', 'labels_history', 'products', 'team', 'view_audit'}}.get(
-        user.role, {'labels_make', 'labels_history', 'products'})
+    return capability in set(_ROLE_SEED.get(user.role,
+        ['schapkaarten', 'scankaarten', 'labels_make', 'labels_history']))
 
 def log_action(action, detail='', user=None, filiaal=None):
     """Schrijf een auditregel (faalt stil)."""
@@ -3359,7 +3410,7 @@ def register():
     user = get_current_user()
     if not user or user.role != 'admin':
         flash('Alleen de superadmin kan het volledige gebruikersbeheer doen. Gebruik "Mijn team" voor je eigen winkel.', 'error')
-        return redirect(url_for('team') if can(user, 'team') else url_for('dashboard'))
+        return redirect(url_for('team') if can(user, 'team_view') else url_for('dashboard'))
     if request.method == 'POST':
         un   = request.form.get('username','').strip()
         ro   = request.form.get('role','')
@@ -3634,9 +3685,13 @@ def gebruikers_winkels():
                'ond': ond_counts.get(f.nummer, 0), 'status': _st(f)} for f in filialen]
     roles = Role.query.order_by(Role.is_system.desc(), Role.label).all()
     role_labels = {r.name: r.label for r in roles}
+    role_counts = {r.name: sum(1 for u2 in users if u2.role == r.name) for r in roles}
+    role_perms = {r.name: json.loads(r.permissions or '[]') for r in roles}
     return render_template('beheer_gwb.html', user=user, users=users, filialen=filialen,
                            stores=stores, stores_json=json.dumps(stores), snames=snames,
-                           role_labels=role_labels, roles=roles)
+                           role_labels=role_labels, roles=roles, perm_features=PERM_FEATURES,
+                           role_counts=role_counts, role_perms=role_perms,
+                           perm_total=len(_ASSIGNABLE_KEYS))
 
 @app.route('/delete_filiaal/<int:fid>', methods=['POST'])
 @login_required
@@ -4599,7 +4654,7 @@ def designer_print_label(design_id):
 @login_required
 def labels_dashboard():
     u = get_current_user()
-    if not can(u, 'labels_make'):
+    if not can(u, 'labels_edit'):
         flash('Je hebt geen toegang tot Labels.', 'error'); return redirect(url_for('dashboard'))
     fil = _label_filiaal()
     q = LabelJob.query
@@ -4614,7 +4669,7 @@ def labels_dashboard():
 @login_required
 def label_new():
     u = get_current_user()
-    if not can(u, 'labels_make'):
+    if not can(u, 'labels_edit'):
         flash('Je hebt geen toegang tot Labels.', 'error'); return redirect(url_for('dashboard'))
     fil = _label_filiaal()
     if fil is None:
@@ -5453,7 +5508,7 @@ def api_label_ean():
 @login_required
 def label_products():
     u = get_current_user()
-    if not can(u, 'products'):
+    if not can(u, 'products_edit'):
         flash('Je hebt geen toegang tot producten.', 'error'); return redirect(url_for('labels_dashboard'))
     fil = _label_filiaal() or u.filiaal
     if request.method == 'POST':
@@ -5495,7 +5550,7 @@ def label_products():
 @login_required
 def label_history():
     u = get_current_user()
-    if not can(u, 'labels_history'):
+    if not can(u, 'labels_view'):
         flash('Je hebt geen toegang tot de labelhistorie.', 'error'); return redirect(url_for('labels_dashboard'))
     fil = _label_filiaal()
     q = LabelJob.query
@@ -7228,7 +7283,7 @@ def rollen():
             label = request.form.get('label', '').strip()
             if not label:
                 flash('Geef de rol een naam.', 'error')
-                return redirect(url_for('rollen'))
+                return redirect(_safe_next('rollen'))
             name = _slugify_role(label)
             base = name; i = 2
             while Role.query.filter_by(name=name).first():
@@ -7256,7 +7311,7 @@ def rollen():
                     db.session.delete(r); db.session.commit()
                     log_action('rol_verwijderd', r.name)
                     flash('Rol verwijderd.', 'success')
-        return redirect(url_for('rollen'))
+        return redirect(_safe_next('rollen'))
     roles = Role.query.order_by(Role.is_system.desc(), Role.label).all()
     counts = {r.name: User.query.filter_by(role=r.name).count() for r in roles}
     role_perms = {r.name: set(json.loads(r.permissions or '[]')) for r in roles}
@@ -7272,7 +7327,7 @@ def _assignable_roles():
 @login_required
 def team():
     u = get_current_user()
-    if not u or not can(u, 'team'):
+    if not u or not can(u, 'team_view'):
         flash('Geen toegang tot teambeheer.', 'error')
         return redirect(url_for('dashboard'))
     fil = u.filiaal
@@ -9007,14 +9062,35 @@ def _seed_roles():
     """Maak de 3 basisrollen aan (idempotent). Rechten blijven daarna bewerkbaar via de UI."""
     defs = [
         ('admin',           'Beheerder',       list(_ASSIGNABLE_KEYS), True, False),
-        ('ondernemer',      'Ondernemer',      ['labels_make', 'labels_history', 'products', 'team', 'view_audit'], True, True),
-        ('medewerker',      'Medewerker',      ['labels_make', 'labels_history', 'products'], True, True),
+        ('ondernemer',      'Ondernemer',      _ROLE_SEED['ondernemer'], True, True),
+        ('medewerker',      'Medewerker',      _ROLE_SEED['medewerker'], True, True),
         ('service_kantoor', 'Service Kantoor', ['w2p_sync'], True, False),
     ]
     for name, label, perms, sysrole, scoped in defs:
         if not Role.query.filter_by(name=name).first():
             db.session.add(Role(name=name, label=label, permissions=json.dumps(perms),
                                 is_system=sysrole, store_scoped=scoped))
+    db.session.commit()
+    # Migreer ALLE rollen van oude platte rechten naar de nieuwe view/edit-keys (eenmalig, idempotent).
+    valid = set(_ASSIGNABLE_KEYS)
+    for r in Role.query.all():
+        cur = set(json.loads(r.permissions or '[]'))
+        new = set(k for k in cur if k in valid)          # al-nieuwe keys behouden
+        for old in cur:
+            if old in _PERM_MIGRATE:
+                new.update(_PERM_MIGRATE[old])            # oude keys omzetten
+        if new != cur:
+            r.permissions = json.dumps(sorted(new & valid))
+    # Ingebouwde rollen aanvullen met hun standaardrechten (geen toegang verliezen).
+    for name, seed in _ROLE_SEED.items():
+        r = Role.query.filter_by(name=name).first()
+        if r:
+            cur = set(json.loads(r.permissions or '[]'))
+            if not cur.issuperset(seed):
+                r.permissions = json.dumps(sorted(cur | set(seed)))
+    a = Role.query.filter_by(name='admin').first()
+    if a:
+        a.permissions = json.dumps(list(_ASSIGNABLE_KEYS))   # admin = alles
     db.session.commit()
 
 def _seed_demo():

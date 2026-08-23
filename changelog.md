@@ -5,6 +5,15 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.42.0 - Rollen & rechten: derde tabblad met een view/edit-rechtenmatrix · 23 augustus 2026
+
+- **Rollen & rechten staat nu als derde tabblad** op de pagina Gebruikers & winkels, in dezelfde stijl.
+- **Rechten per functie met aparte "Bekijken"- en "Wijzigen"-schakelaars**: zo mag een rol bijvoorbeeld
+  wel gebruikers of instellingen inzien, maar niet aanpassen. Netjes gegroepeerd (Algemeen, Data, Beheer)
+  in een overzichtelijk paneel dat vanaf de rechterkant openschuift.
+- **Rollen aanmaken, bewerken en verwijderen** met dit paneel; "Wijzigen" zet automatisch ook "Bekijken"
+  aan. De ingebouwde rollen zijn automatisch omgezet naar de nieuwe rechten, zodat niemand toegang verliest.
+
 ## versie 2.41.0 - Printerinstellingen syncen tussen PA en PLUSLokaal + CUPS-login · 23 augustus 2026
 
 - **Printertaal, resolutie, labelformaat, "alleen printen" en de lade-per-formaat kun je nu ook op de PA

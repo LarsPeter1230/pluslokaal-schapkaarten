@@ -13,6 +13,7 @@
   <div class="gwb-tabs">
     <button type="button" class="gwb-tab on" data-tab="users"><i class="fa fa-users"></i> Gebruikers <span class="gwb-b">{{ users|length }}</span></button>
     <button type="button" class="gwb-tab" data-tab="stores"><i class="fa fa-store"></i> Winkels <span class="gwb-b">{{ stores|length }}</span></button>
+    <button type="button" class="gwb-tab" data-tab="roles"><i class="fa fa-user-shield"></i> Rollen &amp; rechten <span class="gwb-b">{{ roles|length }}</span></button>
   </div>
 
   <!-- ══ GEBRUIKERS ══ -->
@@ -96,7 +97,107 @@
     </div>
     <div id="sEmpty" class="gwb-empty" style="display:none">Geen winkels gevonden.</div>
   </div>
+
+  {# ══════════════ ROLLEN & RECHTEN ══════════════ #}
+  {% macro perm_matrix(checked) %}
+  <div class="gwb-matrix">
+    {% for gname, gicon, feats in perm_features %}
+    <div class="gwb-mgrp">
+      <div class="gwb-mhead"><span><i class="fa {{ gicon }}"></i> {{ gname }}</span>
+        <span class="gwb-mcols"><span>Bekijken</span><span>Wijzigen</span></span></div>
+      {% for fid, flabel, noedit in feats %}
+      <div class="gwb-mrow">
+        <span class="gwb-mname">{{ flabel }}</span>
+        <span class="gwb-mtog"><label class="gwb-tgl"><input type="checkbox" name="perms" value="{{ fid }}_view" {{ 'checked' if fid+'_view' in checked }}><span class="gwb-knob"></span></label></span>
+        <span class="gwb-mtog">{% if not noedit %}<label class="gwb-tgl"><input type="checkbox" name="perms" value="{{ fid }}_edit" {{ 'checked' if fid+'_edit' in checked }}><span class="gwb-knob"></span></label>{% else %}<span class="muted" style="font-size:.7rem">n.v.t.</span>{% endif %}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endmacro %}
+
+  <div id="gwbRoles" style="display:none">
+    <div class="gwb-ph">
+      <div class="gwb-th"><h3>Rollen &amp; rechten</h3><span class="gwb-count">{{ roles|length }}</span></div>
+      <button type="button" class="gwb-btn primary" onclick="gwbOpen('mRoleNew')"><i class="fa fa-plus"></i> Rol toevoegen</button>
+    </div>
+    <p class="muted" style="padding:0 16px;font-size:.85rem;margin:0 0 6px;">Rechten zijn gesplitst in <b>bekijken</b> en <b>wijzigen</b> waar dat kan: zo mag een rol beheer wel inzien maar niet aanpassen.</p>
+    <div class="gwb-grid">
+      {% for r in roles %}
+      <div class="gwb-scard" style="cursor:pointer" onclick="gwbOpen('mRole{{ r.id }}')">
+        <div class="top"><div class="logo"><i class="fa fa-user-shield"></i></div>
+          <div class="nm">{{ r.label }}{% if r.is_system %} <span class="gwb-chip c-staff" style="font-size:.66rem;vertical-align:middle">basis</span>{% endif %}<small>{{ role_counts.get(r.name,0) }} gebruiker(s)</small></div></div>
+        <div class="row"><span>Rechten</span><b>{{ role_perms.get(r.name,[])|length }} / {{ perm_labels|length }}</b></div>
+        <div class="row"><span>Winkel-gebonden</span><b>{{ 'Ja' if r.store_scoped else 'Nee' }}</b></div>
+        <div class="go">Bewerken <i class="fa fa-arrow-right"></i></div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
 </div>
+
+<!-- ══ MODAL: nieuwe rol ══ -->
+<div class="gwb-modal drawer" id="mRoleNew" role="dialog" aria-modal="true">
+  <div class="gwb-modal-card" style="max-width:620px">
+    <div class="gwb-modal-h"><h3><i class="fa fa-user-shield"></i> Nieuwe rol</h3>
+      <button type="button" class="gwb-x" onclick="gwbClose('mRoleNew')"><i class="fa fa-xmark"></i></button></div>
+    <form method="post" action="{{ url_for('rollen') }}">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="next" value="{{ url_for('gebruikers_winkels') }}">
+      <input type="hidden" name="action" value="create">
+      <div class="gwb-modal-b">
+        <label class="gwb-lbl">Naam van de rol</label>
+        <input class="gwb-in" name="label" placeholder="bijv. Filiaalmanager" required autofocus>
+        <label class="gwb-lbl" style="margin-top:14px">Rechten</label>
+        {{ perm_matrix([]) }}
+      </div>
+      <div class="gwb-modal-f">
+        <button type="button" class="gwb-btn" onclick="gwbClose('mRoleNew')">Annuleren</button>
+        <button type="submit" class="gwb-btn primary"><i class="fa fa-plus"></i> Rol aanmaken</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% for r in roles %}
+<!-- ══ MODAL: rol bewerken ══ -->
+<div class="gwb-modal drawer" id="mRole{{ r.id }}" role="dialog" aria-modal="true">
+  <div class="gwb-modal-card" style="max-width:620px">
+    <div class="gwb-modal-h"><h3><i class="fa fa-user-shield"></i> {{ r.label }}{% if r.is_system %} <span class="muted" style="font-size:.8rem">(basisrol)</span>{% endif %}</h3>
+      <button type="button" class="gwb-x" onclick="gwbClose('mRole{{ r.id }}')"><i class="fa fa-xmark"></i></button></div>
+    <form method="post" action="{{ url_for('rollen') }}">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="next" value="{{ url_for('gebruikers_winkels') }}">
+      <input type="hidden" name="id" value="{{ r.id }}">
+      <div class="gwb-modal-b">
+        {% if not r.is_system %}
+        <label class="gwb-lbl">Naam van de rol</label>
+        <input class="gwb-in" name="label" value="{{ r.label }}">
+        {% endif %}
+        {% if r.name == 'admin' %}
+        <p class="muted small" style="margin:0 0 8px">De beheerder heeft altijd alle rechten.</p>
+        {% endif %}
+        <label class="gwb-lbl" style="margin-top:10px">Rechten</label>
+        {{ perm_matrix(role_perms.get(r.name, [])) }}
+      </div>
+      <div class="gwb-modal-f" style="justify-content:space-between">
+        <span>
+          {% if not r.is_system %}
+          <button type="submit" name="action" value="delete"
+            class="gwb-btn" style="color:#c0341a;border-color:#e3b7ad"
+            onclick="return confirm('Rol {{ r.label }} verwijderen?')"><i class="fa fa-trash"></i> Verwijderen</button>
+          {% endif %}
+        </span>
+        <span style="display:flex;gap:9px">
+          <button type="button" class="gwb-btn" onclick="gwbClose('mRole{{ r.id }}')">Annuleren</button>
+          <button type="submit" name="action" value="save" class="gwb-btn primary"><i class="fa fa-floppy-disk"></i> Opslaan</button>
+        </span>
+      </div>
+    </form>
+  </div>
+</div>
+{% endfor %}
 
 <!-- ══ MODAL: nieuwe gebruiker ══ -->
 <div class="gwb-modal" id="mUser" role="dialog" aria-modal="true" aria-labelledby="mUserT">
@@ -259,6 +360,27 @@
   .gwb-hint .fa{margin-right:5px}
   .gwb-modal-f{display:flex;justify-content:flex-end;gap:9px;padding:14px 18px;border-top:1px solid var(--bd);background:var(--pnl2)}
   @media (max-width:460px){ .gwb-2col{grid-template-columns:1fr} }
+  /* rol-drawer (schuift van rechts, zoals de referentie) */
+  .gwb-modal.drawer{align-items:stretch;justify-content:flex-end;padding:0}
+  .gwb-modal.drawer .gwb-modal-card{max-width:560px;width:100%;height:100%;border-radius:0;display:flex;flex-direction:column;animation:gwbslide .2s ease}
+  @keyframes gwbslide{from{transform:translateX(40px);opacity:.5}to{transform:none;opacity:1}}
+  .gwb-modal.drawer .gwb-modal-b{flex:1;overflow:auto}
+  /* rechten-matrix */
+  .gwb-matrix{display:flex;flex-direction:column;gap:14px}
+  .gwb-mgrp{border:1px solid var(--bd);border-radius:12px;overflow:hidden}
+  .gwb-mhead{display:flex;justify-content:space-between;align-items:center;background:var(--pnl2);padding:9px 14px;font-weight:800;font-size:.78rem;color:var(--gd);text-transform:uppercase;letter-spacing:.03em}
+  .gwb-mhead i{margin-right:6px}
+  .gwb-mcols span{display:inline-block;width:64px;text-align:center;font-size:.66rem;color:var(--mut);letter-spacing:0}
+  .gwb-mrow{display:flex;align-items:center;padding:8px 14px;border-top:1px solid var(--bd2)}
+  .gwb-mname{flex:1;font-size:.9rem}
+  .gwb-mtog{width:64px;display:flex;justify-content:center}
+  .gwb-tgl{position:relative;display:inline-block;width:38px;height:22px;cursor:pointer}
+  .gwb-tgl input{opacity:0;width:0;height:0;position:absolute}
+  .gwb-knob{position:absolute;inset:0;background:#cfd4c8;border-radius:20px;transition:.15s}
+  .gwb-knob::before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.15s}
+  .gwb-tgl input:checked + .gwb-knob{background:var(--g)}
+  .gwb-tgl input:checked + .gwb-knob::before{transform:translateX(16px)}
+  .gwb-tgl input:focus-visible + .gwb-knob{box-shadow:0 0 0 3px color-mix(in srgb,var(--g) 30%,transparent)}
 </style>
 
 <script>
@@ -330,9 +452,10 @@ window.GWB_STORES = {{ stores_json|safe }};
     const t=b.dataset.tab;
     document.getElementById('gwbUsers').style.display=t==='users'?'':'none';
     document.getElementById('gwbStores').style.display=t==='stores'?'':'none';
+    document.getElementById('gwbRoles').style.display=t==='roles'?'':'none';
     try{sessionStorage.setItem('gwbtab',t);}catch(e){}
   });
-  try{const s=sessionStorage.getItem('gwbtab');if(s==='stores')document.querySelector('.gwb-tab[data-tab="stores"]').click();}catch(e){}
+  try{const s=sessionStorage.getItem('gwbtab');if(s&&s!=='users')document.querySelector('.gwb-tab[data-tab="'+s+'"]').click();}catch(e){}
 
   apply();
 })();
@@ -340,6 +463,15 @@ window.GWB_STORES = {{ stores_json|safe }};
 function gwbOpen(id){document.getElementById(id).classList.add('open');document.body.style.overflow='hidden';
   const inp=document.querySelector('#'+id+' [autofocus]');if(inp)setTimeout(()=>inp.focus(),50);}
 function gwbClose(id){document.getElementById(id).classList.remove('open');document.body.style.overflow='';}
+// "Wijzigen" aanzetten zet automatisch ook "Bekijken" aan (edit impliceert view).
+document.addEventListener('change',function(e){
+  var cb=e.target;
+  if(cb && cb.name==='perms' && cb.value.slice(-5)==='_edit' && cb.checked){
+    var row=cb.closest('.gwb-mrow');
+    var v=row && row.querySelector('input[value="'+cb.value.slice(0,-5)+'_view"]');
+    if(v) v.checked=true;
+  }
+});
 // typbare filiaal-combobox in de 'nieuwe gebruiker'-modal
 (function(){
   const S=window.GWB_STORES||[], wrap=document.getElementById('fCombo');

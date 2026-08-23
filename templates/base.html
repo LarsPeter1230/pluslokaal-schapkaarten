@@ -48,7 +48,7 @@
       <a href="{{ url_for('scankaarten') }}" class="{{ 'active' if ep in ['scankaarten','scankaart_new'] }}">
         <i class="fa fa-barcode"></i> Scankaarten
       </a>
-      {% if can(user,'labels_make') %}
+      {% if can(user,'labels_view') %}
       <a href="{{ url_for('labels_dashboard') }}" class="{{ 'active' if ep in ['labels_dashboard','label_new','label_view','label_products','label_history'] }}">
         <i class="fa fa-tag"></i> Labels
       </a>
@@ -67,12 +67,11 @@
           <i class="fa fa-chevron-down nav-chevron"></i>
         </button>
         <div class="dropdown-menu">
-          {% if can(user,'team') and user.role != 'admin' %}
+          {% if can(user,'team_view') and user.role != 'admin' %}
           <a href="{{ url_for('team') }}" class="{{ 'active' if ep=='team' }}"><i class="fa fa-users"></i> Mijn team</a>
           {% endif %}
           {% if user.role == 'admin' %}
-          <a href="{{ url_for('gebruikers_winkels') }}" class="{{ 'active' if ep in ['gebruikers_winkels','register','filialen','filiaal_detail','edit_user'] }}"><i class="fa fa-users-gear"></i> Gebruikers &amp; winkels</a>
-          <a href="{{ url_for('rollen') }}" class="{{ 'active' if ep=='rollen' }}"><i class="fa fa-user-shield"></i> Rollen &amp; rechten</a>
+          <a href="{{ url_for('gebruikers_winkels') }}" class="{{ 'active' if ep in ['gebruikers_winkels','register','filialen','filiaal_detail','edit_user','rollen'] }}"><i class="fa fa-users-gear"></i> Gebruikers &amp; winkels</a>
           <a href="{{ url_for('feedback_list') }}" class="{{ 'active' if ep in ['feedback_list','feedback_detail'] }}">
             <i class="fa fa-inbox"></i> Feedback
             {% if feedback_unread %}<span class="menu-badge">{{ feedback_unread if feedback_unread < 100 else '99+' }}</span>{% endif %}
@@ -147,12 +146,11 @@
     <a href="{{ url_for('labels_dashboard') }}" class="{{ 'active' if ep in ['labels_dashboard','label_new','label_view','label_products','label_history'] }}"><i class="fa fa-tag"></i> Labels</a>
     <a href="{{ url_for('portaal') }}" class="{{ 'active' if ep in ['portaal','portaal_view'] }}"><i class="fa fa-globe"></i> Portaal</a>
     <a href="{{ url_for('designer_dashboard') }}" class="{{ 'active' if ep in ['designer_dashboard','designer_new','designer_editor'] }}"><i class="fa fa-pen-ruler"></i> Designer <span class="beta-tag">Bèta</span></a>
-    {% if user and can(user,'team') and user.role != 'admin' %}
+    {% if user and can(user,'team_view') and user.role != 'admin' %}
     <a href="{{ url_for('team') }}" class="{{ 'active' if ep=='team' }}"><i class="fa fa-users"></i> Mijn team</a>
     {% endif %}
     {% if user and user.role == 'admin' %}
-    <a href="{{ url_for('gebruikers_winkels') }}" class="{{ 'active' if ep in ['gebruikers_winkels','register','filialen','filiaal_detail','edit_user'] }}"><i class="fa fa-users-gear"></i> Gebruikers &amp; winkels</a>
-    <a href="{{ url_for('rollen') }}" class="{{ 'active' if ep=='rollen' }}"><i class="fa fa-user-shield"></i> Rollen &amp; rechten</a>
+    <a href="{{ url_for('gebruikers_winkels') }}" class="{{ 'active' if ep in ['gebruikers_winkels','register','filialen','filiaal_detail','edit_user','rollen'] }}"><i class="fa fa-users-gear"></i> Gebruikers &amp; winkels</a>
     <a href="{{ url_for('feedback_list') }}" class="{{ 'active' if ep in ['feedback_list','feedback_detail'] }}"><i class="fa fa-inbox"></i> Feedback{% if feedback_unread %} <span class="menu-badge">{{ feedback_unread if feedback_unread < 100 else '99+' }}</span>{% endif %}</a>
     <a href="{{ url_for('kb_manage') }}" class="{{ 'active' if ep in ['kb_manage','kb_edit'] }}"><i class="fa fa-book-open"></i> Kennisbank</a>
     <a href="{{ url_for('logs_view') }}" class="{{ 'active' if ep=='logs_view' }}"><i class="fa fa-clipboard-list"></i> Logs</a>
