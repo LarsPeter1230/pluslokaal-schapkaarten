@@ -5,6 +5,14 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.37.0 - Kant-en-klaar Pi-image: de agent zit er al in · 23 augustus 2026
+
+- **De agent zit nu kant-en-klaar in het Pi-image gebakken en start meteen bij de eerste boot.** Er hoeft
+  niets meer gedownload of geinstalleerd te worden om bij de webinterface te komen - je flasht, sluit aan,
+  en bent binnen ~1 minuut op het IP om de winkel te koppelen. Alleen de printersoftware (CUPS) en de
+  beheer-agent (RMM) installeren nog rustig op de achtergrond, zonder de interface te blokkeren.
+- Fail-safe: mocht een achtergrond-installatie ooit haperen, dan blijft de interface gewoon bereikbaar.
+
 ## versie 2.36.0 - Pi laat de installatie live zien en loopt niet meer vast · 23 augustus 2026
 
 - **De Pi is nu vrijwel meteen op zijn IP te bereiken met een voortgangsscherm in PLUS-huisstijl.** Je ziet

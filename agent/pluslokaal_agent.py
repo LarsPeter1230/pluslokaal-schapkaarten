@@ -30,7 +30,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from http import cookies as http_cookies
 from urllib.parse import parse_qs, urlparse, quote as urlquote
 
-AGENT_VERSION = '1.5.0'
+AGENT_VERSION = '1.5.1'
 CONFIG_DIR = '/etc/pluslokaal-agent'
 CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.json')
 SETUP_STATUS_FILE = os.path.join(CONFIG_DIR, 'setup-status.json')
@@ -38,8 +38,11 @@ SETUP_STATUS_FILE = os.path.join(CONFIG_DIR, 'setup-status.json')
 
 def read_setup_status():
     """Voortgang van de eerste installatie (geschreven door het installatiescript). None = geen
-    installatie bezig (klaar of niet van toepassing)."""
+    installatie bezig (klaar of niet van toepassing). Fail-safe: een status ouder dan 20 min wordt
+    als 'klaar' behandeld, zodat de webinterface nooit op de voortgangspagina blijft hangen."""
     try:
+        if time.time() - os.path.getmtime(SETUP_STATUS_FILE) > 1200:
+            return None
         st = json.load(open(SETUP_STATUS_FILE))
         if st.get('done'):
             return None

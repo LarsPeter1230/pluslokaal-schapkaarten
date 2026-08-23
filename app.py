@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.36.0'
+APP_VERSION = '2.37.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -5967,6 +5967,86 @@ def _img_find_base_url():
             continue
     raise RuntimeError('kon het Ubuntu-basisimage niet vinden op cdimage.ubuntu.com')
 
+def _mbr_part2(img_path):
+    """Byte-offset en grootte van partitie 2 (de ext4-root) uit de MBR."""
+    with open(img_path, 'rb') as fh:
+        mbr = fh.read(512)
+    e = mbr[446 + 16:446 + 32]
+    lba = int.from_bytes(e[8:12], 'little')
+    cnt = int.from_bytes(e[12:16], 'little')
+    if not (lba and cnt):
+        raise RuntimeError('ext4-rootpartitie niet gevonden')
+    return lba * 512, cnt * 512
+
+def _firstboot_baked_sh(server):
+    """First-boot voor het KANT-EN-KLARE image: de agent draait al (gebakken + aangezet), dus we
+    installeren alleen nog de printersoftware (CUPS) en de beheer-agent (RMM), met time-outs."""
+    return f"""#!/usr/bin/env bash
+# PLUSLokaal - de agent is al kant-en-klaar geinstalleerd; alleen CUPS + RMM nog.
+export DEBIAN_FRONTEND=noninteractive
+timeout 180 apt-get update || true
+timeout 600 apt-get install -y --no-install-recommends cups cups-client || true
+usermod -aG lpadmin ubuntu 2>/dev/null || true
+cupsctl --remote-admin 2>/dev/null || true
+[ -f /opt/pluslokaal-rmm-install.sh ] && timeout 900 bash /opt/pluslokaal-rmm-install.sh || true
+touch /etc/pluslokaal-agent/.firstboot-done
+"""
+
+def _agent_userdata_baked_text():
+    """Minimale cloud-init voor het gebakken image: hostnaam + de first-boot (CUPS/RMM). De agent en
+    z'n service zitten al in het image, dus die hoeft hier niet meer geinstalleerd te worden."""
+    return ("#cloud-config\n"
+            "# PLUSLokaal Print-Agent - kant-en-klaar image (agent draait al bij de eerste boot).\n"
+            "hostname: pluslokaal-agent\n"
+            "package_update: false\n"
+            "runcmd:\n"
+            "  - [bash, /opt/pluslokaal-firstboot.sh]\n")
+
+def _bake_agent_into_rootfs(build):
+    """Bak de agent + de AANGEZETTE systemd-service (+ first-boot & RMM) kant-en-klaar in de ext4-root
+    met debugfs (zonder mounten). Zo start de webinterface direct bij de eerste boot - geen download of
+    --install meer nodig, en dus niets dat kan blokkeren."""
+    server = 'https://pluslokaal.com'
+    off, size = _mbr_part2(build)
+    root = os.path.join(_IMG_DIR, 'root.ext4')
+    _img_state.update(message='Rootpartitie uitlezen…')
+    subprocess.run(['dd', f'if={build}', f'of={root}', 'bs=512',
+                    f'skip={off // 512}', f'count={size // 512}', 'status=none'],
+                   check=True, timeout=1200)
+    # bestanden voorbereiden
+    tmpd = os.path.join(_IMG_DIR, '_bake')
+    shutil.rmtree(tmpd, ignore_errors=True); os.makedirs(tmpd)
+    unit = os.path.join(tmpd, 'unit'); open(unit, 'w').write(
+        "[Unit]\nDescription=PLUSLokaal Print-Agent\nAfter=network-online.target\n"
+        "[Service]\nExecStart=/usr/bin/python3 /opt/pluslokaal-agent/pluslokaal_agent.py\n"
+        "Restart=always\nRestartSec=5\n[Install]\nWantedBy=multi-user.target\n")
+    fb = os.path.join(tmpd, 'firstboot'); open(fb, 'w').write(_firstboot_baked_sh(server))
+    cmds = [
+        'mkdir /opt/pluslokaal-agent',
+        'mkdir /etc/pluslokaal-agent',
+        f'write {_AGENT_FILE} /opt/pluslokaal-agent/pluslokaal_agent.py',
+        'sif /opt/pluslokaal-agent/pluslokaal_agent.py mode 0100755',
+        f'write {unit} /etc/systemd/system/pluslokaal-agent.service',
+        'symlink /etc/systemd/system/multi-user.target.wants/pluslokaal-agent.service /etc/systemd/system/pluslokaal-agent.service',
+        f'write {fb} /opt/pluslokaal-firstboot.sh',
+        'sif /opt/pluslokaal-firstboot.sh mode 0100755',
+    ]
+    rmm = (get_setting('agent_rmm_cmd', '') or '').strip()
+    if rmm:
+        script = rmm if rmm.startswith('#!') else '#!/usr/bin/env bash\n' + rmm
+        rf = os.path.join(tmpd, 'rmm'); open(rf, 'w').write(script)
+        cmds += [f'write {rf} /opt/pluslokaal-rmm-install.sh', 'sif /opt/pluslokaal-rmm-install.sh mode 0100700']
+    cmds.append('quit')
+    cmdfile = os.path.join(tmpd, 'cmds'); open(cmdfile, 'w').write('\n'.join(cmds) + '\n')
+    _img_state.update(message='Agent kant-en-klaar in het image bakken…')
+    subprocess.run(['debugfs', '-w', '-f', cmdfile, root], check=True, timeout=600, capture_output=True)
+    subprocess.run(['e2fsck', '-fy', root], timeout=600)   # checksums herstellen (exit 1 = gecorrigeerd)
+    _img_state.update(message='Rootpartitie terugschrijven…')
+    subprocess.run(['dd', f'if={root}', f'of={build}', 'bs=512',
+                    f'seek={off // 512}', 'conv=notrunc', 'status=none'],
+                   check=True, timeout=1200)
+    os.remove(root); shutil.rmtree(tmpd, ignore_errors=True)
+
 def _img_build_worker():
     import urllib.request
     try:
@@ -5993,10 +6073,13 @@ def _img_build_worker():
         _img_state.update(message='Eigen image samenstellen…')
         build = os.path.join(_IMG_DIR, 'build.img')
         shutil.copyfile(base_img, build)
+        # Agent + service KANT-EN-KLAAR in de rootpartitie bakken (start direct bij boot).
+        with app.app_context():
+            _bake_agent_into_rootfs(build)
+            ud_text = _agent_userdata_baked_text()
         offset = _mbr_part1_offset(build)
         udf = os.path.join(_IMG_DIR, 'user-data.tmp')
-        with app.app_context():
-            open(udf, 'w').write(_agent_userdata_text())
+        open(udf, 'w').write(ud_text)
         subprocess.run(['mcopy', '-o', '-i', f'{build}@@{offset}', udf, '::user-data'],
                        check=True, timeout=300, capture_output=True)
         os.remove(udf)
