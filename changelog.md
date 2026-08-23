@@ -5,6 +5,15 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.24.5 - Winkelpakketten: gedownloade weken worden nu echt gebruikt · 23 augustus 2026
+
+- **Opgelost: kaarten van al-gedownloade weken plaatsten tóch een nieuwe bestelling.** De "Dagdeal"-kaarten
+  (ma/di/zo) zitten bij het printsysteem in dezelfde formaat-PDF als het gewone formaat, maar werden als een
+  apart formaat gezien - waardoor de al-gedownloade weken niet herkend werden en er onnodig live besteld werd.
+- Nu worden die kaarten juist herkend: **al je op de server gedownloade weken (bv. 35 en 36) komen direct uit
+  de lokale opslag**, zonder nieuwe bestelling. Dit werkt met de al aanwezige bestanden - er hoefde niets
+  opnieuw gedownload te worden.
+
 ## versie 2.24.4 - Eén vrij invulbaar PLUS-sjabloon · 21 augustus 2026
 
 - **Eén PLUS-sjabloon in de "We doen met je mee"-stijl** met vrij invulbare tekst: vervang zelf

@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.24.4'
+APP_VERSION = '2.24.5'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -6184,6 +6184,10 @@ def _normalize_formaat(formaat):
         f = f[len('Briljant '):]
     if f.endswith(' OLF'):
         f = f[:-len(' OLF')]
+    # Dagdeal-varianten (bv. "A3 liggend Dagdeal ma/di/zo") zitten bij W2P in DEZELFDE per-formaat-PDF
+    # als het basisformaat; zonder deze normalisatie klopt de paginacount niet en wordt er telkens
+    # onnodig live besteld (empirisch geverifieerd: 32 pagina's = basis + Dagdeal, 1-op-1 op tegel-volgorde).
+    f = re.sub(r'\s+Dagdeal\b.*$', '', f, flags=re.I)
     return f.strip()
 
 def _is_briljant(formaat):
@@ -7601,6 +7605,26 @@ def _migrate_db():
                 conn.commit()
             except Exception:
                 pass
+    _migrate_w2p_dagdeal_docids()
+
+def _migrate_w2p_dagdeal_docids():
+    """Eenmalige data-fix: herbereken de doc_ids van bestaande winkelpakket-cache-rijen met de nieuwe
+    normalisatie (Dagdeal-suffix gestript). De gecachte PDF-bestanden bevatten al basis + Dagdeal-kaarten;
+    alleen de opgeslagen doc_ids misten de Dagdeal-kaarten, waardoor downloaden onnodig live bestelde."""
+    try:
+        if get_setting('w2p_dagdeal_docids_fix', '') == '1':
+            return
+        rows = W2PCachedPdf.query.all()
+        for r in rows:
+            docs = (W2PDocument.query.filter_by(category_id=r.category_id, period_id=r.period_id,
+                                                group_id=r.group_id).order_by(W2PDocument.sort_index).all())
+            new_ids = [d.promotion_document_id for d in docs if _normalize_formaat(d.formaat) == r.formaat]
+            if new_ids and new_ids != json.loads(r.doc_ids or '[]'):
+                r.doc_ids = json.dumps(new_ids)
+        db.session.commit()
+        set_setting('w2p_dagdeal_docids_fix', '1')
+    except Exception:
+        db.session.rollback()
 
 def _seed_filialen():
     """Maak Filiaal-records voor elk filiaalnummer dat al bij gebruikers voorkomt."""
