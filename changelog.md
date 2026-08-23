@@ -5,6 +5,15 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.34.0 - Gebruikers- en winkelbeheer samengevoegd tot één pagina · 23 augustus 2026
+
+- **Gebruikers en filialen staan nu samen op één overzichtelijke pagina** (Beheer → Gebruikers &amp; winkels),
+  met twee tabbladen: **Gebruikers** en **Winkels**.
+- Bij **Gebruikers** typ je in het winkelveld om snel op een filiaal te filteren (of kies uit de lijst),
+  plus filteren op rol en zoeken op naam/e-mail. De winkel staat als kolom bij elke gebruiker.
+- Bij **Winkels** zoek je op naam of nummer; elke winkelkaart toont het aantal medewerkers, ondernemers
+  en de status van de Print-agent, en opent met één klik het filiaal.
+
 ## versie 2.33.2 - Print-agents werken zichzelf direct bij · 23 augustus 2026
 
 - **Print-agents updaten nu meteen** zodra de server een nieuwere versie aanbiedt, in plaats van pas bij

@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.33.2'
+APP_VERSION = '2.34.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -3523,6 +3523,35 @@ def filialen():
     items = Filiaal.query.order_by(Filiaal.nummer).all()
     counts = {f.nummer: User.query.filter_by(filiaal=f.nummer).count() for f in items}
     return render_template('filialen.html', filialen=items, counts=counts, user=user)
+
+@app.route('/beheer/gebruikers-winkels')
+@login_required
+def gebruikers_winkels():
+    """Gecombineerd gebruikers- en winkelbeheer op één pagina (tabbladen Gebruikers / Winkels)."""
+    user = get_current_user()
+    if not user or user.role != 'admin':
+        flash('Alleen de superadmin kan dit beheren.', 'error')
+        return redirect(url_for('dashboard'))
+    users = User.query.order_by(User.username).all()
+    filialen = Filiaal.query.order_by(Filiaal.nummer).all()
+    counts, ond_counts = {}, {}
+    for u in users:
+        counts[u.filiaal] = counts.get(u.filiaal, 0) + 1
+        if u.role in ('ondernemer', 'admin'):
+            ond_counts[u.filiaal] = ond_counts.get(u.filiaal, 0) + 1
+    def _st(f):
+        if not f.agent_key:
+            return 'direct'
+        return 'on' if _agent_online(f) else 'off'
+    disp = lambda f: ('PLUS ' + f.naam) if f.naam else ('Filiaal ' + str(f.nummer))
+    snames = {f.nummer: disp(f) for f in filialen}
+    stores = [{'nr': f.nummer, 'naam': disp(f), 'count': counts.get(f.nummer, 0),
+               'ond': ond_counts.get(f.nummer, 0), 'status': _st(f)} for f in filialen]
+    roles = Role.query.order_by(Role.is_system.desc(), Role.label).all()
+    role_labels = {r.name: r.label for r in roles}
+    return render_template('beheer_gwb.html', user=user, users=users, filialen=filialen,
+                           stores=stores, stores_json=json.dumps(stores), snames=snames,
+                           role_labels=role_labels, roles=roles)
 
 @app.route('/delete_filiaal/<int:fid>', methods=['POST'])
 @login_required
