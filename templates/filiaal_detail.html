@@ -123,25 +123,49 @@
         {% endif %}
       </div>
 
-      <!-- STAP 1: IMAGE -->
+      <!-- STAP 1: IMAGE / ISO -->
       <div class="pa-box">
-        <div class="pa-box__h"><span class="pa-step">1</span> Pi-image downloaden</div>
+        <div class="pa-box__h"><span class="pa-step">1</span> Installatiebestand downloaden</div>
+        <p class="muted small" style="margin:0 0 10px;">Kies je hardware - beide geven precies dezelfde
+          werking (agent + RMM er al in):</p>
+
+        <div style="font-weight:800;color:var(--green-d);font-size:.8rem;margin:0 0 6px;"><i class="fa fa-raspberry-pi fa-microchip"></i> Raspberry Pi (SD-kaart)</div>
         {% if img_state.status == 'building' %}
           <p class="muted small" style="margin:0 0 8px;"><i class="fa fa-spinner fa-spin"></i>
-            Bezig met bouwen: {{ img_state.message }} - <a href="">ververs de pagina</a></p>
+            Bezig: {{ img_state.message }} - <a href="">ververs</a></p>
         {% elif img_state.status == 'error' %}
           <p class="small" style="color:#dd350d;margin:0 0 8px;">Bouwen mislukt: {{ img_state.error }}</p>
         {% endif %}
         {% if img_info %}
-          <a href="{{ url_for('agent_img_download') }}" class="btn btn-primary btn-block" style="padding:12px;">
+          <a href="{{ url_for('agent_img_download') }}" class="btn btn-primary btn-block" style="padding:11px;">
             <i class="fa fa-download"></i> Download Pi-image ({{ img_info.size_mb }} MB)</a>
-          <p class="muted small" style="margin:6px 0 8px;text-align:center;">pluslokaal-agent.img.gz · gebouwd {{ img_info.mtime }} · met agent + RMM erin</p>
+          <p class="muted small" style="margin:4px 0 8px;text-align:center;">pluslokaal-agent.img.gz · gebouwd {{ img_info.mtime }}</p>
         {% endif %}
-        <form method="post" action="{{ url_for('agent_img_build') }}">
+        <form method="post" action="{{ url_for('agent_img_build') }}" style="margin:0 0 12px;">
           <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
           <input type="hidden" name="next" value="{{ url_for('filiaal_detail', nummer=f.nummer) }}">
           <button type="submit" class="btn {{ 'btn-outline btn-sm' if img_info else 'btn-primary btn-block' }}" {{ 'disabled' if img_state.status=='building' }}>
-            <i class="fa fa-hammer"></i> {{ 'Opnieuw bouwen (na RMM-wijziging)' if img_info else 'Image bouwen (±10 min)' }}</button>
+            <i class="fa fa-hammer"></i> {{ 'Opnieuw bouwen' if img_info else 'Pi-image bouwen (±10 min)' }}</button>
+        </form>
+
+        <div style="font-weight:800;color:var(--green-d);font-size:.8rem;margin:0 0 6px;"><i class="fa fa-computer"></i> Mini-pc (Wyse / Futro / HP / Lenovo - USB-stick)</div>
+        {% if iso_state.status == 'building' %}
+          <p class="muted small" style="margin:0 0 8px;"><i class="fa fa-spinner fa-spin"></i>
+            Bezig: {{ iso_state.message }} - <a href="">ververs</a></p>
+        {% elif iso_state.status == 'error' %}
+          <p class="small" style="color:#dd350d;margin:0 0 8px;">Bouwen mislukt: {{ iso_state.error }}</p>
+        {% endif %}
+        {% if iso_info %}
+          <a href="{{ url_for('agent_iso_download') }}" class="btn btn-primary btn-block" style="padding:11px;">
+            <i class="fa fa-download"></i> Download mini-pc-installer ({{ iso_info.size_mb }} MB)</a>
+          <p class="muted small" style="margin:4px 0 8px;text-align:center;">pluslokaal-installer.iso · gebouwd {{ iso_info.mtime }} ·
+            <b style="color:#dd350d;">wist de schijf van de machine!</b></p>
+        {% endif %}
+        <form method="post" action="{{ url_for('agent_iso_build') }}">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="next" value="{{ url_for('filiaal_detail', nummer=f.nummer) }}">
+          <button type="submit" class="btn {{ 'btn-outline btn-sm' if iso_info else 'btn-primary btn-block' }}" {{ 'disabled' if iso_state.status=='building' }}>
+            <i class="fa fa-hammer"></i> {{ 'Opnieuw bouwen' if iso_info else 'Mini-pc-installer bouwen (±10 min)' }}</button>
         </form>
       </div>
 
@@ -149,11 +173,14 @@
       <div class="pa-box">
         <div class="pa-box__h"><span class="pa-step">2</span> Flashen &amp; instellen</div>
         <ol class="muted small" style="line-height:1.7;margin:0;padding-left:18px;">
-          <li>Raspberry Pi Imager → <b>"Gebruik eigen bestand"</b> → het gedownloade image → flashen.</li>
-          <li>Printers via USB, netwerkkabel in de router, stroom erop. Eerste boot installeert alles
+          <li><b>Pi:</b> Raspberry Pi Imager → "Gebruik eigen bestand" → het Pi-image → naar SD-kaart.<br>
+              <b>Mini-pc:</b> flash de installer-ISO naar een USB-stick (Imager/Rufus), boot de mini-pc
+              ervan (evt. eenmalig in de BIOS: secure boot uit, USB-boot aan) - de machine installeert
+              zichzelf volledig en <b style="color:#dd350d;">wist daarbij de schijf</b>.</li>
+          <li>Printers via USB, netwerkkabel in de router, stroom erop. Eerste boot/installatie doet alles
               vanzelf (±5-10 min, internet vereist).</li>
-          <li>Typ het <b>IP van de Pi</b> in de browser → update-check → <b>sleutel plakken</b> (hierboven)
-              → inloggen met <code>admin</code> → printers/lades kiezen. De Pi hernoemt zichzelf naar
+          <li>Typ het <b>IP</b> in de browser → update-check → <b>sleutel plakken</b> (hierboven)
+              → inloggen met <code>admin</code> → printers/lades kiezen. Het apparaat hernoemt zichzelf naar
               <b>PA-{{ f.nummer }}-PLUSLokaal</b>.</li>
         </ol>
       </div>

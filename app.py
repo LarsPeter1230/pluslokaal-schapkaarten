@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.30.1'
+APP_VERSION = '2.32.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -5475,6 +5475,12 @@ def agent_poll():
         abort(401)
     body = request.get_json(silent=True) or {}
     f.agent_seen = datetime.now()
+    # Self-healing: oude sleutels zonder webinterface-wachtwoord alsnog voorzien,
+    # zodat de Pi altijd een login kan synchroniseren.
+    if not f.agent_web_pass:
+        import string as _string
+        _alf = _string.ascii_letters + _string.digits
+        f.agent_web_pass = ''.join(secrets.choice(_alf) for _ in range(14))
     f.agent_version = str(body.get('version') or '')[:20]
     try:
         f.agent_info = json.dumps(body.get('info') or {})[:2000]
@@ -5664,6 +5670,181 @@ def _img_build_worker():
         _img_state.update(status='done', message='Klaar', error=None)
     except Exception as e:
         _img_state.update(status='error', message='', error=str(e)[:300])
+
+# ─── Kant-en-klare installer-ISO voor x86 mini-pc's (Wyse/Futro/HP/Lenovo…) ───
+# Zelfde idee als het Pi-image, maar voor gewone (refurb) mini-pc's: we nemen de officiële
+# Ubuntu Server ISO en bakken er een volledig automatische installatie in (autoinstall/
+# NoCloud). USB flashen → opstarten → machine installeert zichzelf (schijf wordt GEWIST),
+# daarna zelfde ervaring als de Pi: IP intypen, sleutel plakken, klaar.
+_iso_state = {'status': 'idle', 'message': '', 'error': None}
+
+def _iso_artifact():
+    p = os.path.join(_IMG_DIR, 'pluslokaal-installer.iso')
+    return p if os.path.exists(p) else None
+
+def _agent_autoinstall_text():
+    """Ubuntu autoinstall (NoCloud) user-data voor mini-pc's: volautomatische installatie +
+    first-boot-setup (agent + RMM), identiek eindresultaat als het Pi-image."""
+    import base64 as _b64, crypt as _crypt
+    server = 'https://pluslokaal.com'
+    # lokale login op de mini-pc (voor noodgevallen; RMM geeft normaliter de shell)
+    pw_hash = _crypt.crypt('PLUSlokaal!2026', _crypt.mksalt(_crypt.METHOD_SHA512))
+    setup = f"""#!/bin/bash
+# PLUSLokaal first-boot setup (mini-pc)
+mkdir -p /opt/pluslokaal-agent /etc/pluslokaal-agent
+curl -fsSL {server}/api/agent/download -o /opt/pluslokaal-agent/pluslokaal_agent.py
+chmod 755 /opt/pluslokaal-agent/pluslokaal_agent.py
+python3 /opt/pluslokaal-agent/pluslokaal_agent.py --install || true
+usermod -aG lpadmin plus || true
+cupsctl --remote-admin || true
+[ -f /opt/pluslokaal-rmm-install.sh ] && bash /opt/pluslokaal-rmm-install.sh || true
+touch /etc/pluslokaal-agent/.firstboot-done
+"""
+    unit = """[Unit]
+Description=PLUSLokaal first-boot setup
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=!/etc/pluslokaal-agent/.firstboot-done
+
+[Service]
+Type=oneshot
+ExecStart=/opt/pluslokaal-setup.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+"""
+    setup_b64 = _b64.b64encode(setup.encode()).decode()
+    unit_b64 = _b64.b64encode(unit.encode()).decode()
+    late = [
+        f"curtin in-target -- bash -c \"echo {setup_b64} | base64 -d > /opt/pluslokaal-setup.sh && chmod 700 /opt/pluslokaal-setup.sh\"",
+        f"curtin in-target -- bash -c \"echo {unit_b64} | base64 -d > /etc/systemd/system/pluslokaal-firstboot.service\"",
+        "curtin in-target -- systemctl enable pluslokaal-firstboot.service",
+    ]
+    rmm = (get_setting('agent_rmm_cmd', '') or '').strip()
+    if rmm:
+        script = rmm if rmm.startswith('#!') else '#!/usr/bin/env bash\n' + rmm
+        rmm_b64 = _b64.b64encode(script.encode()).decode()
+        late.insert(0, f"curtin in-target -- bash -c \"echo {rmm_b64} | base64 -d > /opt/pluslokaal-rmm-install.sh && chmod 700 /opt/pluslokaal-rmm-install.sh\"")
+    late_yaml = '\n'.join(f'    - {json.dumps(c)}' for c in late)
+    return f"""#cloud-config
+# PLUSLokaal Print-Agent - volautomatische installatie voor mini-pc's.
+# LET OP: de schijf van de machine wordt volledig GEWIST.
+autoinstall:
+  version: 1
+  locale: nl_NL.UTF-8
+  keyboard:
+    layout: us
+  identity:
+    hostname: pluslokaal-agent
+    username: plus
+    password: {json.dumps(pw_hash)}
+  ssh:
+    install-server: true
+    allow-pw: true
+  storage:
+    layout:
+      name: direct
+  packages:
+    - python3
+    - cups
+    - cups-client
+    - curl
+  late-commands:
+{late_yaml}
+  shutdown: reboot
+"""
+
+def _iso_find_base_url():
+    import urllib.request
+    idx = 'https://releases.ubuntu.com/24.04/'
+    html = urllib.request.urlopen(idx, timeout=30).read().decode(errors='replace')
+    m = re.findall(r'href="(ubuntu-[\d.]+-live-server-amd64\.iso)"', html)
+    if not m:
+        raise RuntimeError('kon de Ubuntu Server ISO niet vinden op releases.ubuntu.com')
+    return idx + sorted(set(m))[-1]
+
+def _iso_build_worker():
+    import urllib.request
+    try:
+        os.makedirs(_IMG_DIR, exist_ok=True)
+        base_iso = os.path.join(_IMG_DIR, 'base-amd64.iso')
+        if not os.path.exists(base_iso):
+            _iso_state.update(message='Basis-ISO zoeken…')
+            url = _iso_find_base_url()
+            _iso_state.update(message='Basis-ISO downloaden (±3 GB)…')
+            req = urllib.request.Request(url, headers={'User-Agent': 'pluslokaal'})
+            with urllib.request.urlopen(req, timeout=120) as r, open(base_iso + '.part', 'wb') as out:
+                done = 0
+                while True:
+                    chunk = r.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    out.write(chunk); done += len(chunk)
+                    if done % (100 * 1024 * 1024) < 1024 * 1024:
+                        _iso_state.update(message=f'Basis-ISO downloaden… {done // (1024*1024)} MB')
+            os.replace(base_iso + '.part', base_iso)
+        # grub.cfg uit de ISO halen en 'autoinstall' aan de kernelregels toevoegen
+        _iso_state.update(message='Installer samenstellen…')
+        work = os.path.join(_IMG_DIR, 'iso-work')
+        shutil.rmtree(work, ignore_errors=True)
+        os.makedirs(os.path.join(work, 'nocloud'), exist_ok=True)
+        subprocess.run(['xorriso', '-osirrox', 'on', '-indev', base_iso,
+                        '-extract', '/boot/grub/grub.cfg', os.path.join(work, 'grub.cfg')],
+                       check=True, timeout=300, capture_output=True)
+        os.chmod(os.path.join(work, 'grub.cfg'), 0o644)
+        g = open(os.path.join(work, 'grub.cfg')).read()
+        g = g.replace('linux\t/casper/vmlinuz  ---',
+                      'linux\t/casper/vmlinuz autoinstall ds=nocloud\\;s=/cdrom/nocloud/  ---')
+        g = g.replace('linux    /casper/vmlinuz  ---',
+                      'linux    /casper/vmlinuz autoinstall ds=nocloud\\;s=/cdrom/nocloud/  ---')
+        open(os.path.join(work, 'grub.cfg'), 'w').write(g)
+        with app.app_context():
+            open(os.path.join(work, 'nocloud', 'user-data'), 'w').write(_agent_autoinstall_text())
+        open(os.path.join(work, 'nocloud', 'meta-data'), 'w').write('')
+        out_iso = os.path.join(_IMG_DIR, 'pluslokaal-installer.iso')
+        if os.path.exists(out_iso):
+            os.remove(out_iso)
+        subprocess.run(['xorriso', '-indev', base_iso, '-outdev', out_iso,
+                        '-boot_image', 'any', 'replay',
+                        '-map', os.path.join(work, 'nocloud'), '/nocloud',
+                        '-map', os.path.join(work, 'grub.cfg'), '/boot/grub/grub.cfg'],
+                       check=True, timeout=1800, capture_output=True)
+        shutil.rmtree(work, ignore_errors=True)
+        _iso_state.update(status='done', message='Klaar', error=None)
+    except subprocess.CalledProcessError as e:
+        _iso_state.update(status='error', message='',
+                          error=(e.stderr or b'')[-300:].decode(errors='replace') or str(e))
+    except Exception as e:
+        _iso_state.update(status='error', message='', error=str(e)[:300])
+
+@app.route('/agent/iso-build', methods=['POST'])
+@login_required
+def agent_iso_build():
+    u = get_current_user()
+    if not u or u.role != 'admin':
+        abort(403)
+    with _img_lock:
+        if _iso_state['status'] == 'building':
+            flash('Er wordt al een installer-ISO gebouwd.', 'error')
+        else:
+            _iso_state.update(status='building', message='Starten…', error=None)
+            threading.Thread(target=_iso_build_worker, daemon=True).start()
+            flash('ISO-bouw gestart - ververs deze pagina voor de voortgang.', 'success')
+            log_action('agent_iso_build', 'mini-pc installer-ISO bouwen gestart')
+    return redirect(request.form.get('next') or url_for('filialen'))
+
+@app.route('/agent/iso-download')
+@login_required
+def agent_iso_download():
+    u = get_current_user()
+    if not u or u.role != 'admin':
+        abort(403)
+    p = _iso_artifact()
+    if not p:
+        abort(404)
+    return send_file(p, mimetype='application/x-iso9660-image', as_attachment=True,
+                     download_name='pluslokaal-installer.iso')
 
 @app.route('/agent/img-build', methods=['POST'])
 @login_required
@@ -6453,7 +6634,11 @@ def filiaal_detail(nummer):
                            img_state=_img_state,
                            img_info=(lambda p: {'size_mb': os.path.getsize(p) // (1024*1024),
                                                 'mtime': datetime.fromtimestamp(os.path.getmtime(p)).strftime('%d-%m %H:%M')}
-                                     if p else None)(_img_artifact()))
+                                     if p else None)(_img_artifact()),
+                           iso_state=_iso_state,
+                           iso_info=(lambda p: {'size_mb': os.path.getsize(p) // (1024*1024),
+                                                'mtime': datetime.fromtimestamp(os.path.getmtime(p)).strftime('%d-%m %H:%M')}
+                                     if p else None)(_iso_artifact()))
 
 # ─── ROLLENBEHEER (admin) ─────────────────────────────────────────────────────
 def _slugify_role(txt):

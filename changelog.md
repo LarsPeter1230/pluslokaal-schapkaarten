@@ -5,6 +5,27 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.32.0 - Print-agent: echt PLUS-logo + direct door na koppelen · 23 augustus 2026
+
+- **De webinterface van de Pi/mini-pc gebruikt nu het echte PLUS-logo en de huisstijl 1:1 zoals
+  pluslokaal.com** (links bovenin het PLUS-logo met "Lokaal"), in plaats van een nagemaakt logo.
+- **Na het koppelen kom je meteen in de volledige instelpagina** (printers koppelen, lades, testen).
+  Je hoeft niet eerst apart in te loggen; dat gebeurt automatisch. Bij een volgend bezoek vraagt 'ie
+  wel weer om het wachtwoord.
+- **Opgelost:** in sommige gevallen bleef de agent na het koppelen op het welkomstscherm hangen omdat
+  het weblogin-wachtwoord nog niet was gesynct. Oudere sleutels zonder wachtwoord krijgen er nu
+  automatisch een, zodat inloggen altijd werkt.
+
+## versie 2.31.0 - Print-agent ook op mini-pc's (Wyse/Futro/HP/Lenovo) · 23 augustus 2026
+
+- **Naast de Raspberry Pi werkt de print-agent nu ook op goedkope (refurb) mini-pc's** zoals de Dell
+  Wyse, Fujitsu Futro of HP/Lenovo thin clients - handig nu Pi's slecht leverbaar zijn.
+- Bouw in Beheer met één knop de **mini-pc-installer (USB)**: stick flashen, mini-pc ervan laten opstarten,
+  en de machine installeert zichzelf volledig automatisch (let op: de schijf wordt gewist). Daarna is de
+  ervaring identiek aan de Pi: IP intypen, sleutel plakken, printers kiezen - en RMM zit er al op.
+- Stap 1 in het Print-agent-blok toont nu beide smaken naast elkaar: **Pi (SD-kaart)** en
+  **Mini-pc (USB-stick)**.
+
 ## versie 2.30.1 - Print-agent-blok overzichtelijker · 23 augustus 2026
 
 - **Het Print-agent-blok in Beheer → Filialen is opgeruimd**: duidelijke kaarten voor "Status & koppeling",

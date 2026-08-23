@@ -30,7 +30,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from http import cookies as http_cookies
 from urllib.parse import parse_qs, urlparse, quote as urlquote
 
-AGENT_VERSION = '1.2.0'
+AGENT_VERSION = '1.3.0'
 CONFIG_DIR = '/etc/pluslokaal-agent'
 CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.json')
 DEFAULTS = {
@@ -257,16 +257,22 @@ def update_loop():
 
 
 # ─── Webinterface (PLUS-huisstijl) ────────────────────────────────────────────
+# Echt PLUS-logo (wit wordmark) 1:1 zoals pluslokaal.com, ingebed zodat de
+# webinterface ook zonder internet het juiste logo toont.
+LOGO_URI = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iTGFhZ18xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZlcnNpb249IjEuMSIgdmlld0JveD0iMCAwIDYwOS4wOSAxMTMuNSI+CiAgPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDMwLjUuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDIuMS40IEJ1aWxkIDMpICAtLT4KICA8ZGVmcz4KICAgIDxzdHlsZT4KICAgICAgLnN0MCB7CiAgICAgICAgZmlsbDogI2ZmZjsKICAgICAgfQogICAgPC9zdHlsZT4KICA8L2RlZnM+CiAgPHBhdGggZmlsbD0iI2ZmZmZmZiIgZD0iTTYwMiwxNWMwLDcuMjQtNS44NywxMy4xMS0xMy4xLDEzLjExLS43OCwwLTEuNTMtLjA3LTIuMjgtLjE5LTUuNDQtLjk2LTExLjE5LTEuNS0xNy4xNC0xLjUtNi42LDAtMTguMDguMTYtMTguMDgsNy4yMywwLDE0LjMsNTcuNjkuNzksNTcuNjksNDMuMDcsMCwyOS40LTI5LjA4LDM2Ljc5LTUzLjQ1LDM2Ljc5LTEyLjI5LDAtMjIuOTUtLjktMzQuMjUtMi45Mi02LjI0LTEuMDEtMTEuMDMtNi40Mi0xMS4wMy0xMi45NXYtMTcuNzZjMTEuMzMsNC43MiwyNS4xNiw3LjIzLDM3LjczLDcuMjMsOS45MSwwLDE4Ljg3LTIuMDQsMTguODctNy41NSwwLTE0Ljc4LTU3LjY5LTEuNDEtNTcuNjktNDQuMDIsMC0zMC4xOCwzMS40NC0zNS41Miw1Ni40NC0zNS41MiwxMS43OSwwLDI0Ljg0LDEuNDEsMzYuMzEsMy43N3YxMS4yM2gtLjAyWiIvPgogIDxwYXRoIGZpbGw9IiNmZmZmZmYiIGQ9Ik0xNDguMjIsMTExLjRWMTQuNzdjMC03LjI0LDUuODctMTMuMTEsMTMuMTEtMTMuMTFoNTkuMzZjMTcuMTMsMCw0MC4yNSw4LjE3LDQwLjI1LDM3Ljczcy0xOC4zOSw0MC40LTQwLjQsNDAuNGgtMzAuMTh2MTguNDljMCw3LjI0LTUuODcsMTMuMS0xMy4xLDEzLjFoLTI5LjAzWk0xOTAuMzUsMjcuMTR2MjcuMmg4LjE3YzEwLjA2LDAsMjAuMjgtMS44OSwyMC4yOC0xNC4xNXMtMTAuMjItMTMuMDUtMjAuNDQtMTMuMDVoLTguMDJaIi8+CiAgPHBhdGggZmlsbD0iI2ZmZmZmZiIgZD0iTTQ4OC4yMyw2Ni4xMmMwLDM1LjUzLTIxLjg1LDQ3LjE3LTU1LjAyLDQ3LjE3LTMwLjY2LDAtNTQuNzEtMTIuNTgtNTQuNzEtNDQuOTdWMS42N2gyOS4wM2M3LjI0LDAsMTMuMTEsNS44NywxMy4xMSwxMy4xMXY1MS45OGMwLDEwLjM4LDIuOTksMTguMjQsMTMuMDUsMTguMjQsMTEsMCwxMy4zNi03LjM5LDEzLjM2LTE4LjA4VjEuNjdzMjguMDYsMCwyOC4wNiwwYzcuMjUsMCwxMy4xMSw1Ljg3LDEzLjExLDEzLjExbC4wMiw1MS4zNVoiLz4KICA8cGF0aCBmaWxsPSIjZmZmZmZmIiBkPSJNMjc5LjQ3LDExMS40VjEuNjdzMjkuMDIsMCwyOS4wMiwwYzcuMjQsMCwxMy4xMSw1Ljg3LDEzLjExLDEzLjExdjY0LjI0aDQyLjE1djE5LjI4YzAsNy4yNC01Ljg2LDEzLjEtMTMuMSwxMy4xaC03MS4xOFoiLz4KICA8cGF0aCBmaWxsPSIjZmZmZmZmIiBkPSJNNTMuMDMsMjYuNTV2MTcuNjhjMCw0Ljg4LTMuOTYsOC44NC04Ljg0LDguODRoLTE3LjY4QzExLjg3LDUzLjA2LDAsNDEuMTksMCwyNi41NVMxMS44Ny4wMywyNi41Mi4wM3MyNi41MiwxMS44NywyNi41MiwyNi41MiIvPgogIDxwYXRoIGZpbGw9IiNmZmZmZmYiIGQ9Ik01My4wMyw4Ni45NXYtMTcuNjhjMC00Ljg4LTMuOTYtOC44My04Ljg0LTguODNoLTE3LjY4Yy0xNC42NCwwLTI2LjUyLDExLjg3LTI2LjUyLDI2LjUxczExLjg3LDI2LjUyLDI2LjUyLDI2LjUyLDI2LjUyLTExLjg3LDI2LjUyLTI2LjUyIi8+CiAgPHBhdGggZmlsbD0iI2ZmZmZmZiIgZD0iTTYwLjM2LDg2Ljk2di0xNy42OGMwLTQuODgsMy45Ni04Ljg0LDguODQtOC44NGgxNy42OGMxNC42NCwwLDI2LjUxLDExLjg3LDI2LjUxLDI2LjUxcy0xMS44NywyNi41Mi0yNi41MSwyNi41Mi0yNi41Mi0xMS44Ny0yNi41Mi0yNi41MiIvPgogIDxwYXRoIGZpbGw9IiNmZmZmZmYiIGQ9Ik02MC40MSwyNi41NXYxNy42OGMwLDQuODgsMy45Niw4Ljg0LDguODQsOC44NGgxNy42OGMxNC42NSwwLDI2LjUyLTExLjg3LDI2LjUyLTI2LjUxUzEwMS41Ny4wMyw4Ni45Mi4wM3MtMjYuNTEsMTEuODctMjYuNTEsMjYuNTIiLz4KPC9zdmc+'
+
 CSS = """
 :root{--green:#80bd1d;--green-d:#115013;--red:#dd350d;--bg:#f4f5f3;--text:#231f20;
 --radius:18px 18px 18px 4px}
 *{box-sizing:border-box}body{font-family:'Segoe UI',system-ui,sans-serif;margin:0;background:var(--bg);color:var(--text)}
-header{background:var(--green);color:#fff;padding:13px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.logo{font-weight:900;font-size:1.25rem;letter-spacing:.5px}
-.logo b{background:#fff;color:var(--green);border-radius:6px;padding:1px 7px;margin-right:6px}
+header{background:var(--green);box-shadow:2px 1px 6px 0 rgba(51,51,51,.2);color:#fff;padding:0 20px;min-height:56px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0}
+.brand img{height:30px;width:auto;display:block}
+.brand__sub{color:#fff;font-weight:700;font-size:.82rem;letter-spacing:.2px;opacity:.95;padding-left:12px;margin-left:2px;border-left:1px solid rgba(255,255,255,.35)}
 .sub{font-size:.8rem;opacity:.9}
 header .sp{flex:1}
-header a{color:#fff;font-size:.8rem}
+header a{color:#fff;font-size:.8rem;text-decoration:none;font-weight:600}
+header a:hover{text-decoration:underline}
 main{max-width:780px;margin:22px auto;padding:0 14px}
 .card{background:#fff;border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,.07)}
 h2{margin:0 0 12px;font-size:.82rem;color:var(--green-d);text-transform:uppercase;letter-spacing:.05em}
@@ -302,15 +308,24 @@ def header_html():
     naam = CFG.get('store_naam') or ''
     nr = CFG.get('store_nummer')
     winkel = f'PLUS {esc(naam)} ({nr})' if nr else 'nog niet gekoppeld'
-    out = (f"<header><span class=logo><b>&#10010;</b>PLUS<span style='font-weight:400'>Lokaal</span></span>"
+    out = (f"<header><span class=brand><img src='{LOGO_URI}' alt='PLUS'>"
+           f"<span class=brand__sub>Lokaal</span></span>"
            f"<span class=sub>Print-Agent v{AGENT_VERSION} · {winkel}</span><span class=sp></span>")
-    if is_configured():
+    if is_coupled():
         out += "<a href='/logout'>Uitloggen</a>"
     return out + "</header>"
 
 
-def is_configured():
-    return bool(CFG.get('key') and CFG.get('web_pass_sha256'))
+def is_coupled():
+    """Gekoppeld zodra er een sleutel is (winkel bekend). Het weblogin-wachtwoord
+    synct daarna vanzelf vanaf PLUSLokaal."""
+    return bool(CFG.get('key'))
+
+
+def login_required_now():
+    """Login pas afdwingen zodra het wachtwoord vanaf PLUSLokaal is binnengekomen,
+    zodat je vlak na het koppelen niet buitengesloten raakt."""
+    return bool(CFG.get('web_pass_sha256'))
 
 
 def check_pass(pw):
@@ -423,10 +438,10 @@ class Web(BaseHTTPRequestHandler):
             if 'plagent' in c:
                 _sessions.pop(c['plagent'].value, None)
             return self._redirect('/', set_cookie='plagent=; Max-Age=0; Path=/')
-        if not is_configured():
+        if not is_coupled():
             return self._html(SETUP_PAGE.format(header=header_html(), msg=self._msg(),
                                                 key=esc(CFG.get('key', '')), server=esc(CFG.get('server', ''))))
-        if not valid_session(self):
+        if login_required_now() and not valid_session(self):
             return self._html(LOGIN_PAGE.format(header=header_html(), msg=self._msg()))
         label_opts = ''.join(f'<option value="{esc(d)}" {"selected" if CFG.get("label_device")==d else ""}>{esc(d)}</option>'
                              for d in usb_label_devices() + cups_queues())
@@ -466,23 +481,26 @@ class Web(BaseHTTPRequestHandler):
             _login_fails['n'] += 1; _login_fails['t'] = time.time()
             return self._redirect('/', 'Onjuist wachtwoord.')
 
-        if path == '/setup' and not is_configured():
+        if path == '/setup' and not is_coupled():
             CFG['key'] = g('key')
             CFG['server'] = g('server', DEFAULTS['server']) or DEFAULTS['server']
             save_config(CFG)
             log('sleutel ingesteld via welkomstscherm')
             try:
                 poll_once()   # meteen koppelen → winkelnaam + weblogin binnenhalen
-                return self._redirect('/', f"Gekoppeld aan {CFG.get('store_naam') or 'de winkel'}! "
-                                           'Log in met admin + het wachtwoord uit PLUSLokaal.')
             except Exception as e:
                 return self._redirect('/', f'Koppelen mislukt: {e}')
+            # Meteen ingelogd doorsturen naar de volledige instelpagina (printers e.d.)
+            tok = new_session()
+            return self._redirect('/', f"Gekoppeld aan {CFG.get('store_naam') or 'de winkel'}! "
+                                       'Stel hieronder de printers in.',
+                                  set_cookie=f'plagent={tok}; Path=/; HttpOnly; SameSite=Lax')
 
-        if path == '/update' and (not is_configured() or valid_session(self)):
+        if path == '/update' and (not is_coupled() or valid_session(self) or not login_required_now()):
             return self._redirect('/', str(check_update(force=True)))
 
-        # vanaf hier: alleen ingelogd
-        if not (is_configured() and valid_session(self)):
+        # vanaf hier: alleen ingelogd (of vlak na koppelen, zolang het wachtwoord nog niet gesynct is)
+        if not (is_coupled() and (valid_session(self) or not login_required_now())):
             return self._redirect('/', 'Log eerst in.')
 
         if path == '/save':
