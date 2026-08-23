@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.35.0'
+APP_VERSION = '2.36.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -5864,47 +5864,70 @@ if command -v chromium-browser >/dev/null 2>&1 || command -v chromium >/dev/null
 fi
 '''.replace('__USER__', user)
 
+def _firstboot_sh(server, user):
+    """First-boot-script: zet ZO SNEL MOGELIJK de agent (en dus de webinterface met voortgang) op -
+    daarvoor is alleen het al aanwezige python3 nodig. Zware stappen (CUPS, RMM) draaien daarna met
+    time-outs, zodat een hapering de webinterface nooit blokkeert. Statusregels sturen de voortgangs-
+    pagina aan."""
+    kiosk = 'yes' if _kiosk_enabled() else 'no'
+    return f"""#!/usr/bin/env bash
+# PLUSLokaal Print-Agent - eerste installatie (met live voortgang op de webinterface).
+D=/etc/pluslokaal-agent
+mkdir -p /opt/pluslokaal-agent "$D"
+S(){{ printf '{{"step":"%s","pct":%s,"done":%s}}\\n' "$1" "$2" "${{3:-false}}" > "$D/setup-status.json"; }}
+S "Systeem voorbereiden" 5
+# wacht kort op netwerk (max ~60s)
+for i in $(seq 1 30); do
+  python3 -c "import socket;socket.create_connection(('pluslokaal.com',443),3)" 2>/dev/null && break
+  sleep 2
+done
+S "Print-agent installeren" 20
+python3 - <<'PY' || true
+import urllib.request
+open("/opt/pluslokaal-agent/pluslokaal_agent.py","wb").write(
+    urllib.request.urlopen("{server}/api/agent/download", timeout=60).read())
+PY
+chmod 755 /opt/pluslokaal-agent/pluslokaal_agent.py
+python3 /opt/pluslokaal-agent/pluslokaal_agent.py --install || true
+# ↑ vanaf hier is de webinterface bereikbaar en toont deze voortgang
+S "Printersoftware (CUPS) installeren" 50
+export DEBIAN_FRONTEND=noninteractive
+timeout 180 apt-get update || true
+timeout 600 apt-get install -y --no-install-recommends cups cups-client || true
+usermod -aG lpadmin {user} 2>/dev/null || true
+cupsctl --remote-admin 2>/dev/null || true
+S "Beheer-software installeren" 75
+[ -f /opt/pluslokaal-rmm-install.sh ] && timeout 900 bash /opt/pluslokaal-rmm-install.sh || true
+if [ "{kiosk}" = "yes" ] && [ -f /opt/pluslokaal-kiosk-install.sh ]; then timeout 900 bash /opt/pluslokaal-kiosk-install.sh || true; fi
+S "Afronden" 100 true
+"""
+
 def _agent_userdata_text():
-    """De generieke cloud-init user-data (incl. inline RMM-script) - gedeeld door de download-route
-    en de .img-bouwer."""
-    server = 'https://pluslokaal.com'
-    # Optioneel: het RMM-installatiescript (Beheer → Filialen → Print-agent) wordt INLINE (base64)
-    # meegebakken - zo staan de RMM-enrollment-tokens nooit op een publieke URL en hoeft de Pi niets
-    # extra's op te halen. '|| true' zodat een RMM-hapering de printer-installatie niet blokkeert.
+    """De generieke cloud-init user-data - gedeeld door de download-route en de .img-bouwer.
+    Bewust GEEN 'packages:' met apt-blokkers vooraf: het first-boot-script haalt de agent zelf op
+    (alleen python3 nodig) zodat de webinterface met voortgang meteen bereikbaar is."""
     import base64 as _b64
+    server = 'https://pluslokaal.com'
+    wf = [('/opt/pluslokaal-firstboot.sh',
+           _b64.b64encode(_firstboot_sh(server, 'ubuntu').encode()).decode())]
     rmm = (get_setting('agent_rmm_cmd', '') or '').strip()
-    wf = []                 # write_files-items
-    extra_cmds = ''
     if rmm:
         script = rmm if rmm.startswith('#!') else '#!/usr/bin/env bash\n' + rmm
         wf.append(('/opt/pluslokaal-rmm-install.sh', _b64.b64encode(script.encode()).decode()))
-        extra_cmds += "  - [bash, -lc, 'bash /opt/pluslokaal-rmm-install.sh || true']\n"
     if _kiosk_enabled():
         wf.append(('/opt/pluslokaal-kiosk-install.sh',
                    _b64.b64encode(_kiosk_install_sh('ubuntu').encode()).decode()))
-        extra_cmds += "  - [bash, -lc, 'bash /opt/pluslokaal-kiosk-install.sh || true']\n"
-    write_files = ''
-    if wf:
-        write_files = "write_files:\n" + ''.join(
-            ("  - path: %s\n    permissions: '0700'\n    encoding: b64\n    content: %s\n" % (p, b))
-            for p, b in wf)
+    write_files = "write_files:\n" + ''.join(
+        ("  - path: %s\n    permissions: '0700'\n    encoding: b64\n    content: %s\n" % (p, b))
+        for p, b in wf)
     ud = f"""#cloud-config
 # PLUSLokaal Print-Agent - generieke installatie (voor elke winkel gelijk).
-# Na de eerste boot: open http://<pi-adres>/ en plak daar de winkel-sleutel.
+# Na de eerste boot: open http://<pi-adres>/ - je ziet de installatie-voortgang, daarna koppel je de winkel.
 hostname: pluslokaal-agent
-package_update: true
-packages:
-  - python3
-  - cups
-  - cups-client
+package_update: false
 {write_files}runcmd:
-  - mkdir -p /opt/pluslokaal-agent /etc/pluslokaal-agent
-  - curl -fsSL {server}/api/agent/download -o /opt/pluslokaal-agent/pluslokaal_agent.py
-  - chmod 755 /opt/pluslokaal-agent/pluslokaal_agent.py
-  - python3 /opt/pluslokaal-agent/pluslokaal_agent.py --install
-  - usermod -aG lpadmin ubuntu || true
-  - cupsctl --remote-admin || true
-{extra_cmds}"""
+  - [bash, /opt/pluslokaal-firstboot.sh]
+"""
     return ud
 
 # ─── Kant-en-klaar .IMG bouwen (flashen → aansluiten → klaar) ─────────────────
@@ -6009,15 +6032,25 @@ def _agent_autoinstall_text():
     # lokale login op de mini-pc (voor noodgevallen; RMM geeft normaliter de shell)
     pw_hash = _crypt.crypt('PLUSlokaal!2026', _crypt.mksalt(_crypt.METHOD_SHA512))
     setup = f"""#!/bin/bash
-# PLUSLokaal first-boot setup (mini-pc)
-mkdir -p /opt/pluslokaal-agent /etc/pluslokaal-agent
-curl -fsSL {server}/api/agent/download -o /opt/pluslokaal-agent/pluslokaal_agent.py
+# PLUSLokaal first-boot setup (mini-pc) - agent eerst (voortgang zichtbaar), rest met time-outs.
+D=/etc/pluslokaal-agent
+mkdir -p /opt/pluslokaal-agent "$D"
+S(){{ printf '{{"step":"%s","pct":%s,"done":%s}}\\n' "$1" "$2" "${{3:-false}}" > "$D/setup-status.json"; }}
+S "Print-agent installeren" 20
+python3 - <<'PY' || curl -fsSL {server}/api/agent/download -o /opt/pluslokaal-agent/pluslokaal_agent.py
+import urllib.request
+open("/opt/pluslokaal-agent/pluslokaal_agent.py","wb").write(
+    urllib.request.urlopen("{server}/api/agent/download", timeout=60).read())
+PY
 chmod 755 /opt/pluslokaal-agent/pluslokaal_agent.py
 python3 /opt/pluslokaal-agent/pluslokaal_agent.py --install || true
+S "Printersoftware instellen" 55
 usermod -aG lpadmin plus || true
 cupsctl --remote-admin || true
-[ -f /opt/pluslokaal-rmm-install.sh ] && bash /opt/pluslokaal-rmm-install.sh || true
-[ -f /opt/pluslokaal-kiosk-install.sh ] && bash /opt/pluslokaal-kiosk-install.sh || true
+S "Beheer-software installeren" 75
+[ -f /opt/pluslokaal-rmm-install.sh ] && timeout 900 bash /opt/pluslokaal-rmm-install.sh || true
+[ -f /opt/pluslokaal-kiosk-install.sh ] && timeout 900 bash /opt/pluslokaal-kiosk-install.sh || true
+S "Afronden" 100 true
 touch /etc/pluslokaal-agent/.firstboot-done
 """
     unit = """[Unit]

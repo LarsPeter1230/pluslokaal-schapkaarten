@@ -5,6 +5,16 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.36.0 - Pi laat de installatie live zien en loopt niet meer vast · 23 augustus 2026
+
+- **De Pi is nu vrijwel meteen op zijn IP te bereiken met een voortgangsscherm in PLUS-huisstijl.** Je ziet
+  "Een ogenblik geduld, bezig met installeren", welke stap er loopt en hoever (Systeem voorbereiden →
+  Print-agent → Printersoftware → Beheer-software → Afronden). Zodra alles klaar is, meldt 'ie dat de Pi
+  bereikbaar is en kun je meteen de winkel-sleutel invoeren.
+- **De installatie loopt niet meer vast.** De agent wordt nu als eerste opgezet (daarvoor is alleen het al
+  aanwezige Python nodig); de zwaardere onderdelen (printersoftware, beheer-agent) draaien daarna met een
+  tijdslimiet, zodat een hapering de webinterface nooit meer blokkeert.
+
 ## versie 2.35.0 - Winkelprinter aanvragen als er nog geen gekoppeld is · 23 augustus 2026
 
 - **Heeft een winkel nog geen gekoppelde printer?** Dan blijft de knop "Printen op winkelprinter" gewoon

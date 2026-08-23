@@ -30,9 +30,22 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from http import cookies as http_cookies
 from urllib.parse import parse_qs, urlparse, quote as urlquote
 
-AGENT_VERSION = '1.4.1'
+AGENT_VERSION = '1.5.0'
 CONFIG_DIR = '/etc/pluslokaal-agent'
 CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.json')
+SETUP_STATUS_FILE = os.path.join(CONFIG_DIR, 'setup-status.json')
+
+
+def read_setup_status():
+    """Voortgang van de eerste installatie (geschreven door het installatiescript). None = geen
+    installatie bezig (klaar of niet van toepassing)."""
+    try:
+        st = json.load(open(SETUP_STATUS_FILE))
+        if st.get('done'):
+            return None
+        return st
+    except Exception:
+        return None
 DEFAULTS = {
     'server': 'https://pluslokaal.com',
     'key': '',
@@ -374,6 +387,19 @@ background:var(--green);color:#fff;font-weight:800;display:flex;align-items:cent
 .sysgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px 18px}
 .sysgrid > div{font-size:.9rem}
 .sysk{display:block;font-size:.7rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+.spinner{width:46px;height:46px;border-radius:50%;border:5px solid #e6ebdd;border-top-color:var(--green);margin:6px auto 8px;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.bar{height:12px;border-radius:20px;background:#e9eee0;overflow:hidden;margin-top:14px}
+.bar__fill{height:100%;background:linear-gradient(90deg,var(--green),#a6d94b);border-radius:20px;transition:width .5s ease}
+.chk{list-style:none;padding:0;margin:0}
+.chk li{padding:9px 0 9px 32px;position:relative;color:#999;border-bottom:1px solid #f0f1ec}
+.chk li:last-child{border-bottom:0}
+.chk li::before{content:'';position:absolute;left:2px;top:11px;width:16px;height:16px;border-radius:50%;border:2px solid #d5dac8}
+.chk li.busy{color:var(--text);font-weight:700}
+.chk li.busy::before{border-color:var(--green);border-top-color:transparent;animation:spin .9s linear infinite}
+.chk li.done{color:var(--green-d);font-weight:600}
+.chk li.done::before{border-color:var(--green);background:var(--green)}
+.chk li.done::after{content:'';position:absolute;left:7px;top:13px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
 """
 
 HEAD = ("<!doctype html><html lang=nl><head><meta charset=utf-8>"
@@ -451,6 +477,8 @@ LOGIN_PAGE = """{header}
 
 SETUP_PAGE = """{header}
 <main>
+<div class="msg" style="background:#eaf5da;color:#3d6b0f;display:flex;align-items:center;gap:8px">
+  <b>&#10003; Installatie voltooid.</b> Deze Pi is bereikbaar op <b>http://{ip}/</b> - je kunt 'm hier instellen.</div>
 <div class=card><h2>Welkom - deze Pi instellen</h2>{msg}
 <ol class=steps>
   <li><b>Controleer eerst op een nieuwere versie</b> van de agent:<br>
@@ -509,7 +537,56 @@ MAIN_PAGE = """{header}
 </main></body></html>"""
 
 
+INSTALL_PAGE = """{header}
+<main>
+<div class=card style="text-align:center">
+  <div class="spinner"></div>
+  <h2 style="font-size:1.15rem;color:var(--green-d);text-transform:none;letter-spacing:0;margin:6px 0 6px">Een ogenblik geduld</h2>
+  <p style="margin:0 0 4px;font-weight:700">Bezig met installeren…</p>
+  <p><small id=stepnow>{step}</small></p>
+  <div class=bar><div class=bar__fill id=barfill style="width:{pct}%"></div></div>
+  <div id=barpct style="font-size:.8rem;color:#777;margin-top:4px">{pct}%</div>
+</div>
+<div class=card>
+  <h2>Wat er gebeurt</h2>
+  <ul class=chk id=chk>
+    <li data-p=5>Systeem voorbereiden</li>
+    <li data-p=20>Print-agent installeren</li>
+    <li data-p=50>Printersoftware (CUPS) installeren</li>
+    <li data-p=75>Beheer-software installeren</li>
+    <li data-p=100>Afronden</li>
+  </ul>
+  <p><small>Deze pagina ververst automatisch. Zodra alles klaar is kun je hier de winkel koppelen.</small></p>
+</div>
+</main>
+<script>
+function upd(d){{
+  if(d.done){{ location.reload(); return; }}
+  var p=d.pct||0;
+  document.getElementById('barfill').style.width=p+'%';
+  document.getElementById('barpct').textContent=p+'%';
+  if(d.step) document.getElementById('stepnow').textContent=d.step;
+  document.querySelectorAll('#chk li').forEach(function(li){{
+    var t=+li.dataset.p;
+    li.className = p>=t ? 'done' : (p>=(t-30)&&p< t ? 'busy' : '');
+  }});
+}}
+function poll(){{ fetch('/setup-status').then(r=>r.json()).then(upd).catch(function(){{}}); }}
+setInterval(poll,1500); poll();
+</script>
+</body></html>"""
+
+
 class Web(BaseHTTPRequestHandler):
+    def _json(self, obj, code=200):
+        data = json.dumps(obj).encode()
+        self.send_response(code)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(data)))
+        self.send_header('Cache-Control', 'no-store')
+        self.end_headers()
+        self.wfile.write(data)
+
     def _html(self, body, code=200, set_cookie=None):
         data = (HEAD + body).encode()
         self.send_response(code)
@@ -539,8 +616,15 @@ class Web(BaseHTTPRequestHandler):
             if 'plagent' in c:
                 _sessions.pop(c['plagent'].value, None)
             return self._redirect('/', set_cookie='plagent=; Max-Age=0; Path=/')
+        setup = read_setup_status()
+        if path == '/setup-status':
+            return self._json(setup or {'done': True})
+        if setup:   # eerste installatie loopt nog → toon voortgangspagina
+            return self._html(INSTALL_PAGE.format(header=header_html(),
+                                                  step=esc(setup.get('step', 'Installeren…')),
+                                                  pct=int(setup.get('pct', 0))))
         if not is_coupled():
-            return self._html(SETUP_PAGE.format(header=header_html(), msg=self._msg(),
+            return self._html(SETUP_PAGE.format(header=header_html(), msg=self._msg(), ip=esc(primary_ip()),
                                                 key=esc(CFG.get('key', '')), server=esc(CFG.get('server', ''))))
         if login_required_now() and not authed(self):
             return self._html(LOGIN_PAGE.format(header=header_html(), msg=self._msg()))
