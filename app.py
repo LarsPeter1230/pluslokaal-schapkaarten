@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.34.1'
+APP_VERSION = '2.34.2'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -5783,7 +5783,10 @@ if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then exec startx; fi
 P
 fi
 chown "$U:$U" "$PROF" 2>/dev/null || true
-systemctl set-default graphical.target 2>/dev/null || true
+# Alleen naar grafische modus als er echt een browser is geinstalleerd - anders headless laten.
+if command -v chromium-browser >/dev/null 2>&1 || command -v chromium >/dev/null 2>&1; then
+  systemctl set-default graphical.target 2>/dev/null || true
+fi
 '''.replace('__USER__', user)
 
 def _agent_userdata_text():

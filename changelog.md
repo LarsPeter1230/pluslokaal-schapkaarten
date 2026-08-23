@@ -5,6 +5,14 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.34.2 - Pi-image weer snel en betrouwbaar (kiosk standaard uit) · 23 augustus 2026
+
+- **De kioskweergave zit niet meer standaard in de image.** Die maakte de eerste boot zwaar en kon 'm
+  laten vastlopen, waardoor de Pi soms niet bereikbaar was. De image is nu weer slank: agent + printers
+  starten snel en de webinterface is direct op het IP te bereiken.
+- De webinterface op afstand (vanuit PLUSLokaal) blijft gewoon werken - daarvoor is geen scherm op de
+  Pi nodig.
+
 ## versie 2.34.1 - Gebruiker of winkel aanmaken in de nieuwe stijl · 23 augustus 2026
 
 - **Een gebruiker of winkel aanmaken gebeurt nu in een venster op dezelfde pagina**, in de nieuwe stijl -
