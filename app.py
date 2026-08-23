@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.40.0'
+APP_VERSION = '2.41.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -163,6 +163,7 @@ class Filiaal(db.Model):
     agent_web_pass    = db.Column(db.String(40),  nullable=True)    # login (admin/…) voor de Pi-webinterface
     agent_pub_ip      = db.Column(db.String(64),  nullable=True)    # publiek IP (zoals de server de poll ziet)
     agent_local_ip    = db.Column(db.String(64),  nullable=True)    # lokaal IP van de Pi (uit de agent-info)
+    agent_cups_pass   = db.Column(db.String(40),  nullable=True)    # wachtwoord voor CUPS-admin (user 'ubuntu')
 
 class Setting(db.Model):
     key   = db.Column(db.String(60), primary_key=True)
@@ -5599,6 +5600,42 @@ def _agent_version_info():
     except Exception:
         return '0.0.0', ''
 
+_TRAY_OPTIONS = [['auto', 'Automatisch'], ['tray-1', 'Lade 1'], ['tray-2', 'Lade 2'],
+                 ['tray-3', 'Lade 3'], ['tray-4', 'Lade 4'], ['by-pass-tray', 'Bypass']]
+
+def _agent_settings_dict(f):
+    """Print-instellingen die tussen PLUSLokaal en de PA gesynct worden (twee kanten op)."""
+    return {
+        'protocol': f.printer_protocol or 'tspl',
+        'dpi': f.printer_dpi or 300,
+        'label_w': f.printer_label_w or 45.0,
+        'label_h': f.printer_label_h or 40.0,
+        'print_only': bool(f.print_only),
+        'trays': _doc_trays(f),
+        'formats': [{'id': k, 'label': FORMAAT_LABELS.get(k, k)} for k in _DOC_TRAY_FORMATS],
+        'tray_options': _TRAY_OPTIONS,
+    }
+
+def _apply_agent_settings(f, s):
+    """Neem door de PA gewijzigde instellingen over in het filiaal (PA → PLUSLokaal)."""
+    try:
+        if 'protocol' in s and s['protocol']:
+            f.printer_protocol = str(s['protocol'])[:10]
+        if 'dpi' in s:
+            f.printer_dpi = int(s['dpi']) or 300
+        if 'label_w' in s:
+            f.printer_label_w = float(s['label_w']) or 45.0
+        if 'label_h' in s:
+            f.printer_label_h = float(s['label_h']) or 40.0
+        if 'print_only' in s:
+            f.print_only = bool(s['print_only'])
+        if isinstance(s.get('trays'), dict):
+            trays = {k: v for k, v in s['trays'].items() if k in _DOC_TRAY_FORMATS and v and v != 'auto'}
+            f.doc_printer_trays = json.dumps(trays) if trays else None
+        log_action('agent_settings', '[PA] printerinstellingen bijgewerkt vanaf de Pi', filiaal=f.nummer)
+    except Exception as e:
+        app.logger.warning(f'agent settings: {e}')
+
 @app.route('/api/agent/poll', methods=['POST'])
 def agent_poll():
     import base64
@@ -5609,10 +5646,17 @@ def agent_poll():
     f.agent_seen = datetime.now()
     # Self-healing: oude sleutels zonder webinterface-wachtwoord alsnog voorzien,
     # zodat de Pi altijd een login kan synchroniseren.
-    if not f.agent_web_pass:
+    if not f.agent_web_pass or not f.agent_cups_pass:
         import string as _string
         _alf = _string.ascii_letters + _string.digits
-        f.agent_web_pass = ''.join(secrets.choice(_alf) for _ in range(14))
+        if not f.agent_web_pass:
+            f.agent_web_pass = ''.join(secrets.choice(_alf) for _ in range(14))
+        if not f.agent_cups_pass:
+            f.agent_cups_pass = ''.join(secrets.choice(_alf) for _ in range(14))
+    # Instellingen die de PA vanaf PLUSLokaal mag overnemen; als de PA ze wijzigt stuurt 'ie ze terug.
+    incoming = body.get('settings')
+    if isinstance(incoming, dict):
+        _apply_agent_settings(f, incoming)
     f.agent_version = str(body.get('version') or '')[:20]
     info = body.get('info') or {}
     try:
@@ -5645,6 +5689,8 @@ def agent_poll():
                     'store': {'nummer': f.nummer, 'naam': f.naam or ''},
                     'web_pass_sha256': (_hl.sha256(f.agent_web_pass.encode()).hexdigest()
                                         if f.agent_web_pass else ''),
+                    'cups_pass': f.agent_cups_pass or '',
+                    'settings': _agent_settings_dict(f),
                     'web_tunnel_until': _tunnel_active_until(f.nummer)})
 
 @app.route('/api/agent/result', methods=['POST'])
@@ -7065,6 +7111,7 @@ def filiaal_detail(nummer):
             import string as _string
             alfabet = _string.ascii_letters + _string.digits
             f.agent_web_pass = ''.join(secrets.choice(alfabet) for _ in range(14))
+            f.agent_cups_pass = ''.join(secrets.choice(alfabet) for _ in range(14))
             f.agent_seen = None; f.agent_version = None
             db.session.commit()
             log_action('agent_sleutel', f'nieuwe sleutel voor winkel {f.nummer}', filiaal=f.nummer)
@@ -8914,7 +8961,8 @@ def _migrate_db():
                 "ALTER TABLE filiaal ADD COLUMN agent_info TEXT",
                 "ALTER TABLE filiaal ADD COLUMN agent_web_pass VARCHAR(40)",
                 "ALTER TABLE filiaal ADD COLUMN agent_pub_ip VARCHAR(64)",
-                "ALTER TABLE filiaal ADD COLUMN agent_local_ip VARCHAR(64)"]:
+                "ALTER TABLE filiaal ADD COLUMN agent_local_ip VARCHAR(64)",
+                "ALTER TABLE filiaal ADD COLUMN agent_cups_pass VARCHAR(40)"]:
         try:
             with db.engine.connect() as conn:
                 conn.execute(text(sql)); conn.commit()

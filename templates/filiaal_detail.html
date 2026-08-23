@@ -151,6 +151,8 @@
           <div class="pa-kv"><span>Agent-sleutel</span><code>{{ f.agent_key }}</code></div>
           <div class="pa-kv"><span>Pi-login</span><code>admin</code> / <code>{{ f.agent_web_pass or '-' }}</code>
             <small class="muted">(synct automatisch)</small></div>
+          <div class="pa-kv"><span>CUPS-login</span><code>ubuntu</code> / <code>{{ f.agent_cups_pass or '-' }}</code>
+            <small class="muted">voor printerbeheer op {{ f.agent_local_ip or '&lt;pi-ip&gt;' }}:631</small></div>
           <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
             <form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
               <input type="hidden" name="action" value="agent_key">

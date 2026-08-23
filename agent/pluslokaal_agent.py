@@ -30,7 +30,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from http import cookies as http_cookies
 from urllib.parse import parse_qs, urlparse, quote as urlquote
 
-AGENT_VERSION = '1.7.0'
+AGENT_VERSION = '1.8.0'
 CONFIG_DIR = '/etc/pluslokaal-agent'
 CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.json')
 SETUP_STATUS_FILE = os.path.join(CONFIG_DIR, 'setup-status.json')
@@ -252,11 +252,31 @@ def poll_once():
             'usb_count': len(usb_label_devices()),
             'printers': ([os.path.basename(CFG['label_device'])] if CFG.get('label_device') else [])
                         + ([CFG['doc_queue']] if CFG.get('doc_queue') else [])}
-    res = api('/api/agent/poll', {'version': AGENT_VERSION, 'info': info})
+    poll_body = {'version': AGENT_VERSION, 'info': info}
+    # Lokaal gewijzigde print-instellingen éénmalig terugsturen (PA → PLUSLokaal).
+    if CFG.get('push_settings') and CFG.get('pl_settings'):
+        poll_body['settings'] = CFG['pl_settings']
+    res = api('/api/agent/poll', poll_body)
+    if poll_body.get('settings'):
+        CFG['push_settings'] = False; save_config(CFG)
     state['online'] = True
     state['last_ok'] = time.time()
     # Winkelnaam + weblogin-wachtwoord(hash) syncen vanaf PLUSLokaal
     changed = False
+    # CUPS-wachtwoord (voor user 'ubuntu') synct vanaf PLUSLokaal → zet het op het systeem.
+    cp = res.get('cups_pass') or ''
+    if cp and cp != CFG.get('cups_pass'):
+        CFG['cups_pass'] = cp; changed = True
+        try:
+            subprocess.run(['chpasswd'], input=f'ubuntu:{cp}'.encode(), timeout=15)
+            log('CUPS-wachtwoord (user ubuntu) gesynct vanaf PLUSLokaal')
+        except Exception as e:
+            log(f'CUPS-wachtwoord instellen mislukt: {e}')
+    # Print-instellingen overnemen vanaf PLUSLokaal (server → PA), tenzij we net lokaal iets wijzigden.
+    srv_settings = res.get('settings')
+    if isinstance(srv_settings, dict) and not CFG.get('push_settings'):
+        if srv_settings != CFG.get('pl_settings'):
+            CFG['pl_settings'] = srv_settings; changed = True
     st = res.get('store') or {}
     if st.get('nummer') and st.get('nummer') != CFG.get('store_nummer'):
         CFG['store_nummer'] = st['nummer']; CFG['store_naam'] = st.get('naam') or ''; changed = True
@@ -575,20 +595,32 @@ MAIN_PAGE = """{header}
   {lasterr_html}</div>
 <form method=post action=/save>
   <div class=card><h2>&#127991; Labelprinter</h2>
-    <p><small>De labelprinter (bv. via USB) waarop schaplabels worden geprint.</small></p>
+    <p><small>De labelprinter (bv. via USB) waarop schaplabels worden geprint. Instellingen syncen met PLUSLokaal.</small></p>
     <label>Labelprinter (USB)</label>
     <select name=label_device><option value="">- uit -</option>{label_opts}</select>
     <small>{usb_count} USB-printer(s) gevonden · <a href="/">vernieuwen</a></small>
+    <label>Printertaal</label><select name=protocol>{proto_opts}</select>
+    <div class=row>
+      <div><label>Resolutie (DPI)</label><input name=dpi value="{dpi}"></div>
+      <div><label>Labelformaat b&times;h (mm)</label><span style="display:flex;gap:6px;align-items:center"><input name=label_w value="{label_w}" style="max-width:80px"> &times; <input name=label_h value="{label_h}" style="max-width:80px"> mm</span></div>
+    </div>
   </div>
   <div class=card><h2>&#128424; Winkelprinter</h2>
     <p><small>De kantoorprinter/copier voor schap- en scankaarten. Voeg 'm eventueel eerst toe in CUPS.</small></p>
     <label>Winkelprinter (CUPS-queue)</label>
     <select name=doc_queue><option value="">- uit -</option>{queue_opts}</select>
     <small>Nieuwe USB-printer toevoegen via <a href="http://{cupsip}:631/admin" target=_blank>CUPS ({cupsip}:631)</a> <span style="color:#999">(op het winkelnetwerk)</span></small>
-    <label>Papierlade per lade-code <small>(bv. tray-2=Tray2, tray-3=Tray3)</small></label>
-    <input name=tray_map value="{tray_map}" placeholder="tray-2=Tray2, tray-3=Tray3">
-    <label>Standaard aantal kopieën</label>
-    <input name=default_copies value="{copies}" style="max-width:120px">
+    <label style="display:flex;gap:8px;align-items:flex-start;font-weight:400;margin-top:12px;cursor:pointer">
+      <input type=checkbox name=print_only {po_checked} style="width:auto;margin-top:3px">
+      <span>Alleen printen <small>(verberg de downloadknop; komt automatisch terug als printen mislukt)</small></span></label>
+    <label>Papierlade per kaartformaat <small>(synct met PLUSLokaal)</small></label>
+    {tray_rows}
+    <details style="margin-top:10px"><summary style="cursor:pointer;color:var(--green-d);font-weight:700">Geavanceerd: lade-code &rarr; printerlade</summary>
+      <label>Papierlade per lade-code <small>(bv. tray-2=Tray2, tray-3=Tray3)</small></label>
+      <input name=tray_map value="{tray_map}" placeholder="tray-2=Tray2, tray-3=Tray3">
+      <label>Standaard aantal kopieën</label>
+      <input name=default_copies value="{copies}" style="max-width:120px">
+    </details>
   </div>
   <div class=card><h2>&#9881; Instellingen</h2>
     <div class=row>
@@ -734,6 +766,21 @@ class Web(BaseHTTPRequestHandler):
         nr = CFG.get('store_nummer')
         winkel = f'PLUS {esc(naam)} ({nr})' if nr else 'nog niet gekoppeld'
         lasterr = state['last_error']
+        # Print-instellingen (gesynct met PLUSLokaal) → velden op de PA
+        ps = CFG.get('pl_settings') or {}
+        cur_proto = ps.get('protocol', 'tspl')
+        proto_opts = ''.join(f'<option value="{p}" {"selected" if cur_proto==p else ""}>{p.upper()}</option>'
+                             for p in ['tspl', 'zpl', 'epl', 'text'])
+        trays = ps.get('trays') or {}
+        topts = ps.get('tray_options') or [['auto', 'Automatisch']]
+        tray_rows = ''
+        for fmt in (ps.get('formats') or []):
+            fid = fmt.get('id'); flabel = esc(fmt.get('label', fid))
+            opts = ''.join(f'<option value="{esc(v)}" {"selected" if trays.get(fid)==v else ""}>{esc(lbl)}</option>'
+                           for v, lbl in topts)
+            tray_rows += f'<div style="display:flex;align-items:center;gap:8px;margin:4px 0"><span style="flex:0 0 120px;font-size:.85rem">{flabel}</span><select name="tray_{esc(fid)}" style="flex:1">{opts}</select></div>'
+        if not tray_rows:
+            tray_rows = '<small style="color:#999">Nog geen formaten bekend - verschijnt na de eerste sync met PLUSLokaal.</small>'
         self._html(MAIN_PAGE.format(
             header=header_html(), msg=self._msg(),
             server=esc(CFG.get('server', '')), key=esc(CFG.get('key', '')),
@@ -744,6 +791,9 @@ class Web(BaseHTTPRequestHandler):
             winkel=winkel, hostname=esc(os.uname().nodename), ip=esc(primary_ip()), ver=AGENT_VERSION,
             usb_count=len(usb_devs), copies=CFG.get('default_copies', 1),
             label_opts=label_opts, queue_opts=queue_opts, tray_map=esc(tray),
+            proto_opts=proto_opts, dpi=esc(ps.get('dpi', 300)),
+            label_w=esc(ps.get('label_w', 45)), label_h=esc(ps.get('label_h', 40)),
+            po_checked='checked' if ps.get('print_only') else '', tray_rows=tray_rows,
             poll=CFG.get('poll_interval', 3),
             au1='selected' if CFG.get('auto_update') else '',
             au0='' if CFG.get('auto_update') else 'selected',
@@ -836,9 +886,32 @@ class Web(BaseHTTPRequestHandler):
                     if k.strip():
                         tm[k.strip()] = v.strip()
             CFG['tray_map'] = tm
+            # Print-instellingen die met PLUSLokaal syncen (PA → server bij de volgende poll).
+            ps = dict(CFG.get('pl_settings') or {})
+            if 'protocol' in form: ps['protocol'] = g('protocol') or 'tspl'
+            if 'dpi' in form:
+                try: ps['dpi'] = int(g('dpi', '300'))
+                except ValueError: ps['dpi'] = 300
+            if 'label_w' in form:
+                try: ps['label_w'] = float(g('label_w', '45').replace(',', '.'))
+                except ValueError: ps['label_w'] = 45.0
+            if 'label_h' in form:
+                try: ps['label_h'] = float(g('label_h', '40').replace(',', '.'))
+                except ValueError: ps['label_h'] = 40.0
+            ps['print_only'] = ('print_only' in form)
+            trays = dict(ps.get('trays') or {})
+            for fmt in (ps.get('formats') or []):
+                fid = fmt.get('id')
+                if f'tray_{fid}' in form:
+                    v = g(f'tray_{fid}')
+                    if v and v != 'auto': trays[fid] = v
+                    else: trays.pop(fid, None)
+            ps['trays'] = trays
+            CFG['pl_settings'] = ps
+            CFG['push_settings'] = True   # bij de volgende poll naar PLUSLokaal sturen
             save_config(CFG)
-            log('instellingen opgeslagen')
-            return self._redirect('/', 'Opgeslagen.')
+            log('Instellingen opgeslagen (worden gesynct met PLUSLokaal)')
+            return self._redirect('/', 'Opgeslagen. De instellingen worden gesynct met PLUSLokaal.')
         if path == '/test_label':
             try:
                 tspl = b'SIZE 45 mm,40 mm\r\nGAP 3 mm,0\r\nCLS\r\nTEXT 30,40,"3",0,1,1,"PLUS TEST"\r\nBARCODE 30,90,"EAN13",60,1,0,2,2,"871040014582"\r\nPRINT 1\r\n'

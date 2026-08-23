@@ -5,6 +5,15 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.41.0 - Printerinstellingen syncen tussen PA en PLUSLokaal + CUPS-login · 23 augustus 2026
+
+- **Printertaal, resolutie, labelformaat, "alleen printen" en de lade-per-formaat kun je nu ook op de PA
+  instellen** - en die instellingen syncen automatisch met PLUSLokaal (en andersom). Wijzig je iets in
+  PLUSLokaal, dan neemt de PA het over; wijzig je iets op de PA, dan verschijnt het in PLUSLokaal.
+- **CUPS-inloggegevens** worden nu gegenereerd en getoond in PLUSLokaal (Print-agent-blok):
+  <code>ubuntu</code> + wachtwoord, waarmee je op de Pi (poort 631) printers kunt beheren. Het wachtwoord
+  wordt automatisch op de Pi ingesteld.
+
 ## versie 2.40.0 - PA: schermweergave, zelfherstel, aparte printerkoppen en info in PLUSLokaal · 23 augustus 2026
 
 - **Schermweergave op de Pi**: op een aangesloten monitor toont de Pi nu een melding met het IP
