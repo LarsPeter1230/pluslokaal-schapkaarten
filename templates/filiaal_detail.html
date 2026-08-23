@@ -32,8 +32,15 @@
       <form method="post">
         <input type="hidden" name="section" value="label">
         <p class="muted small" style="margin:0 0 12px;line-height:1.55;">De server maakt van het ontwerp een
-          afdruk (logo + barcode) en stuurt die naar de labelprinter op de PA. Stel hier het label-formaat
-          en de resolutie in.</p>
+          afdruk (logo + barcode) en stuurt die naar de labelprinter{% if f.agent_key %} op de PA{% endif %}.
+          Stel hier het label-formaat en de resolutie in.</p>
+        {% if not f.agent_key %}
+        <div class="grid cols-2" style="margin-bottom:2px;">
+          <div class="field"><label>Printernaam</label><input type="text" name="printer_name" value="{{ f.printer_name or '' }}" placeholder="LW650XL PRO"></div>
+          <div class="field"><label>Printer-IP</label><input type="text" name="printer_ip" value="{{ f.printer_ip or '' }}" placeholder="10.0.0.50"></div>
+          <div class="field"><label>Poort</label><input type="number" name="printer_port" value="{{ f.printer_port or 9100 }}"></div>
+        </div>
+        {% endif %}
         <div class="grid cols-2">
           <div class="field"><label>Printertaal</label>
             <select name="printer_protocol">
@@ -59,6 +66,13 @@
         <input type="hidden" name="section" value="doc">
         <p class="muted small" style="margin:0 0 12px;line-height:1.55;">De gewone kantoorprinter/copier waar
           schap- en scankaarten op afgedrukt worden. Kies per kaartformaat welke papierlade gebruikt wordt.</p>
+        {% if not f.agent_key %}
+        <div class="grid cols-2" style="margin-bottom:10px;">
+          <div class="field"><label>Printernaam</label><input type="text" name="doc_printer_name" value="{{ f.doc_printer_name or '' }}" placeholder="Toshiba e-STUDIO3515AC"></div>
+          <div class="field"><label>Printer-IP</label><input type="text" name="doc_printer_ip" value="{{ f.doc_printer_ip or '' }}" placeholder="10.0.0.51"></div>
+          <div class="field"><label>Poort (IPP)</label><input type="number" name="doc_printer_port" value="{{ f.doc_printer_port or 631 }}"></div>
+        </div>
+        {% endif %}
         <label class="lbl-chk" style="display:flex;align-items:flex-start;gap:8px;font-weight:600;font-size:.85rem;margin:0 0 12px;cursor:pointer;">
           <input type="checkbox" name="print_only" style="width:18px;height:18px;accent-color:var(--green);margin-top:1px;" {{ 'checked' if f.print_only }}>
           <span>Alleen printen <span class="muted small">(verberg de knop "Samenvoegen &amp; downloaden". Lukt printen niet, dan komt de downloadknop automatisch terug.)</span></span></label>

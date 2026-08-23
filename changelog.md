@@ -5,6 +5,12 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.33.1 - Directe-IP-winkels (PLUS Koelhuis) tonen weer al hun instellingen · 23 augustus 2026
+
+- Winkels die **zonder** Print-agent printen (zoals PLUS Koelhuis) tonen op het tabblad Printers weer de
+  volledige directe-IP-instellingen (printernaam, IP en poort van de label- en winkelprinter). Bij winkels
+  met een Print-agent blijven die velden verborgen, want daar kies je de printers op de PA zelf.
+
 ## versie 2.33.0 - Webinterface op afstand, tabs op de filiaalpagina en uitgebreidere PA · 23 augustus 2026
 
 - **Webinterface van de Pi/mini-pc op afstand openen vanuit PLUSLokaal**: in Beheer → Filialen staat nu

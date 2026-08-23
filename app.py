@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.33.0'
+APP_VERSION = '2.33.1'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -6808,13 +6808,22 @@ def filiaal_detail(nummer):
         # zodat het opslaan van de ene printer de andere niet wist.
         section = request.form.get('section', 'label')
         if section == 'label':
-            # Label-render-instellingen (het IP/poort vervalt: printers gaan via de Print-agent).
+            # Label-render-instellingen. Bij PA-winkels vervallen IP/poort (printers via de agent);
+            # bij directe-IP-winkels (bv. PLUS Koelhuis) worden die velden wel meegestuurd.
             f.printer_dpi = request.form.get('printer_dpi', type=int) or 300
             f.printer_protocol = request.form.get('printer_protocol', 'tspl')
             f.printer_label_w = _num(request.form.get('printer_label_w')) or 45.0
             f.printer_label_h = _num(request.form.get('printer_label_h')) or 40.0
+            if 'printer_ip' in request.form:
+                f.printer_name = request.form.get('printer_name', '').strip() or None
+                f.printer_ip = request.form.get('printer_ip', '').strip() or None
+                f.printer_port = request.form.get('printer_port', type=int) or 9100
         elif section == 'doc':
             f.print_only = bool(request.form.get('print_only'))
+            if 'doc_printer_ip' in request.form:
+                f.doc_printer_name = request.form.get('doc_printer_name', '').strip() or None
+                f.doc_printer_ip = request.form.get('doc_printer_ip', '').strip() or None
+                f.doc_printer_port = request.form.get('doc_printer_port', type=int) or 631
             trays = {}
             for fmt in _DOC_TRAY_FORMATS:
                 v = request.form.get(f'tray_{fmt}', '').strip()
