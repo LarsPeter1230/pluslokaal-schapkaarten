@@ -5,6 +5,16 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.26.0 - Alle PLUS-winkels toegevoegd + nette afzenders · 23 augustus 2026
+
+- **Alle PLUS-winkels staan nu als filiaal in de app**, met per winkel een **medewerker-account** op het
+  winkel-e-mailadres. Er zijn **nog geen welkomstmails** verstuurd - dat doen we later. Bestaande winkels
+  en accounts zijn ongemoeid gelaten.
+- Elke winkel kan **op elk moment zelf een wachtwoord instellen** via "Wachtwoord vergeten" (met het
+  winkel-e-mailadres).
+- **Mails komen niet meer van "no-reply".** Wachtwoord-resets komen van **passwordreset@mail.pluslokaal.com**
+  en welkomst-/accountmails van **info@mail.pluslokaal.com**.
+
 ## versie 2.25.0 - Winkelpakketten: zelf-herstellend + thumbnails altijd in één keer · 23 augustus 2026
 
 - **Lost zichzelf voortaan automatisch op.** Duikt er in de toekomst een nieuwe formaat-variant op (zoals

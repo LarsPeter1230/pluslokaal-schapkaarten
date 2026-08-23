@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.25.0'
+APP_VERSION = '2.26.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -2389,7 +2389,7 @@ _SMTP_DEFAULTS = {
     'smtp_port': '587',
     'smtp_user': 'resend',
     'smtp_pass': _load_mail_secret(),
-    'smtp_from': 'noreply@mail.pluslokaal.com',
+    'smtp_from': 'info@mail.pluslokaal.com',
     'smtp_from_name': 'PLUSLokaal',
     'mail_enabled': '1',
     'app_url': '',
@@ -2451,15 +2451,21 @@ def _btn(url, label):
             f'text-decoration:none;font-weight:700;font-size:15px;padding:12px 26px;'
             f'border-radius:24px 24px 24px 4px;">{label}</a>')
 
-def send_mail(to_addr, subject, html):
-    """Verstuur een HTML-mail via de ingestelde SMTP-server. Geeft (ok, foutmelding)."""
+# Afzender-adressen per soort mail (bewust NIET no-reply). Het domein mail.pluslokaal.com is geverifieerd.
+MAIL_FROM_WELCOME = 'info@mail.pluslokaal.com'
+MAIL_FROM_RESET   = 'passwordreset@mail.pluslokaal.com'
+
+def send_mail(to_addr, subject, html, from_addr=None, from_name=None):
+    """Verstuur een HTML-mail via de ingestelde SMTP-server. Geeft (ok, foutmelding).
+    ``from_addr``/``from_name``: overschrijf de standaard-afzender (bv. info@ voor welkom,
+    passwordreset@ voor wachtwoord-reset)."""
     if not to_addr:
         return False, 'Geen e-mailadres'
     if not mail_enabled():
         return False, 'E-mail staat uit'
     host = get_setting('smtp_host'); port = int(get_setting('smtp_port', '587') or 587)
     user = get_setting('smtp_user'); pwd = get_setting('smtp_pass')
-    frm  = get_setting('smtp_from'); frm_name = get_setting('smtp_from_name', 'PLUSLokaal')
+    frm  = from_addr or get_setting('smtp_from'); frm_name = from_name or get_setting('smtp_from_name', 'PLUSLokaal')
     if not (host and frm):
         return False, 'SMTP niet volledig ingesteld'
     msg = MIMEMultipart('related')
@@ -2491,12 +2497,12 @@ def send_mail(to_addr, subject, html):
         app.logger.error(f'Mail versturen mislukt: {e}')
         return False, str(e)
 
-def send_mail_async(to_addr, subject, html):
+def send_mail_async(to_addr, subject, html, from_addr=None, from_name=None):
     """Verstuur op de achtergrond zodat de request niet wacht op de mailserver."""
     def _run():
         with app.app_context():
             try:
-                send_mail(to_addr, subject, html)
+                send_mail(to_addr, subject, html, from_addr=from_addr, from_name=from_name)
             except Exception as e:
                 app.logger.error(f'Async mail mislukt: {e}')
     threading.Thread(target=_run, daemon=True).start()
@@ -2575,7 +2581,8 @@ def send_setpw_invite(user_obj, kind='welcome'):
       <p style="font-size:13px;color:#6c6c6c;line-height:1.6;margin:0;">
         Deze link is 7 dagen geldig. Werkt de knop niet? Kopieer dan deze link:<br>
         <span style="word-break:break-all;color:#115013;">{link}</span></p>"""
-    send_mail_async(user_obj.email, subject, _mail_wrapper(title, body))
+    frm = MAIL_FROM_RESET if kind == 'reset' else MAIL_FROM_WELCOME
+    send_mail_async(user_obj.email, subject, _mail_wrapper(title, body), from_addr=frm)
     return True, None
 
 # ─── ACCOUNT AANMAKEN: uitnodiging met tijdelijk wachtwoord (Label-Manager-stijl) ─────────────
@@ -2673,7 +2680,8 @@ def send_welcome_invite(user_obj):
         f'<p style="margin:6px 0 20px;">{_btn(login_url, "Inloggen en wachtwoord instellen")}</p>' +
         _mail_p(f'<span style="font-size:13px;color:#6c6c6c;">💡 {PW_HINT}</span>')
     )
-    ok, err = send_mail(user_obj.email, 'Welkom bij PLUSLokaal', _mail_wrapper('Welkom bij PLUSLokaal', body))
+    ok, err = send_mail(user_obj.email, 'Welkom bij PLUSLokaal', _mail_wrapper('Welkom bij PLUSLokaal', body),
+                        from_addr=MAIL_FROM_WELCOME)
     return ok, err, temp
 
 def send_approved_notice(user_obj):
@@ -2695,7 +2703,7 @@ def send_approved_notice(user_obj):
         f'<p style="margin:6px 0 20px;">{_btn(login_url, "Inloggen")}</p>'
     )
     return send_mail(user_obj.email, 'Je PLUSLokaal-account is goedgekeurd',
-                     _mail_wrapper('Je account is goedgekeurd', body))
+                     _mail_wrapper('Je account is goedgekeurd', body), from_addr=MAIL_FROM_WELCOME)
 
 # ─── ERROR HANDLERS ───────────────────────────────────────────────────────────
 @app.errorhandler(404)
@@ -7680,6 +7688,12 @@ def _migrate_db():
             except Exception:
                 pass
     _migrate_w2p_dagdeal_docids()
+    # Afzender weg van no-reply (eenmalig; admin kan 'm daarna zelf aanpassen in Mailinstellingen).
+    try:
+        if (get_setting('smtp_from', '') or '').lower().startswith('noreply@'):
+            set_setting('smtp_from', 'info@mail.pluslokaal.com')
+    except Exception:
+        pass
 
 def _migrate_w2p_dagdeal_docids():
     """Eenmalige data-fix: herbereken de doc_ids van bestaande winkelpakket-cache-rijen met de nieuwe
