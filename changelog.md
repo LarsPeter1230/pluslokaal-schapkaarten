@@ -5,6 +5,16 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.35.0 - Winkelprinter aanvragen als er nog geen gekoppeld is · 23 augustus 2026
+
+- **Heeft een winkel nog geen gekoppelde printer?** Dan blijft de knop "Printen op winkelprinter" gewoon
+  zichtbaar. Klik je erop, dan opent een venster met de melding dat er nog geen winkelprinter is, met twee
+  keuzes: de kaarten <strong>samenvoegen en downloaden</strong>, of een <strong>koppeling aanvragen</strong>.
+- Het aanvraagformulier vraagt om naam, contact-e-mail en telefoonnummer. De aanvraag gaat naar de
+  beheerder, en de aanvrager krijgt automatisch een bevestigingsmail (in PLUS-huisstijl) met uitleg over
+  de vervolgstappen, de voordelen (rechtstreeks op de juiste printer, automatisch de juiste lade voor A4,
+  SK Maxi en A3) en dat een Raspberry Pi of een oud werkstation gebruikt kan worden.
+
 ## versie 2.34.2 - Pi-image weer snel en betrouwbaar (kiosk standaard uit) · 23 augustus 2026
 
 - **De kioskweergave zit niet meer standaard in de image.** Die maakte de eerste boot zwaar en kon 'm

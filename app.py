@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.34.2'
+APP_VERSION = '2.35.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -2743,6 +2743,81 @@ def send_approved_notice(user_obj):
     )
     return send_mail(user_obj.email, 'Je PLUSLokaal-account is goedgekeurd',
                      _mail_wrapper('Je account is goedgekeurd', body), from_addr=MAIL_FROM_WELCOME)
+
+def send_printer_request(naam, email, telefoon, winkel, nr, aanvrager):
+    """Stuur een winkelprinter-aanvraag naar de beheerder én een bevestiging (huisstijl) naar de aanvrager."""
+    _e = lambda s: (str(s or '')).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    hd = ('font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;'
+          'color:#115013;margin:18px 0 8px;')
+    def bullets(items):
+        rows = ''.join(
+            f'<li style="margin:0 0 8px;padding-left:24px;position:relative;list-style:none;line-height:1.55;">'
+            f'<span style="position:absolute;left:0;top:0;color:#80bd1d;font-weight:800;">&#10003;</span>{t}</li>'
+            for t in items)
+        return f'<ul style="margin:0 0 12px;padding:0;">{rows}</ul>'
+
+    # 1) Melding naar de beheerder
+    admin_body = (
+        _mail_p('Er is een aanvraag binnengekomen voor het koppelen van een winkelprinter.') +
+        '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:10px 0 8px;font-size:15px;">'
+        f'<tr><td style="padding:4px 18px 4px 0;color:#6c6c6c;">Winkel</td><td style="padding:4px 0;font-weight:700;">{_e(winkel)} ({nr})</td></tr>'
+        f'<tr><td style="padding:4px 18px 4px 0;color:#6c6c6c;">Naam</td><td style="padding:4px 0;font-weight:700;">{_e(naam)}</td></tr>'
+        f'<tr><td style="padding:4px 18px 4px 0;color:#6c6c6c;">E-mail</td><td style="padding:4px 0;font-weight:700;">{_e(email)}</td></tr>'
+        f'<tr><td style="padding:4px 18px 4px 0;color:#6c6c6c;">Telefoon</td><td style="padding:4px 0;font-weight:700;">{_e(telefoon)}</td></tr>'
+        f'<tr><td style="padding:4px 18px 4px 0;color:#6c6c6c;">Ingediend door</td><td style="padding:4px 0;">{_e(getattr(aanvrager, "username", "-"))}</td></tr>'
+        '</table>')
+    send_mail_async('admin@pluslokaal.com', f'Printeraanvraag - {winkel} ({nr})',
+                    _mail_wrapper('Nieuwe printeraanvraag', admin_body), from_addr=MAIL_FROM_WELCOME)
+
+    # 2) Bevestiging naar de ondernemer/winkelmanager
+    pi_url = 'https://www.raspberrypi.com/products/raspberry-pi-5/'
+    conf_body = (
+        _mail_p(f'Beste {_e(naam)},') +
+        _mail_p('Bedankt voor je aanvraag om een <strong>winkelprinter</strong> te koppelen aan PLUSLokaal '
+                f'voor <strong>{_e(winkel)}</strong>. We hebben je aanvraag ontvangen en nemen binnenkort '
+                'contact met je op om het samen in orde te maken.') +
+        f'<div style="{hd}">Hoe werkt het?</div>' +
+        _mail_p('Voor rechtstreeks printen komt er een klein computertje direct op de winkelprinter aangesloten - '
+                f'een <a href="{pi_url}" style="color:#115013;font-weight:700;">Raspberry Pi 5</a>. Dit kastje maakt '
+                'zelf een beveiligde verbinding met pluslokaal.com; er hoeft niets aan je winkel-netwerk of '
+                'firewall aangepast te worden.') +
+        f'<div style="{hd}">De voordelen</div>' +
+        bullets([
+            'Je print schapkaarten en scankaarten <strong>rechtstreeks op de juiste printer</strong> - geen pdf meer downloaden en handmatig openen.',
+            'De agent kiest <strong>automatisch de juiste papierlade</strong> per formaat: A4, SK Maxi en A3 komen altijd uit de goede lade.',
+            'Werkt voor het hele team, zonder installatie op de kassa- of kantoor-computers.',
+        ]) +
+        f'<div style="{hd}">Zelf een kastje regelen mag ook</div>' +
+        _mail_p('Raspberry Pi\'s zijn op dit moment beperkt leverbaar. Je mag er zelf ook een aanschaffen '
+                '(bijvoorbeeld bij een andere webshop). Heb je nog een <strong>oud werkstation of pc</strong> '
+                'liggen? Ook die kunnen we prima gebruiken - dan is er geen nieuwe hardware nodig.') +
+        _mail_p('We nemen contact met je op via dit e-mailadres of je telefoonnummer. Vragen in de tussentijd? '
+                'Mail gerust naar <a href="mailto:admin@pluslokaal.com" style="color:#115013;font-weight:700;">admin@pluslokaal.com</a>.')
+    )
+    ok, _err = send_mail(email, 'We hebben je printeraanvraag ontvangen',
+                         _mail_wrapper('Je printeraanvraag is binnen', conf_body), from_addr=MAIL_FROM_WELCOME)
+    return ok
+
+@app.route('/api/printer-aanvraag', methods=['POST'])
+@login_required
+def printer_aanvraag():
+    u = get_current_user()
+    naam = request.form.get('naam', '').strip()
+    email = request.form.get('email', '').strip().lower()
+    tel = request.form.get('telefoon', '').strip()
+    if not (naam and email and tel):
+        return jsonify({'ok': False, 'error': 'Vul je naam, e-mailadres en telefoonnummer in.'}), 400
+    if '@' not in email or '.' not in email.split('@')[-1]:
+        return jsonify({'ok': False, 'error': 'Vul een geldig e-mailadres in.'}), 400
+    nr = _active_filiaal() or u.filiaal
+    f = Filiaal.query.filter_by(nummer=nr).first()
+    winkel = ('PLUS ' + f.naam) if (f and f.naam) else ('Filiaal ' + str(nr))
+    try:
+        send_printer_request(naam, email, tel, winkel, nr, u)
+    except Exception as e:
+        app.logger.warning(f'printeraanvraag mail: {e}')
+    log_action('printer_aanvraag', f'{naam} <{email}> {tel}', filiaal=nr)
+    return jsonify({'ok': True})
 
 # ─── ERROR HANDLERS ───────────────────────────────────────────────────────────
 @app.errorhandler(404)
