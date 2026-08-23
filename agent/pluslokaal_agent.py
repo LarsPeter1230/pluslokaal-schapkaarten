@@ -30,7 +30,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from http import cookies as http_cookies
 from urllib.parse import parse_qs, urlparse, quote as urlquote
 
-AGENT_VERSION = '1.1.0'
+AGENT_VERSION = '1.2.0'
 CONFIG_DIR = '/etc/pluslokaal-agent'
 CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.json')
 DEFAULTS = {
@@ -142,6 +142,27 @@ def api(path, body=None, timeout=30):
         return json.loads(r.read().decode())
 
 
+def set_hostname_for_store(nr):
+    """Geef de Pi na koppeling een herkenbare hostnaam: PA-<winkelnummer>-PLUSLokaal (PA = Print-Agent)."""
+    host = f'PA-{nr}-PLUSLokaal'
+    try:
+        cur = os.uname().nodename
+        if cur == host:
+            return
+        subprocess.run(['hostnamectl', 'set-hostname', host], timeout=15, capture_output=True)
+        # /etc/hosts bijwerken zodat sudo/hostname-lookups niet gaan klagen
+        try:
+            lines = open('/etc/hosts').read().splitlines()
+            lines = [l for l in lines if not l.startswith('127.0.1.1')]
+            lines.append(f'127.0.1.1 {host}')
+            open('/etc/hosts', 'w').write('\n'.join(lines) + '\n')
+        except Exception:
+            pass
+        log(f'hostnaam ingesteld: {host}')
+    except Exception as e:
+        log(f'hostnaam instellen mislukt: {e}')
+
+
 def poll_once():
     info = {'hostname': os.uname().nodename,
             'printers': ([os.path.basename(CFG['label_device'])] if CFG.get('label_device') else [])
@@ -154,6 +175,7 @@ def poll_once():
     st = res.get('store') or {}
     if st.get('nummer') and st.get('nummer') != CFG.get('store_nummer'):
         CFG['store_nummer'] = st['nummer']; CFG['store_naam'] = st.get('naam') or ''; changed = True
+        set_hostname_for_store(st['nummer'])
     elif st.get('naam') and st.get('naam') != CFG.get('store_naam'):
         CFG['store_naam'] = st['naam']; changed = True
     wp = res.get('web_pass_sha256') or ''
@@ -557,7 +579,14 @@ def main():
     log(f'PLUSLokaal Print-Agent v{AGENT_VERSION} gestart')
     threading.Thread(target=poll_loop, daemon=True).start()
     threading.Thread(target=update_loop, daemon=True).start()
+    # Webinterface op poort 80 (gewoon het IP intypen - handig, ook via RMM) én 8080 (terugval).
     port = int(CFG.get('web_port') or 8080)
+    try:
+        srv80 = ThreadingHTTPServer(('0.0.0.0', 80), Web)
+        threading.Thread(target=srv80.serve_forever, daemon=True).start()
+        log('webinterface op poort 80 (http://<pi-adres>/)')
+    except OSError as e:
+        log(f'poort 80 niet beschikbaar ({e}) - alleen {port}')
     srv = ThreadingHTTPServer(('0.0.0.0', port), Web)
     log(f'webinterface op poort {port}')
     srv.serve_forever()

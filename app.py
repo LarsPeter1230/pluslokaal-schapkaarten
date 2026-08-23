@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import text, func
 from itsdangerous import URLSafeTimedSerializer
-import os, json, io, secrets, time, smtplib, ssl, threading, re
+import os, json, io, secrets, time, smtplib, ssl, threading, re, subprocess, shutil
 from datetime import datetime, timedelta
 
 # Tijdzone van de app op Nederland zetten, zodat alle tijdstempels (logs, kaarten, e-mails) de
@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.29.0'
+APP_VERSION = '2.30.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -5531,11 +5531,38 @@ def agent_install_sh():
     return send_file(_AGENT_INSTALL, mimetype='text/x-shellscript')
 
 @app.route('/agent/user-data')
+@login_required
 def agent_userdata_generic():
-    """GENERIEK cloud-init-bestand (zelfde voor élke winkel, geen geheimen): flash Ubuntu Server,
-    vervang 'user-data' door dit bestand, en de Pi installeert zichzelf. De winkel-sleutel plak je
-    daarna ter plekke in de Pi-webinterface (welkomstscherm)."""
+    """GENERIEK cloud-init-bestand (zelfde voor élke winkel): flash Ubuntu Server, vervang 'user-data'
+    door dit bestand, en de Pi installeert zichzelf. De winkel-sleutel plak je daarna ter plekke in de
+    Pi-webinterface (welkomstscherm). Alleen voor ingelogde admins: het RMM-installatiescript (met
+    enrollment-tokens) wordt er inline in meegebakken."""
+    u = get_current_user()
+    if not u or u.role != 'admin':
+        abort(403)
+    return Response(_agent_userdata_text(), mimetype='text/yaml',
+                    headers={'Content-Disposition': 'attachment; filename="user-data"'})
+
+def _agent_userdata_text():
+    """De generieke cloud-init user-data (incl. inline RMM-script) - gedeeld door de download-route
+    en de .img-bouwer."""
     server = 'https://pluslokaal.com'
+    # Optioneel: het RMM-installatiescript (Beheer → Filialen → Print-agent) wordt INLINE (base64)
+    # meegebakken - zo staan de RMM-enrollment-tokens nooit op een publieke URL en hoeft de Pi niets
+    # extra's op te halen. '|| true' zodat een RMM-hapering de printer-installatie niet blokkeert.
+    rmm = (get_setting('agent_rmm_cmd', '') or '').strip()
+    write_files = ''
+    rmm_cmd = ''
+    if rmm:
+        import base64 as _b64
+        script = rmm if rmm.startswith('#!') else '#!/usr/bin/env bash\n' + rmm
+        b64 = _b64.b64encode(script.encode()).decode()
+        write_files = ("write_files:\n"
+                       "  - path: /opt/pluslokaal-rmm-install.sh\n"
+                       "    permissions: '0700'\n"
+                       "    encoding: b64\n"
+                       f"    content: {b64}\n")
+        rmm_cmd = "  - [bash, -lc, 'bash /opt/pluslokaal-rmm-install.sh || true']\n"
     ud = f"""#cloud-config
 # PLUSLokaal Print-Agent - generieke installatie (voor elke winkel gelijk).
 # Na de eerste boot: open http://<pi-adres>:8080 en plak daar de winkel-sleutel.
@@ -5545,21 +5572,126 @@ packages:
   - python3
   - cups
   - cups-client
-runcmd:
+{write_files}runcmd:
   - mkdir -p /opt/pluslokaal-agent /etc/pluslokaal-agent
   - curl -fsSL {server}/api/agent/download -o /opt/pluslokaal-agent/pluslokaal_agent.py
   - chmod 755 /opt/pluslokaal-agent/pluslokaal_agent.py
   - python3 /opt/pluslokaal-agent/pluslokaal_agent.py --install
   - usermod -aG lpadmin ubuntu || true
   - cupsctl --remote-admin || true
-"""
-    # Optioneel: RMM-agent automatisch mee-installeren (opdracht instelbaar in Beheer → Filialen →
-    # Print-agent). Wordt als laatste stap gedraaid; '|| true' zodat een RMM-hapering de rest niet blokkeert.
-    rmm = (get_setting('agent_rmm_cmd', '') or '').strip()
-    if rmm:
-        ud += f"  - [bash, -lc, {json.dumps(rmm + ' || true')}]\n"
-    return Response(ud, mimetype='text/yaml',
-                    headers={'Content-Disposition': 'attachment; filename="user-data"'})
+{rmm_cmd}"""
+    return ud
+
+# ─── Kant-en-klaar .IMG bouwen (flashen → aansluiten → klaar) ─────────────────
+# We nemen het officiële Ubuntu Server-image voor de Pi en bakken onze user-data (agent + RMM) er
+# direct in (mcopy op de FAT-bootpartitie - geen root/loop-mounts nodig). Het resultaat is een
+# .img.gz die de Raspberry Pi Imager direct kan flashen ("Gebruik eigen bestand").
+_IMG_DIR = os.path.join(os.path.dirname(__file__), 'instance', 'agent-img')
+_img_state = {'status': 'idle', 'message': '', 'error': None}
+_img_lock = threading.Lock()
+
+def _img_artifact():
+    p = os.path.join(_IMG_DIR, 'pluslokaal-agent.img.gz')
+    return p if os.path.exists(p) else None
+
+def _mbr_part1_offset(img_path):
+    """Byte-offset van partitie 1 (de FAT 'system-boot') uit de MBR-partitietabel."""
+    with open(img_path, 'rb') as fh:
+        mbr = fh.read(512)
+    if mbr[510:512] != b'\x55\xaa':
+        raise RuntimeError('geen geldige MBR in basis-image')
+    lba = int.from_bytes(mbr[446 + 8:446 + 12], 'little')
+    if not lba:
+        raise RuntimeError('partitie 1 niet gevonden')
+    return lba * 512
+
+def _img_find_base_url():
+    """Zoek de actuele Ubuntu Server preinstalled arm64+raspi-image op cdimage.ubuntu.com."""
+    import urllib.request
+    for rel in ('24.04', 'noble'):
+        idx = f'https://cdimage.ubuntu.com/releases/{rel}/release/'
+        try:
+            html = urllib.request.urlopen(idx, timeout=30).read().decode(errors='replace')
+            m = re.findall(r'href="(ubuntu-[\d.]+-preinstalled-server-arm64\+raspi\.img\.xz)"', html)
+            if m:
+                return idx + sorted(set(m))[-1]
+        except Exception:
+            continue
+    raise RuntimeError('kon het Ubuntu-basisimage niet vinden op cdimage.ubuntu.com')
+
+def _img_build_worker():
+    import urllib.request
+    try:
+        os.makedirs(_IMG_DIR, exist_ok=True)
+        base_img = os.path.join(_IMG_DIR, 'base.img')
+        if not os.path.exists(base_img):
+            _img_state.update(message='Basis-image zoeken…')
+            url = _img_find_base_url()
+            base_xz = os.path.join(_IMG_DIR, 'base.img.xz')
+            _img_state.update(message='Basis-image downloaden (±1,2 GB)…')
+            req = urllib.request.Request(url, headers={'User-Agent': 'pluslokaal'})
+            with urllib.request.urlopen(req, timeout=120) as r, open(base_xz + '.part', 'wb') as out:
+                done = 0
+                while True:
+                    chunk = r.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    out.write(chunk); done += len(chunk)
+                    if done % (50 * 1024 * 1024) < 1024 * 1024:
+                        _img_state.update(message=f'Basis-image downloaden… {done // (1024*1024)} MB')
+            os.replace(base_xz + '.part', base_xz)
+            _img_state.update(message='Basis-image uitpakken…')
+            subprocess.run(['xz', '-d', '-k', '-f', base_xz], check=True, timeout=1800)
+        _img_state.update(message='Eigen image samenstellen…')
+        build = os.path.join(_IMG_DIR, 'build.img')
+        shutil.copyfile(base_img, build)
+        offset = _mbr_part1_offset(build)
+        udf = os.path.join(_IMG_DIR, 'user-data.tmp')
+        with app.app_context():
+            open(udf, 'w').write(_agent_userdata_text())
+        subprocess.run(['mcopy', '-o', '-i', f'{build}@@{offset}', udf, '::user-data'],
+                       check=True, timeout=300, capture_output=True)
+        os.remove(udf)
+        _img_state.update(message='Comprimeren (kan een paar minuten duren)…')
+        out_gz = os.path.join(_IMG_DIR, 'pluslokaal-agent.img.gz')
+        with open(build, 'rb') as fin:
+            p = subprocess.Popen(['gzip', '-1', '-c'], stdin=fin, stdout=open(out_gz + '.part', 'wb'))
+            p.wait(timeout=1800)
+            if p.returncode != 0:
+                raise RuntimeError('gzip faalde')
+        os.replace(out_gz + '.part', out_gz)
+        os.remove(build)
+        _img_state.update(status='done', message='Klaar', error=None)
+    except Exception as e:
+        _img_state.update(status='error', message='', error=str(e)[:300])
+
+@app.route('/agent/img-build', methods=['POST'])
+@login_required
+def agent_img_build():
+    u = get_current_user()
+    if not u or u.role != 'admin':
+        abort(403)
+    with _img_lock:
+        if _img_state['status'] == 'building':
+            flash('Er wordt al een image gebouwd.', 'error')
+        else:
+            _img_state.update(status='building', message='Starten…', error=None)
+            threading.Thread(target=_img_build_worker, daemon=True).start()
+            flash('Image-bouw gestart - ververs deze pagina voor de voortgang.', 'success')
+            log_action('agent_img_build', 'kant-en-klaar Pi-image bouwen gestart')
+    return redirect(request.form.get('next') or url_for('filialen'))
+
+@app.route('/agent/img-download')
+@login_required
+def agent_img_download():
+    u = get_current_user()
+    if not u or u.role != 'admin':
+        abort(403)
+    p = _img_artifact()
+    if not p:
+        abort(404)
+    return send_file(p, mimetype='application/gzip', as_attachment=True,
+                     download_name='pluslokaal-agent.img.gz')
 
 @app.route('/filiaal/<int:nummer>/agent-userdata')
 @login_required
@@ -6317,7 +6449,11 @@ def filiaal_detail(nummer):
                            formaat_labels=FORMAAT_LABELS,
                            agent_online=_agent_online(f),
                            agent_info=(json.loads(f.agent_info) if f.agent_info else {}),
-                           rmm_cmd=get_setting('agent_rmm_cmd', ''))
+                           rmm_cmd=get_setting('agent_rmm_cmd', ''),
+                           img_state=_img_state,
+                           img_info=(lambda p: {'size_mb': os.path.getsize(p) // (1024*1024),
+                                                'mtime': datetime.fromtimestamp(os.path.getmtime(p)).strftime('%d-%m %H:%M')}
+                                     if p else None)(_img_artifact()))
 
 # ─── ROLLENBEHEER (admin) ─────────────────────────────────────────────────────
 def _slugify_role(txt):

@@ -5,6 +5,19 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.30.0 - Print-agent: kant-en-klaar .img + RMM veilig meegebakken · 23 augustus 2026
+
+- **Kant-en-klaar .img-bestand**: bouw in Beheer met één knop een compleet Pi-image (agent + RMM er al
+  in). Flashen via "Gebruik eigen bestand" in Raspberry Pi Imager, Pi aansluiten, en na de eerste boot
+  is 'ie bereikbaar op z'n IP. Sleutel plakken en printers kiezen - klaar.
+- **De webinterface draait nu ook op poort 80**: gewoon het IP van de Pi intypen is genoeg (ook handig
+  als je via RMM verbinding maakt); poort 8080 blijft als reserve werken.
+- **De Pi hernoemt zichzelf na koppeling** naar `PA-<winkelnummer>-PLUSLokaal` (PA = Print-Agent), zodat
+  je 'm in je netwerk en RMM direct herkent.
+- **RMM-script veilig verwerkt**: het volledige installatiescript (met tokens) wordt versleuteld in het
+  SD-bestand/image meegebakken en is alleen door ingelogde admins te downloaden - het staat nergens
+  publiek.
+
 ## versie 2.29.0 - Print-agent: welkomstscherm, PLUS-stijl en beveiligde login · 23 augustus 2026
 
 - **Eén generiek SD-kaart-bestand voor álle winkels** (geen geheimen erin): flash de kaart, sluit de Pi
