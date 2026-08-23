@@ -361,10 +361,12 @@
   .gwb-modal-f{display:flex;justify-content:flex-end;gap:9px;padding:14px 18px;border-top:1px solid var(--bd);background:var(--pnl2)}
   @media (max-width:460px){ .gwb-2col{grid-template-columns:1fr} }
   /* rol-drawer (schuift van rechts, zoals de referentie) */
-  .gwb-modal.drawer{align-items:stretch;justify-content:flex-end;padding:0}
-  .gwb-modal.drawer .gwb-modal-card{max-width:560px;width:100%;height:100%;border-radius:0;display:flex;flex-direction:column;overflow:hidden;animation:gwbslide .2s ease}
+  .gwb-modal.drawer{align-items:stretch;justify-content:flex-end;padding:0;overflow:hidden}
+  .gwb-modal.drawer .gwb-modal-card{max-width:560px;width:100%;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;border-radius:0;display:flex;flex-direction:column;overflow:hidden;animation:gwbslide .2s ease}
   @keyframes gwbslide{from{transform:translateX(40px);opacity:.5}to{transform:none;opacity:1}}
-  .gwb-modal.drawer .gwb-modal-b{flex:1;overflow:auto}
+  .gwb-modal.drawer form{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+  .gwb-modal.drawer .gwb-modal-b{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .gwb-modal.drawer .gwb-modal-h,.gwb-modal.drawer .gwb-modal-f{flex:0 0 auto}
   /* rechten-matrix */
   .gwb-matrix{display:flex;flex-direction:column;gap:14px}
   .gwb-mgrp{border:1px solid var(--bd);border-radius:12px;overflow:hidden}
