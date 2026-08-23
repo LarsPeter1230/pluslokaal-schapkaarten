@@ -127,6 +127,12 @@
             {% if agent_info.get('hostname') %} · {{ agent_info.get('hostname') }}{% endif %}
             {% if agent_info.get('printers') %} · printers: {{ agent_info.get('printers')|join(', ') }}{% endif %}
           </p>
+          {% if f.agent_local_ip or f.agent_pub_ip %}
+          <div class="pa-kv"><span>Lokaal IP</span><code>{{ f.agent_local_ip or '-' }}</code>
+            {% if f.agent_local_ip %}<a href="http://{{ f.agent_local_ip }}/" target="_blank" rel="noopener" class="muted small">openen</a>{% endif %}</div>
+          <div class="pa-kv"><span>Publiek IP</span><code>{{ f.agent_pub_ip or '-' }}</code>
+            <small class="muted">ook ingesteld als winkel-IP</small></div>
+          {% endif %}
           <a href="{{ url_for('agent_web_proxy', nummer=f.nummer) }}" target="_blank" rel="noopener"
              class="btn {{ 'btn-primary' if agent_online else 'btn-outline' }} btn-block" style="margin:2px 0 12px;padding:11px;">
             <i class="fa fa-up-right-from-square"></i> Webinterface op afstand openen</a>

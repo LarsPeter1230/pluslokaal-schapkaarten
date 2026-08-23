@@ -5,6 +5,19 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.38.0 - Koppelbevestiging, duidelijke logs en automatisch winkel-IP · 23 augustus 2026
+
+- **Na het invoeren van de sleutel krijg je een bevestiging**: "Aanmelding gelukt - gekoppeld aan
+  PLUS <winkel> (<nr>), klopt dit?". Bevestig je, dan meldt de Pi dat 'ie zich instelt voor die winkel
+  en dat de apparaatnaam <b>PA-<nr>-PLUSLokaal</b> wordt (met mogelijk een herstart). Klopt het niet,
+  dan voer je meteen een andere sleutel in.
+- **Duidelijkere logs** op de Pi zelf (koppelen, inloggen, printen in gewone taal).
+- **Agent-gebeurtenissen staan nu ook in de PLUSLokaal-logs**: inloggen en inlogpogingen op de Pi,
+  koppelen, en gelukte/mislukte prints - per winkel terug te zien.
+- **Bij het koppelen wordt het publieke IP van de winkel automatisch als winkel-IP ingesteld**
+  (later aanpasbaar). In het Print-agent-blok zie je nu ook het <b>lokale IP</b> en <b>publieke IP</b>
+  van de Pi.
+
 ## versie 2.37.1 - Voortgangsbalk in de webinterface (ook vanaf je laptop) · 23 augustus 2026
 
 - **Bij het openen van de Pi (op z'n IP, ook vanaf een laptop op het winkelnetwerk) zie je meteen het

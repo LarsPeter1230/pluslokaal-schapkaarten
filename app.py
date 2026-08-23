@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.37.1'
+APP_VERSION = '2.38.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -161,6 +161,8 @@ class Filiaal(db.Model):
     agent_version     = db.Column(db.String(20),  nullable=True)
     agent_info        = db.Column(db.Text,        nullable=True)    # JSON (hostname, printers, ip)
     agent_web_pass    = db.Column(db.String(40),  nullable=True)    # login (admin/…) voor de Pi-webinterface
+    agent_pub_ip      = db.Column(db.String(64),  nullable=True)    # publiek IP (zoals de server de poll ziet)
+    agent_local_ip    = db.Column(db.String(64),  nullable=True)    # lokaal IP van de Pi (uit de agent-info)
 
 class Setting(db.Model):
     key   = db.Column(db.String(60), primary_key=True)
@@ -2009,7 +2011,7 @@ def _guard_export_files():
 # ─── CSRF-BESCHERMING (lichtgewicht, session-token) ───────────────────────────
 _CSRF_EXEMPT = {'portaal_view',           # de proxy zet pluslokaal.nl-formulieren (hún eigen tokens) door
                 'agent_poll', 'agent_result',   # print-agent authenticeert met X-Agent-Key, geen sessie
-                'agent_webpoll', 'agent_webresult'}
+                'agent_webpoll', 'agent_webresult', 'agent_log'}
 
 @app.context_processor
 def _inject_csrf():
@@ -5612,10 +5614,21 @@ def agent_poll():
         _alf = _string.ascii_letters + _string.digits
         f.agent_web_pass = ''.join(secrets.choice(_alf) for _ in range(14))
     f.agent_version = str(body.get('version') or '')[:20]
+    info = body.get('info') or {}
     try:
-        f.agent_info = json.dumps(body.get('info') or {})[:2000]
+        f.agent_info = json.dumps(info)[:2000]
     except Exception:
         pass
+    # Publiek IP (zoals de server de poll binnenkrijgt) + lokaal IP van de Pi vastleggen.
+    pub = client_ip()
+    if pub:
+        f.agent_pub_ip = pub[:64]
+    if info.get('ip'):
+        f.agent_local_ip = str(info.get('ip'))[:64]
+    # Bij het (eerste) koppelen automatisch het publieke IP als winkel-IP zetten - later aanpasbaar.
+    if pub and not (f.allowed_ips or '').strip():
+        f.allowed_ips = pub
+        log_action('winkel_ip_auto', f'winkel-IP automatisch ingesteld op {pub} (via print-agent)', filiaal=f.nummer)
     db.session.commit()
     _agent_jobs_cleanup()
     jobs = (AgentJob.query.filter_by(filiaal=f.nummer, status='pending')
@@ -5779,6 +5792,25 @@ def agent_web_proxy(nummer, sub=''):
         r.headers['Location'] = loc
     r.headers['X-Robots-Tag'] = 'noindex, nofollow'
     return r
+
+_AGENT_LOG_LABELS = {
+    'login': 'PA-login', 'login_mislukt': 'PA-login MISLUKT', 'login_geblokkeerd': 'PA-login geblokkeerd',
+    'gekoppeld': 'PA gekoppeld', 'print': 'PA-print', 'print_fout': 'PA-print FOUT', 'log': 'PA',
+}
+
+@app.route('/api/agent/log', methods=['POST'])
+def agent_log():
+    """De print-agent stuurt gebeurtenissen (login-pogingen, prints, koppelen) die we in de centrale
+    PLUSLokaal-logs opnemen."""
+    f = _agent_by_key()
+    if not f:
+        abort(401)
+    body = request.get_json(silent=True) or {}
+    for ev in (body.get('events') or [])[:20]:
+        kind = str(ev.get('kind', 'log'))[:24]
+        label = _AGENT_LOG_LABELS.get(kind, 'PA')
+        log_action('agent_' + kind, f'[{label}] {str(ev.get("msg", ""))[:400]}', filiaal=f.nummer)
+    return jsonify({'ok': True})
 
 @app.route('/api/agent/update')
 def agent_update():
@@ -8843,7 +8875,9 @@ def _migrate_db():
                 "ALTER TABLE filiaal ADD COLUMN agent_seen DATETIME",
                 "ALTER TABLE filiaal ADD COLUMN agent_version VARCHAR(20)",
                 "ALTER TABLE filiaal ADD COLUMN agent_info TEXT",
-                "ALTER TABLE filiaal ADD COLUMN agent_web_pass VARCHAR(40)"]:
+                "ALTER TABLE filiaal ADD COLUMN agent_web_pass VARCHAR(40)",
+                "ALTER TABLE filiaal ADD COLUMN agent_pub_ip VARCHAR(64)",
+                "ALTER TABLE filiaal ADD COLUMN agent_local_ip VARCHAR(64)"]:
         try:
             with db.engine.connect() as conn:
                 conn.execute(text(sql)); conn.commit()

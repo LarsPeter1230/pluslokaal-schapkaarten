@@ -30,7 +30,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from http import cookies as http_cookies
 from urllib.parse import parse_qs, urlparse, quote as urlquote
 
-AGENT_VERSION = '1.5.2'
+AGENT_VERSION = '1.6.0'
 CONFIG_DIR = '/etc/pluslokaal-agent'
 CONFIG_FILE = os.path.join(CONFIG_DIR, 'config.json')
 SETUP_STATUS_FILE = os.path.join(CONFIG_DIR, 'setup-status.json')
@@ -200,8 +200,20 @@ def set_hostname_for_store(nr):
         log(f'hostnaam instellen mislukt: {e}')
 
 
+def server_log(kind, msg):
+    """Stuur een gebeurtenis naar PLUSLokaal zodat die in de centrale logs verschijnt (best-effort)."""
+    if not CFG.get('key'):
+        return
+    def _send():
+        try:
+            api('/api/agent/log', {'events': [{'kind': kind, 'msg': str(msg)[:400]}]}, timeout=10)
+        except Exception:
+            pass
+    threading.Thread(target=_send, daemon=True).start()
+
+
 def poll_once():
-    info = {'hostname': os.uname().nodename,
+    info = {'hostname': os.uname().nodename, 'ip': primary_ip(),
             'printers': ([os.path.basename(CFG['label_device'])] if CFG.get('label_device') else [])
                         + ([CFG['doc_queue']] if CFG.get('doc_queue') else [])}
     res = api('/api/agent/poll', {'version': AGENT_VERSION, 'info': info})
@@ -232,20 +244,24 @@ def poll_once():
         threading.Thread(target=check_update, daemon=True).start()
     for job in res.get('jobs', []):
         jid = job['id']
+        meta = job.get('meta') or {}
+        soort = 'label' if job['kind'] == 'label' else 'document'
+        naam = meta.get('label') or meta.get('job_name') or soort
         try:
             payload = base64.b64decode(job['payload_b64'])
-            meta = job.get('meta') or {}
-            log(f"job {jid}: {job['kind']} ({len(payload)}b) {meta.get('label','')}")
+            log(f"Printopdracht #{jid} ontvangen: {soort} '{naam}' ({len(payload)} bytes) - versturen naar printer…")
             if job['kind'] == 'label':
                 print_label(payload)
             else:
                 print_document(payload, meta)
             api('/api/agent/result', {'job_id': jid, 'ok': True})
             state['jobs_done'] += 1
-            log(f'job {jid}: klaar')
+            log(f"Printopdracht #{jid} ({soort} '{naam}') is afgedrukt.")
+            server_log('print', f"{soort} '{naam}' afgedrukt (opdracht #{jid})")
         except Exception as e:
             state['jobs_err'] += 1
             state['last_error'] = str(e)[:300]
+            server_log('print_fout', f"{soort} '{naam}' MISLUKT: {str(e)[:200]}")
             log(f'job {jid}: FOUT {e}')
             try:
                 api('/api/agent/result', {'job_id': jid, 'ok': False, 'error': str(e)[:300]})
@@ -551,6 +567,22 @@ MAIN_PAGE = """{header}
 </main></body></html>"""
 
 
+CONFIRM_PAGE = """{header}
+<main>
+<div class=card style="text-align:center">
+  <div style="width:58px;height:58px;border-radius:50%;background:#eaf5da;color:#4f7d15;display:grid;place-items:center;margin:6px auto 12px;font-size:1.7rem;">&#10003;</div>
+  <h2 style="text-transform:none;letter-spacing:0;color:var(--green-d);font-size:1.2rem;margin:0 0 6px;">Aanmelding gelukt</h2>
+  <p style="margin:0 0 2px;">Deze Pi is gekoppeld aan:</p>
+  <p style="font-size:1.3rem;font-weight:800;color:var(--text);margin:8px 0 10px;">{winkel}</p>
+  <p><small>Klopt dit? Dan stelt de Pi zich in voor deze winkel. De apparaatnaam (hostnaam) wordt
+   <b>PA-{nr}-PLUSLokaal</b>; het apparaat kan hierbij eenmalig opnieuw opstarten.</small></p>
+  <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:10px;">
+    <form method=post action=/setup-confirm><button>Ja, dit klopt - instellen</button></form>
+    <form method=post action=/setup-reset><button class=plain>Nee, andere sleutel</button></form>
+  </div>
+</div>
+</main></body></html>"""
+
 INSTALL_PAGE = """{header}
 <main>
 <div class=card style="text-align:center">
@@ -636,6 +668,11 @@ class Web(BaseHTTPRequestHandler):
         if not is_coupled():
             return self._html(SETUP_PAGE.format(header=header_html(), msg=self._msg(), ip=esc(primary_ip()),
                                                 key=esc(CFG.get('key', '')), server=esc(CFG.get('server', ''))))
+        if CFG.get('confirmed') is False:   # net gekoppeld, nog te bevestigen
+            naam = CFG.get('store_naam') or ''
+            nr = CFG.get('store_nummer')
+            winkel = f'PLUS {esc(naam)} ({nr})' if nr else 'deze winkel'
+            return self._html(CONFIRM_PAGE.format(header=header_html(), winkel=winkel, nr=(nr or '?')))
         if login_required_now() and not authed(self):
             return self._html(LOGIN_PAGE.format(header=header_html(), msg=self._msg()))
         usb_devs = usb_label_devices()
@@ -674,30 +711,56 @@ class Web(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
 
         if path == '/login':
+            ip = self.client_address[0]
             # simpele brute-force-rem: na 5 missers 30s wachten
             if _login_fails['n'] >= 5 and time.time() - _login_fails['t'] < 30:
+                log(f'Inlogpoging geblokkeerd (te veel pogingen) vanaf {ip}')
+                server_log('login_geblokkeerd', f'te veel inlogpogingen vanaf {ip}')
                 return self._redirect('/', 'Te veel pogingen - wacht 30 seconden.')
             if check_pass(g('pw')):
                 _login_fails['n'] = 0
                 tok = new_session()
+                log(f'Ingelogd op de webinterface vanaf {ip}')
+                server_log('login', f'ingelogd op de Pi-webinterface vanaf {ip}')
                 return self._redirect('/', set_cookie=f'plagent={tok}; Path=/; HttpOnly; SameSite=Lax')
             _login_fails['n'] += 1; _login_fails['t'] = time.time()
+            log(f'Onjuiste inlogpoging vanaf {ip}')
+            server_log('login_mislukt', f'onjuist wachtwoord bij inloggen vanaf {ip}')
             return self._redirect('/', 'Onjuist wachtwoord.')
 
         if path == '/setup' and not is_coupled():
-            CFG['key'] = g('key')
             CFG['server'] = g('server', DEFAULTS['server']) or DEFAULTS['server']
+            CFG['key'] = g('key')
             save_config(CFG)
-            log('sleutel ingesteld via welkomstscherm')
+            log('Sleutel ingevoerd - koppelen met PLUSLokaal…')
             try:
-                poll_once()   # meteen koppelen → winkelnaam + weblogin binnenhalen
+                poll_once()   # koppelen → winkelnaam + weblogin binnenhalen
             except Exception as e:
-                return self._redirect('/', f'Koppelen mislukt: {e}')
-            # Meteen ingelogd doorsturen naar de volledige instelpagina (printers e.d.)
+                CFG['key'] = ''; save_config(CFG)
+                log(f'Koppelen mislukt: {e}')
+                return self._redirect('/', f'Koppelen mislukt (sleutel onjuist?): {e}')
+            CFG['confirmed'] = False; save_config(CFG)   # → bevestigingsscherm
+            log(f"Gekoppeld aan {CFG.get('store_naam') or '?'} ({CFG.get('store_nummer')}) - wacht op bevestiging")
             tok = new_session()
-            return self._redirect('/', f"Gekoppeld aan {CFG.get('store_naam') or 'de winkel'}! "
-                                       'Stel hieronder de printers in.',
-                                  set_cookie=f'plagent={tok}; Path=/; HttpOnly; SameSite=Lax')
+            return self._redirect('/', set_cookie=f'plagent={tok}; Path=/; HttpOnly; SameSite=Lax')
+
+        if path == '/setup-confirm' and is_coupled():
+            CFG['confirmed'] = True; save_config(CFG)
+            nr = CFG.get('store_nummer')
+            log(f"Bevestigd - instellen voor {CFG.get('store_naam') or '?'} ({nr}); apparaatnaam wordt PA-{nr}-PLUSLokaal")
+            server_log('gekoppeld', f"Pi bevestigd en ingesteld voor winkel {nr} ({CFG.get('store_naam') or ''})")
+            if nr:
+                try: set_hostname_for_store(nr)
+                except Exception: pass
+            return self._redirect('/', f"Ingesteld voor {CFG.get('store_naam') or 'de winkel'}. "
+                                       f"Apparaatnaam is nu PA-{nr}-PLUSLokaal. Stel hieronder de printers in.")
+
+        if path == '/setup-reset' and is_coupled():
+            log('Sleutel gewist door gebruiker - opnieuw koppelen')
+            CFG['key'] = ''; CFG['confirmed'] = None
+            CFG['store_naam'] = ''; CFG['store_nummer'] = None
+            save_config(CFG)
+            return self._redirect('/', 'Sleutel gewist. Voer de juiste winkel-sleutel in.')
 
         if path == '/update' and (not is_coupled() or authed(self) or not login_required_now()):
             return self._redirect('/', str(check_update(force=True)))
