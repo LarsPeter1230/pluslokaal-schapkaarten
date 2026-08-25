@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.42.2'
+APP_VERSION = '2.42.3'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -5634,7 +5634,7 @@ def _send_label(f, payload, timeout=45):
         raise OSError('de print-agent reageerde niet (staat de Pi aan?)')
     if not f.printer_ip:
         raise OSError('geen labelprinter ingesteld en geen agent online')
-    _send_label(f, payload)
+    _send_raw(f.printer_ip, f.printer_port or 9100, payload)
 
 def _agent_jobs_cleanup(max_age_seconds=3600):
     try:
