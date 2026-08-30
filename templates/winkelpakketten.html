@@ -315,6 +315,46 @@
 </form>
 
 <!-- Nog geen winkelprinter: kies downloaden of vraag een koppeling aan -->
+<!-- Eenmalige uitleg: browser vraagt toestemming voor meerdere downloads -->
+<div class="wp-modal" id="wpMultiHint" hidden>
+  <div class="wp-modal__backdrop" id="wpMultiBg"></div>
+  <div class="wp-modal__box" role="dialog" aria-modal="true" aria-label="Meerdere bestanden toestaan" style="max-width:460px;">
+    <div class="wp-cart-head">
+      <h3><i class="fa fa-circle-info"></i> Sta meerdere downloads toe</h3>
+      <button type="button" class="iconbtn" id="wpMultiClose" title="Sluiten"><i class="fa fa-xmark"></i></button>
+    </div>
+    <div style="padding:6px 20px 20px;">
+      <p style="margin:0 0 14px;color:#555;line-height:1.55;">Je downloadt meerdere PDF's tegelijk (één per formaat).
+        Je browser vraagt daarom eenmalig om toestemming. Klik in dat venstertje op <strong>Toestaan</strong>:</p>
+      <!-- nagebouwde browser-melding -->
+      <div class="wp-browserprompt">
+        <div class="bp-head"><b>pluslokaal.com wil</b><span class="bp-x">&#10005;</span></div>
+        <div class="bp-row"><span class="bp-dl">&#8595;</span> Meerdere bestanden downloaden</div>
+        <div class="bp-btns">
+          <span class="bp-btn">Blokkeren</span>
+          <span class="bp-btn bp-allow">Toestaan</span>
+          <span class="bp-arrow">&#9650;<br><small>klik hier</small></span>
+        </div>
+      </div>
+      <p style="margin:14px 0 0;color:var(--muted,#6c6c6c);font-size:.82rem;">Deze uitleg tonen we maar één keer.</p>
+      <button type="button" class="btn btn-primary" id="wpMultiOk" style="width:100%;justify-content:center;margin-top:14px;">
+        <i class="fa fa-check"></i> Begrepen, niet meer tonen</button>
+    </div>
+  </div>
+</div>
+<style>
+  .wp-browserprompt{background:#292a2d;color:#e8e8e8;border-radius:12px;padding:14px 16px;box-shadow:0 8px 24px rgba(0,0,0,.35);max-width:340px}
+  .wp-browserprompt .bp-head{display:flex;justify-content:space-between;align-items:center;font-size:.95rem;margin-bottom:12px}
+  .wp-browserprompt .bp-x{color:#9aa0a6}
+  .wp-browserprompt .bp-row{display:flex;align-items:center;gap:9px;font-size:.9rem;margin-bottom:16px}
+  .wp-browserprompt .bp-dl{font-size:1.05rem}
+  .wp-browserprompt .bp-btns{display:flex;justify-content:flex-end;gap:10px;align-items:flex-start;position:relative}
+  .wp-browserprompt .bp-btn{background:#3c4043;color:#e8e8e8;border-radius:8px;padding:7px 16px;font-size:.85rem;font-weight:600}
+  .wp-browserprompt .bp-allow{background:#5b6165;box-shadow:0 0 0 2px #80bd1d;animation:bpPulse 1.3s ease-in-out infinite}
+  @keyframes bpPulse{0%,100%{box-shadow:0 0 0 2px rgba(128,189,29,.5)}50%{box-shadow:0 0 0 3px rgba(128,189,29,1)}}
+  .wp-browserprompt .bp-arrow{position:absolute;right:8px;top:44px;color:#80bd1d;font-size:.8rem;font-weight:800;text-align:center;line-height:1.1}
+</style>
+
 <div class="wp-modal" id="wpReqModal" hidden>
   <div class="wp-modal__backdrop" id="wpReqBackdrop"></div>
   <div class="wp-modal__box" role="dialog" aria-modal="true" aria-label="Winkelprinter aanvragen" style="max-width:480px;">
@@ -735,6 +775,8 @@ function wpThumbRetry(img){
     // Elk formaat als LOSSE PDF downloaden (geen zip) - met korte tussenpauzes zodat de
     // browser meerdere downloads accepteert.
     var n = Math.max(1, fileCount || 1);
+    // Eenmalige uitleg: bij meerdere bestanden vraagt de browser om toestemming.
+    if(n > 1 && !localStorage.getItem('wp_multidl_ok')){ showMultiHint(); }
     for (var i = 0; i < n; i++) (function(idx){
       setTimeout(function(){
         var a = document.createElement('a');
@@ -746,6 +788,17 @@ function wpThumbRetry(img){
       }, idx * 700);
     })(i);
   }
+
+  // Eenmalige uitleg over de browser-toestemming voor meerdere downloads.
+  function showMultiHint(){ var m=document.getElementById('wpMultiHint'); if(m) m.hidden=false; }
+  function closeMultiHint(){ var m=document.getElementById('wpMultiHint'); if(m) m.hidden=true;
+    try{ localStorage.setItem('wp_multidl_ok','1'); }catch(e){} }
+  (function(){
+    var ok=document.getElementById('wpMultiOk'), cl=document.getElementById('wpMultiClose'), bg=document.getElementById('wpMultiBg');
+    if(ok) ok.addEventListener('click', closeMultiHint);
+    if(cl) cl.addEventListener('click', closeMultiHint);
+    if(bg) bg.addEventListener('click', closeMultiHint);
+  })();
 
   function stopPolling(){
     if(pollTimer){ clearInterval(pollTimer); pollTimer = null; }
