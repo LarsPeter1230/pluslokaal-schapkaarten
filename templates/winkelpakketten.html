@@ -267,45 +267,6 @@
   </div>
 </div>
 
-<!-- Nog geen winkelprinter: kies downloaden of vraag een koppeling aan -->
-<div class="wp-modal" id="wpReqModal" hidden>
-  <div class="wp-modal__backdrop" id="wpReqBackdrop"></div>
-  <div class="wp-modal__box" role="dialog" aria-modal="true" aria-label="Winkelprinter aanvragen" style="max-width:480px;">
-    <div class="wp-cart-head">
-      <h3><i class="fa fa-print"></i> Nog geen winkelprinter gekoppeld</h3>
-      <button type="button" class="iconbtn" id="wpReqClose" title="Sluiten"><i class="fa fa-xmark"></i></button>
-    </div>
-    <div style="padding:4px 20px 20px;">
-      <p style="margin:0 0 14px;color:#555;line-height:1.55;">Aan deze winkel is nog geen printer gekoppeld. Je kunt de
-        kaarten <strong>samenvoegen en downloaden</strong>, of laat de ondernemer/winkelmanager hieronder een
-        koppeling aanvragen - dan printen jullie voortaan rechtstreeks op de juiste printer.</p>
-      <button type="button" class="btn btn-outline" id="wpReqDownload" style="width:100%;justify-content:center;">
-        <i class="fa fa-file-pdf"></i> Samenvoegen &amp; downloaden per formaat</button>
-
-      <div style="display:flex;align-items:center;gap:12px;margin:18px 0;color:#9aa08e;font-size:.82rem;font-weight:700;">
-        <span style="flex:1;height:1px;background:#e6e9e2;"></span>OF EEN KOPPELING AANVRAGEN<span style="flex:1;height:1px;background:#e6e9e2;"></span>
-      </div>
-
-      <form id="wpReqForm">
-        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-        <label class="wp-req-l">Naam ondernemer of manager</label>
-        <input class="wp-req-i" name="naam" placeholder="bijv. Jan Jansen" required>
-        <label class="wp-req-l">Contact e-mail</label>
-        <input class="wp-req-i" name="email" type="email" placeholder="naam@voorbeeld.nl" required>
-        <label class="wp-req-l">Telefoonnummer</label>
-        <input class="wp-req-i" name="telefoon" placeholder="06 12345678" required>
-        <div id="wpReqErr" style="display:none;color:#c0341a;font-size:.85rem;font-weight:600;margin-top:8px;"></div>
-        <button type="submit" class="btn btn-primary" id="wpReqSubmit" style="width:100%;justify-content:center;margin-top:14px;">
-          <i class="fa fa-paper-plane"></i> Aanvraag versturen</button>
-      </form>
-      <div id="wpReqDone" style="display:none;text-align:center;padding:14px 6px;">
-        <div style="width:52px;height:52px;border-radius:50%;background:#eaf5da;color:#4f7d15;display:grid;place-items:center;margin:0 auto 12px;font-size:1.4rem;"><i class="fa fa-check"></i></div>
-        <p style="margin:0 0 4px;font-weight:800;color:#115013;">Aanvraag verstuurd!</p>
-        <p style="margin:0;color:#555;font-size:.9rem;line-height:1.5;">Je ontvangt een bevestiging per e-mail met uitleg over de vervolgstappen. We nemen binnenkort contact op.</p>
-      </div>
-    </div>
-  </div>
-</div>
 <style>
   .wp-req-l{display:block;font-size:.78rem;font-weight:700;color:#666;margin:12px 0 5px;}
   .wp-req-i{width:100%;padding:10px 12px;border:1px solid #dfe3d8;border-radius:10px;font-size:.92rem;outline:none;font-family:inherit;box-sizing:border-box;}
@@ -352,6 +313,46 @@
   <button type="button" class="wp-toast__reopen" id="wpToastReopen" title="Toon voortgang"><i class="fa fa-up-right-and-down-left-from-center"></i></button>
 </div>
 </form>
+
+<!-- Nog geen winkelprinter: kies downloaden of vraag een koppeling aan -->
+<div class="wp-modal" id="wpReqModal" hidden>
+  <div class="wp-modal__backdrop" id="wpReqBackdrop"></div>
+  <div class="wp-modal__box" role="dialog" aria-modal="true" aria-label="Winkelprinter aanvragen" style="max-width:480px;">
+    <div class="wp-cart-head">
+      <h3><i class="fa fa-print"></i> Nog geen winkelprinter gekoppeld</h3>
+      <button type="button" class="iconbtn" id="wpReqClose" title="Sluiten"><i class="fa fa-xmark"></i></button>
+    </div>
+    <div style="padding:4px 20px 20px;">
+      <p style="margin:0 0 14px;color:#555;line-height:1.55;">Aan deze winkel is nog geen printer gekoppeld. Je kunt de
+        kaarten <strong>samenvoegen en downloaden</strong>, of laat de ondernemer/winkelmanager hieronder een
+        koppeling aanvragen - dan printen jullie voortaan rechtstreeks op de juiste printer.</p>
+      <button type="button" class="btn btn-outline" id="wpReqDownload" style="width:100%;justify-content:center;">
+        <i class="fa fa-file-pdf"></i> Samenvoegen &amp; downloaden per formaat</button>
+
+      <div style="display:flex;align-items:center;gap:12px;margin:18px 0;color:#9aa08e;font-size:.82rem;font-weight:700;">
+        <span style="flex:1;height:1px;background:#e6e9e2;"></span>OF EEN KOPPELING AANVRAGEN<span style="flex:1;height:1px;background:#e6e9e2;"></span>
+      </div>
+
+      <form id="wpReqForm">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <label class="wp-req-l">Naam ondernemer of manager</label>
+        <input class="wp-req-i" name="naam" placeholder="bijv. Jan Jansen" required>
+        <label class="wp-req-l">Contact e-mail</label>
+        <input class="wp-req-i" name="email" type="email" placeholder="naam@voorbeeld.nl" required>
+        <label class="wp-req-l">Telefoonnummer</label>
+        <input class="wp-req-i" name="telefoon" placeholder="06 12345678" required>
+        <div id="wpReqErr" style="display:none;color:#c0341a;font-size:.85rem;font-weight:600;margin-top:8px;"></div>
+        <button type="submit" class="btn btn-primary" id="wpReqSubmit" style="width:100%;justify-content:center;margin-top:14px;">
+          <i class="fa fa-paper-plane"></i> Aanvraag versturen</button>
+      </form>
+      <div id="wpReqDone" style="display:none;text-align:center;padding:14px 6px;">
+        <div style="width:52px;height:52px;border-radius:50%;background:#eaf5da;color:#4f7d15;display:grid;place-items:center;margin:0 auto 12px;font-size:1.4rem;"><i class="fa fa-check"></i></div>
+        <p style="margin:0 0 4px;font-weight:800;color:#115013;">Aanvraag verstuurd!</p>
+        <p style="margin:0;color:#555;font-size:.9rem;line-height:1.5;">Je ontvangt een bevestiging per e-mail met uitleg over de vervolgstappen. We nemen binnenkort contact op.</p>
+      </div>
+    </div>
+  </div>
+</div>
 
 <style>
   .wp-layout{display:grid;grid-template-columns:280px 1fr;gap:20px;align-items:start;}
