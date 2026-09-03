@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.44.0'
+APP_VERSION = '2.45.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -5350,6 +5350,52 @@ def portaal():
                            portaal_status=user.portaal_status,
                            portaal_menu=menu, portaal_icons=_PORTAAL_ICONS,
                            portaal_basket=basket)
+
+# ─── PORTAAL V2 (Beheer, alleen admins) ───────────────────────────────────────────────────────────
+# De opvolger van het losse Portaal: één schil in PLUSLokaal-stijl waarin álles op één plek staat.
+# Links de vaste zijbalk met (1) onze eigen, al vervangen modules en (2) de volledige pluslokaal.nl-
+# menuboom; rechts een iframe dat de gekozen pagina toont. pluslokaal.nl wordt uitgefaseerd, dus dit
+# is het startpunt waarin we elke functie stap voor stap door een eigen implementatie vervangen.
+# Voorlopig alleen zichtbaar voor admins onder Beheer.
+def _portaal_v2_native(user):
+    """De eigen PLUSLokaal-modules die al een pluslokaal.nl-functie vervangen (zijbalkgroep 'Eigen')."""
+    mods = [
+        ('Schapkaarten',   'dashboard',          'fa-tags',       True),
+        ('Scankaarten',    'scankaarten',        'fa-barcode',    True),
+        ('Labels',         'labels_dashboard',   'fa-tag',        can(user, 'labels_view')),
+        ('Winkelpakketten','winkelpakketten',    'fa-box-open',   True),
+        ('Designer',       'designer_dashboard', 'fa-pen-ruler',  True),
+    ]
+    out = []
+    for label, ep, icon, allowed in mods:
+        if not allowed:
+            continue
+        try:
+            out.append({'label': label, 'url': url_for(ep), 'icon': icon})
+        except Exception:
+            pass
+    return out
+
+@app.route('/beheer/portaal-v2')
+@login_required
+def portaal_v2():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+    if not is_superadmin(user):
+        flash('Portaal V2 is alleen voor admins.', 'error')
+        return redirect(url_for('dashboard'))
+    linked = bool(user.portaal_user and user.portaal_pass_enc)
+    menu = None
+    basket = 0
+    if linked:
+        doc = _portaal_home_doc(user)
+        basket = _portaal_basket_count(user)
+        menu = _portaal_menu(user, doc)
+    return render_template('portaal_v2.html', user=user, linked=linked,
+                           portaal_status=user.portaal_status,
+                           portaal_menu=menu, portaal_icons=_PORTAAL_ICONS,
+                           portaal_basket=basket, native_mods=_portaal_v2_native(user))
 
 @app.route('/portaal/koppel', methods=['POST'])
 @login_required

@@ -71,6 +71,7 @@
           <a href="{{ url_for('team') }}" class="{{ 'active' if ep=='team' }}"><i class="fa fa-users"></i> Mijn team</a>
           {% endif %}
           {% if user.role == 'admin' %}
+          <a href="{{ url_for('portaal_v2') }}" class="{{ 'active' if ep in ['portaal_v2'] }}"><i class="fa fa-layer-group"></i> Portaal V2 <span class="beta-tag">Bèta</span></a>
           <a href="{{ url_for('gebruikers_winkels') }}" class="{{ 'active' if ep in ['gebruikers_winkels','register','filialen','filiaal_detail','edit_user','rollen'] }}"><i class="fa fa-users-gear"></i> Gebruikers &amp; winkels</a>
           <a href="{{ url_for('feedback_list') }}" class="{{ 'active' if ep in ['feedback_list','feedback_detail'] }}">
             <i class="fa fa-inbox"></i> Feedback
@@ -150,6 +151,7 @@
     <a href="{{ url_for('team') }}" class="{{ 'active' if ep=='team' }}"><i class="fa fa-users"></i> Mijn team</a>
     {% endif %}
     {% if user and user.role == 'admin' %}
+    <a href="{{ url_for('portaal_v2') }}" class="{{ 'active' if ep in ['portaal_v2'] }}"><i class="fa fa-layer-group"></i> Portaal V2 <span class="beta-tag">Bèta</span></a>
     <a href="{{ url_for('gebruikers_winkels') }}" class="{{ 'active' if ep in ['gebruikers_winkels','register','filialen','filiaal_detail','edit_user','rollen'] }}"><i class="fa fa-users-gear"></i> Gebruikers &amp; winkels</a>
     <a href="{{ url_for('feedback_list') }}" class="{{ 'active' if ep in ['feedback_list','feedback_detail'] }}"><i class="fa fa-inbox"></i> Feedback{% if feedback_unread %} <span class="menu-badge">{{ feedback_unread if feedback_unread < 100 else '99+' }}</span>{% endif %}</a>
     <a href="{{ url_for('kb_manage') }}" class="{{ 'active' if ep in ['kb_manage','kb_edit'] }}"><i class="fa fa-book-open"></i> Kennisbank</a>

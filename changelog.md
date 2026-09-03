@@ -5,6 +5,19 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.45.0 - Portaal V2: alles op één plek in ons eigen jasje · 3 september 2026
+
+- **Nieuw: Portaal V2** onder Beheer (voorlopig alleen voor admins). De opvolger van pluslokaal.nl,
+  dat op termijn wordt uitgefaseerd: één schil in PLUSLokaal-stijl waarin je álles op één plek vindt.
+- **Vaste zijbalk met alle knoppen en functies**: bovenaan onze eigen modules (Schapkaarten,
+  Scankaarten, Labels, Winkelpakketten, Designer) met een label "eigen", daaronder de volledige
+  pluslokaal.nl-menuboom plus de snelkoppelingen Winkelmandje (met live teller), Bestelgeschiedenis
+  en Actieoverzicht.
+- **Werkt vanaf dag één**: elke pluslokaal.nl-functie opent direct in het scherm ernaast, met een
+  laadindicator, een "waar ben ik"-balk, verbindingsstatus, vernieuwen en "in nieuw tabblad openen".
+- **Stap voor stap eigen**: dit is het startpunt waarin we elke functie geleidelijk vervangen door een
+  eigen versie, zodat we straks zonder pluslokaal.nl verder kunnen.
+
 ## versie 2.42.0 - Rollen & rechten: derde tabblad met een view/edit-rechtenmatrix · 23 augustus 2026
 
 - **Rollen & rechten staat nu als derde tabblad** op de pagina Gebruikers & winkels, in dezelfde stijl.

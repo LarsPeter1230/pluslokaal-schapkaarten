@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+{% block title %}Portaal V2 - PLUSLokaal{% endblock %}
+
+{% block head %}
+<style>
+  /* Portaal V2: eigen schil (zijbalk + iframe) op volledige breedte, in PLUSLokaal-stijl. */
+  .page:has(.pv2){max-width:none;padding:0;}
+  .page:has(.pv2) ~ .app-footer{display:none;}
+  .pv2{display:flex;height:calc(100vh - var(--header-h));background:var(--bg);}
+
+  /* ── Zijbalk ─────────────────────────────────────────────────────────────── */
+  .pv2-side{flex:0 0 268px;width:268px;background:#fff;border-right:1px solid var(--border-soft);
+    display:flex;flex-direction:column;min-height:0;}
+  .pv2-side__head{padding:16px 18px 12px;border-bottom:1px solid var(--border-soft);}
+  .pv2-side__title{display:flex;align-items:center;gap:9px;font-weight:800;color:var(--green-d);font-size:1.05rem;}
+  .pv2-tag{background:var(--green-tint2);color:var(--green-d);font-size:.66rem;font-weight:800;
+    padding:2px 8px;border-radius:20px;letter-spacing:.3px;text-transform:uppercase;}
+  .pv2-side__sub{margin:6px 0 0;color:var(--muted);font-size:.78rem;line-height:1.35;}
+  .pv2-nav{flex:1 1 auto;min-height:0;overflow-y:auto;padding:10px 10px 24px;}
+  .pv2-grp{font-size:.7rem;font-weight:800;letter-spacing:.5px;text-transform:uppercase;
+    color:var(--muted);padding:14px 8px 6px;display:flex;align-items:center;gap:7px;}
+  .pv2-grp .dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex:0 0 auto;}
+  .pv2-grp.nl .dot{background:#f0a500;}
+
+  .pv2-link{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;
+    color:var(--text);font-size:.9rem;font-weight:600;text-decoration:none;cursor:pointer;
+    border:1px solid transparent;}
+  .pv2-link i.lead{width:18px;text-align:center;color:var(--green-d);font-size:.98rem;flex:0 0 auto;}
+  .pv2-link:hover{background:var(--green-tint2);color:var(--green-dh);text-decoration:none;}
+  .pv2-link.active{background:var(--green-tint2);border-color:var(--green-tint);color:var(--green-d);}
+  .pv2-link .ext{margin-left:auto;color:var(--muted);font-size:.72rem;}
+  .pv2-link .pill{margin-left:auto;font-size:.62rem;font-weight:800;padding:2px 7px;border-radius:12px;}
+  .pv2-link .pill.eigen{background:var(--green-tint2);color:var(--green-d);}
+  .pv2-badge{margin-left:auto;min-width:18px;height:18px;padding:0 5px;background:var(--red);color:#fff;
+    font-size:.66rem;font-weight:800;line-height:18px;border-radius:10px;text-align:center;}
+
+  /* Uitklapbare categorie (pluslokaal.nl-menuboom) */
+  .pv2-cat{border-radius:9px;}
+  .pv2-cat>summary{list-style:none;display:flex;align-items:center;gap:10px;padding:9px 10px;
+    border-radius:9px;cursor:pointer;color:var(--green-d);font-weight:700;font-size:.9rem;}
+  .pv2-cat>summary::-webkit-details-marker{display:none;}
+  .pv2-cat>summary:hover{background:var(--green-tint2);}
+  .pv2-cat>summary .lead{width:18px;text-align:center;color:var(--green-d);flex:0 0 auto;}
+  .pv2-cat>summary .caret{margin-left:auto;font-size:.7rem;opacity:.6;transition:transform .15s;}
+  .pv2-cat[open]>summary .caret{transform:rotate(180deg);}
+  .pv2-catbody{padding:2px 0 6px 12px;margin-left:8px;border-left:2px solid var(--green-tint);}
+  .pv2-sec{display:block;padding:6px 10px;color:var(--green-d);font-weight:700;font-size:.83rem;
+    text-decoration:none;border-radius:7px;cursor:pointer;}
+  .pv2-sec:hover{background:var(--green-tint2);text-decoration:none;}
+  .pv2-sub{display:block;padding:5px 10px 5px 20px;color:var(--text);font-size:.82rem;
+    text-decoration:none;border-radius:7px;cursor:pointer;line-height:1.25;}
+  .pv2-sub:hover{background:var(--green-tint2);color:var(--green-d);text-decoration:none;}
+
+  .pv2-search{display:flex;padding:0 8px 4px;}
+  .pv2-search input{flex:1;border:1px solid var(--border);border-radius:20px 20px 20px 4px;
+    padding:8px 13px;font-size:.85rem;outline:none;background:var(--bg);}
+  .pv2-search input:focus{border-color:var(--green-d);}
+  .pv2-search button{background:none;border:none;color:var(--green-d);font-size:.95rem;padding:0 8px;cursor:pointer;}
+
+  /* ── Hoofdgebied ─────────────────────────────────────────────────────────── */
+  .pv2-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;min-height:0;}
+  .pv2-bar{display:flex;align-items:center;gap:12px;padding:9px 14px;background:#fff;
+    border-bottom:1px solid var(--border-soft);flex:0 0 auto;}
+  .pv2-bar__where{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--green-d);font-size:.9rem;min-width:0;}
+  .pv2-bar__where span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pv2-status{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:700;
+    padding:3px 10px;border-radius:20px;}
+  .pv2-status .d{width:8px;height:8px;border-radius:50%;}
+  .pv2-status.ok{background:var(--green-tint2);color:var(--green-d);} .pv2-status.ok .d{background:var(--green);}
+  .pv2-status.fout{background:var(--amber-tint);color:var(--amber);} .pv2-status.fout .d{background:var(--amber);}
+  .pv2-bar__actions{margin-left:auto;display:flex;align-items:center;gap:4px;}
+  .pv2-btn{background:none;border:1px solid var(--border-soft);color:var(--green-d);border-radius:8px;
+    padding:7px 11px;font-size:.82rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+    text-decoration:none;}
+  .pv2-btn:hover{background:var(--green-tint2);border-color:var(--green-tint);text-decoration:none;}
+
+  .pv2-frame-wrap{position:relative;flex:1 1 auto;min-height:0;}
+  .pv2-frame{position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--bg);}
+  .pv2-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(244,245,243,.9);z-index:20;}
+  .pv2-loading[hidden]{display:none;}
+  .pl-spinner{width:64px;height:68px;} .pl-spinner svg{width:100%;height:100%;display:block;}
+  .pl-leaf{fill:var(--green);animation:plLeafPulse 1.2s ease-in-out infinite;}
+  .pl-leaf--1{animation-delay:0s;} .pl-leaf--4{animation-delay:.3s;}
+  .pl-leaf--3{animation-delay:.6s;} .pl-leaf--2{animation-delay:.9s;}
+  @keyframes plLeafPulse{0%,75%,100%{opacity:.22;}25%{opacity:1;}}
+
+  /* Mobiel: zijbalk boven de iframe, samengevouwen scrollbaar */
+  .pv2-burger{display:none;}
+  @media (max-width:860px){
+    .pv2{flex-direction:column;height:auto;min-height:calc(100vh - var(--header-h));}
+    .pv2-side{flex:0 0 auto;width:100%;max-height:none;border-right:0;border-bottom:1px solid var(--border-soft);}
+    .pv2-nav{max-height:0;overflow:hidden;padding:0 10px;transition:max-height .2s;}
+    .pv2.side-open .pv2-nav{max-height:70vh;overflow-y:auto;padding:10px;}
+    .pv2-burger{display:inline-flex;align-items:center;gap:8px;margin-left:auto;background:none;
+      border:1px solid var(--border-soft);border-radius:8px;padding:7px 12px;color:var(--green-d);
+      font-weight:700;cursor:pointer;}
+    .pv2-main{min-height:70vh;}
+  }
+
+  .pv2-koppel{max-width:560px;margin:26px auto;}
+</style>
+{% endblock %}
+
+{% block content %}
+{% if not linked %}
+  <div class="page-head" style="padding:22px 20px 0;">
+    <div>
+      <h1 class="page-title">Portaal V2</h1>
+      <p class="page-sub">De opvolger van pluslokaal.nl - alles op één plek, in ons eigen jasje</p>
+    </div>
+  </div>
+  <div class="pv2-koppel">
+    <div class="panel">
+      <div class="panel__head"><i class="fa fa-globe"></i><h3>Koppel eerst je pluslokaal.nl-account</h3></div>
+      <div class="panel__body stack">
+        <p class="muted" style="margin:0 0 6px;">
+          Zolang pluslokaal.nl nog draait, tonen we die functies hier binnen Portaal V2 (automatisch
+          ingelogd op de achtergrond). Je wachtwoord wordt <b>versleuteld</b> bewaard en nooit getoond.
+          Onze eigen modules werken sowieso, ook zonder koppeling.
+        </p>
+        {% if portaal_status == 'fout' %}
+        <div style="background:var(--amber-tint);color:var(--amber);border-left:3px solid var(--amber);
+             border-radius:6px;padding:10px 12px;font-weight:600;font-size:.9rem;">
+          <i class="fa fa-triangle-exclamation"></i> De vorige koppeling werkte niet meer. Koppel opnieuw.</div>
+        {% endif %}
+        <form method="post" action="{{ url_for('portaal_koppel') }}" class="stack">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <div class="field">
+            <label>pluslokaal.nl gebruikersnaam</label>
+            <input type="text" name="portaal_user" placeholder="bv. 110ond" autocomplete="username" required>
+          </div>
+          <div class="field">
+            <label>pluslokaal.nl wachtwoord</label>
+            <input type="password" name="portaal_pass" placeholder="••••••••" autocomplete="current-password" required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block"><i class="fa fa-link"></i> Koppelen &amp; inloggen</button>
+        </form>
+      </div>
+    </div>
+  </div>
+{% else %}
+  <div class="pv2" id="pv2">
+    <aside class="pv2-side">
+      <div class="pv2-side__head">
+        <div class="pv2-side__title">
+          <i class="fa fa-layer-group"></i> Portaal V2 <span class="pv2-tag">Bèta</span>
+        </div>
+        <p class="pv2-side__sub">Alle knoppen en functies op één plek. pluslokaal.nl wordt uitgefaseerd; we vervangen elke functie stap voor stap door een eigen versie.</p>
+      </div>
+      <nav class="pv2-nav">
+        <form class="pv2-search" onsubmit="return pv2search(this)">
+          <input type="search" name="s" placeholder="Zoeken op pluslokaal.nl" autocomplete="off">
+          <button type="submit" title="Zoeken"><i class="fa fa-magnifying-glass"></i></button>
+        </form>
+
+        <div class="pv2-grp"><span class="dot"></span> Eigen modules (PLUSLokaal)</div>
+        {% for m in native_mods %}
+        <a class="pv2-link" href="{{ m.url }}" target="_blank" rel="noopener">
+          <i class="fa {{ m.icon }} lead"></i> {{ m.label }} <span class="pill eigen">eigen</span>
+        </a>
+        {% endfor %}
+
+        <div class="pv2-grp nl"><span class="dot"></span> pluslokaal.nl</div>
+        <a class="pv2-link" href="{{ url_for('portaal_view', sub='') }}" onclick="return pv2go(this.href, 'Home')">
+          <i class="fa fa-house lead"></i> Home
+        </a>
+        {% for label, path, icon in portaal_icons %}
+        <a class="pv2-link" href="{{ url_for('portaal_view', sub=path) }}" onclick="return pv2go(this.href, '{{ label }}')">
+          <i class="fa {{ icon }} lead"></i> {{ label }}
+          {% if label == 'Winkelmandje' %}
+          <span class="pv2-badge" id="pv2Basket" {% if not (portaal_basket and portaal_basket > 0) %}hidden{% endif %}>{{ portaal_basket if (portaal_basket and portaal_basket < 100) else ('99+' if portaal_basket else '') }}</span>
+          {% endif %}
+        </a>
+        {% endfor %}
+
+        {% for cat in portaal_menu %}
+          {% if cat.sections %}
+          <details class="pv2-cat">
+            <summary><i class="fa fa-folder lead"></i> {{ cat.label }} <i class="fa fa-chevron-down caret"></i></summary>
+            <div class="pv2-catbody">
+              {% for sec in cat.sections %}
+              <a class="pv2-sec" href="{{ url_for('portaal_view', sub=sec.href.lstrip('/')) }}" onclick="return pv2go(this.href, '{{ sec.label|replace("'", "") }}')">{{ sec.label }}</a>
+              {% for kid in sec.children %}
+              <a class="pv2-sub" href="{{ url_for('portaal_view', sub=kid.href.lstrip('/')) }}" onclick="return pv2go(this.href, '{{ kid.label|replace("'", "") }}')">{{ kid.label }}</a>
+              {% endfor %}
+              {% endfor %}
+            </div>
+          </details>
+          {% else %}
+          <a class="pv2-link" href="{{ url_for('portaal_view', sub=cat.href.lstrip('/')) }}" onclick="return pv2go(this.href, '{{ cat.label }}')">
+            <i class="fa fa-folder lead"></i> {{ cat.label }}
+          </a>
+          {% endif %}
+        {% endfor %}
+      </nav>
+    </aside>
+
+    <div class="pv2-main">
+      <div class="pv2-bar">
+        <div class="pv2-bar__where"><i class="fa fa-location-dot"></i> <span id="pv2Where">Home</span></div>
+        <span class="pv2-status {{ 'fout' if portaal_status == 'fout' else 'ok' }}">
+          <span class="d"></span> {{ 'Verbinding hapert' if portaal_status == 'fout' else 'Verbonden' }}
+        </span>
+        <div class="pv2-bar__actions">
+          <button type="button" class="pv2-btn" onclick="pv2reload()" title="Vernieuwen"><i class="fa fa-rotate-right"></i></button>
+          <a class="pv2-btn" id="pv2NewTab" href="{{ url_for('portaal_view', sub='') }}" target="_blank" rel="noopener" title="In nieuw tabblad"><i class="fa fa-up-right-from-square"></i></a>
+        </div>
+        <button type="button" class="pv2-burger" onclick="document.getElementById('pv2').classList.toggle('side-open')"><i class="fa fa-bars"></i> Menu</button>
+      </div>
+      <div class="pv2-frame-wrap">
+        <iframe id="pv2frame" name="pv2frame" class="pv2-frame" src="{{ url_for('portaal_view', sub='') }}" title="Portaal"></iframe>
+        <div class="pv2-loading" id="pv2Load">
+          <div class="pl-spinner" aria-hidden="true">
+            <svg viewBox="0 0 132 140">
+              <path class="pl-leaf pl-leaf--1" d="M61.2,32.8 L61.2,54.8 C61.2,60.8 56.8,65.6 50.8,65.6 L30.4,65.6 C13.6,65.6 0,51.2 0,33.2 C0,15.6 13.6,0.8 30.4,0.8 C47.6,0.8 61.2,15.2 61.2,32.8 L61.2,32.8 Z"/>
+              <path class="pl-leaf pl-leaf--2" d="M61.2,107.2 L61.2,85.6 C61.2,79.6 56.8,74.8 50.8,74.8 L30.4,74.8 C13.6,74.8 0,89.2 0,107.2 C0,125.2 13.6,139.6 30.4,139.6 C47.6,139.6 61.2,125.2 61.2,107.2 L61.2,107.2 Z"/>
+              <path class="pl-leaf pl-leaf--3" d="M69.6,107.2 L69.6,85.6 C69.6,79.6 74,74.8 80,74.8 L100.4,74.8 C117.2,74.8 131.2,89.2 131.2,107.2 C131.2,125.2 117.2,139.6 100.4,139.6 C83.6,139.6 69.6,125.2 69.6,107.2 L69.6,107.2 Z"/>
+              <path class="pl-leaf pl-leaf--4" d="M70,32.8 L70,54.8 C70,60.8 74.4,65.6 80,65.6 L100.4,65.6 C117.6,65.6 131.2,51.2 131.2,33.2 C131.2,15.6 117.6,0.8 100.4,0.8 C83.6,0.8 70,15.2 70,32.8 L70,32.8 Z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      var pf=document.getElementById('pv2frame'), pl=document.getElementById('pv2Load'), t=null;
+      window.pv2ShowLoad=function(){ pl.hidden=false; clearTimeout(t); t=setTimeout(function(){pl.hidden=true;},20000); };
+      window.pv2HideLoad=function(){ pl.hidden=true; clearTimeout(t); };
+      function setBasket(n){
+        var b=document.getElementById('pv2Basket'); if(!b) return;
+        if(n>0){ b.textContent=(n<100?n:'99+'); b.hidden=false; } else { b.hidden=true; }
+      }
+      window.pv2RefreshBasket=function(){
+        fetch('{{ url_for("portaal_basket_count_api") }}',{credentials:'same-origin'})
+          .then(function(r){return r.json();})
+          .then(function(d){ if(d&&typeof d.count==='number') setBasket(d.count); }).catch(function(){});
+      };
+      pf.addEventListener('load', function(){ pv2HideLoad(); pv2RefreshBasket();
+        try{ document.getElementById('pv2NewTab').href = pf.contentWindow.location.href; }catch(e){} });
+      try{ if(pf.contentDocument && pf.contentDocument.readyState==='complete') pv2HideLoad(); }catch(e){}
+    })();
+    function pv2mark(el){
+      document.querySelectorAll('.pv2-nav .pv2-link.active').forEach(function(a){a.classList.remove('active');});
+      if(el && el.classList && el.classList.contains('pv2-link')) el.classList.add('active');
+    }
+    function pv2go(url, where){
+      pv2ShowLoad();
+      document.getElementById('pv2frame').src = url;
+      if(where) document.getElementById('pv2Where').textContent = where;
+      document.getElementById('pv2NewTab').href = url;
+      pv2mark(event && event.currentTarget);
+      document.getElementById('pv2').classList.remove('side-open');
+      return false;
+    }
+    function pv2reload(){ pv2ShowLoad(); var f=document.getElementById('pv2frame'); f.src=f.src; }
+    function pv2search(f){
+      var q=(f.s.value||'').trim();
+      pv2go('{{ url_for('portaal_view', sub='search/') }}' + (q ? ('?s=' + encodeURIComponent(q)) : ''), 'Zoeken');
+      return false;
+    }
+  </script>
+{% endif %}
+{% endblock %}
