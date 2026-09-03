@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.43.0'
+APP_VERSION = '2.44.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -2913,10 +2913,11 @@ def home():
     # /login, waardoor een nog geldige sessie tóch het inlogscherm zag = leek uitgelogd terwijl je 't niet was.)
     return redirect(url_for('dashboard' if get_current_user() else 'login'))
 
-def _login_fail_page():
+def _login_fail_page(offer_reset=False, reset_email=''):
     """Toon de login-pagina na een mislukte poging, mét de door de beheerder ingestelde winkel-hint
-    als de poging van een bekend winkel-IP komt."""
-    return render_template('login.html', store_hint=_store_login_hint(client_ip()))
+    als de poging van een bekend winkel-IP komt. offer_reset toont een reset-knop na 3 pogingen."""
+    return render_template('login.html', store_hint=_store_login_hint(client_ip()),
+                           offer_reset=offer_reset, reset_email=reset_email)
 
 @app.route('/login', methods=['GET','POST'])
 def login():
@@ -2988,8 +2989,21 @@ def login():
         dev = device_str()
         reason = 'onbekende gebruiker' if not user else 'onjuist wachtwoord'
         log_action('login_mislukt', f'ingevuld: "{un[:100]}" - {reason}' + (f' · {dev}' if dev else ''))
+        low = un.lower()
+        # Na 3 mislukte pogingen (ongeacht wat er is ingevuld of het account bestaat) een reset aanbieden.
+        offer = session.get('login_fails', 0) >= 3
+        reset_email = un if ('@' in low and '.' in low.split('@')[-1]) else ''
+        # Hint 1: oude winkelcode (3 cijfers + 3 letters, bijv. 931mdw) → inloggen met PLUS-mail.
+        if re.fullmatch(r'\d{3}[a-z]{3}', low):
+            flash('Log in met je PLUS-mailadres (bijvoorbeeld naam@plus.nl), niet met je oude winkelcode.', 'error')
+            return _login_fail_page(offer_reset=offer)
+        # Hint 2: PLUS Retail-medewerker zonder account (alleen dit corporate domein - geen enumeratie
+        # voor gewone gebruikers).
+        if low.endswith('@plusretail.nl') and not user:
+            flash('Er is nog geen PLUSLokaal-account voor dit e-mailadres. Vraag een beheerder om je toe te voegen.', 'error')
+            return _login_fail_page(offer_reset=offer, reset_email=reset_email)
         flash('Ongeldige gebruikersnaam of wachtwoord.', 'error')
-        return _login_fail_page()
+        return _login_fail_page(offer_reset=offer, reset_email=reset_email)
     return render_template('login.html')
 
 @app.route('/mfa', methods=['GET','POST'])
@@ -3151,7 +3165,7 @@ def forgot():
         flash('Als er een account bij deze gegevens hoort met een e-mailadres, '
               'is er een e-mail verstuurd om je wachtwoord opnieuw in te stellen.', 'success')
         return redirect(url_for('login'))
-    return render_template('forgot.html')
+    return render_template('forgot.html', prefill=request.args.get('email', '')[:200])
 
 @app.route('/logout')
 def logout():

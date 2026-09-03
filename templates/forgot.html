@@ -50,7 +50,7 @@ footer.page-footer{border-top:1px solid #d8d8d8;padding:20px 16px;text-align:cen
     <form method="post" novalidate>
       <div class="field">
         <input type="text" id="identifier" name="identifier" placeholder=" " required autofocus
-               autocorrect="off" autocapitalize="none">
+               value="{{ prefill|default('') }}" autocorrect="off" autocapitalize="none">
         <label for="identifier">Gebruikersnaam of e-mailadres <span>*</span></label>
       </div>
       <button type="submit" class="btn-login">Nieuw wachtwoord aanvragen</button>
