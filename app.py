@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.45.0'
+APP_VERSION = '2.45.1'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -2995,7 +2995,7 @@ def login():
         reset_email = un if ('@' in low and '.' in low.split('@')[-1]) else ''
         # Hint 1: oude winkelcode (3 cijfers + 3 letters, bijv. 931mdw) → inloggen met PLUS-mail.
         if re.fullmatch(r'\d{3}[a-z]{3}', low):
-            flash('Log in met je PLUS-mailadres (bijvoorbeeld naam@plus.nl), niet met je oude winkelcode.', 'error')
+            flash('Log in met je PLUS-mailadres (bijvoorbeeld info.110@plus.nl), niet met je oude winkelcode.', 'error')
             return _login_fail_page(offer_reset=offer)
         # Hint 2: PLUS Retail-medewerker zonder account (alleen dit corporate domein - geen enumeratie
         # voor gewone gebruikers).

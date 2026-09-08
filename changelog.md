@@ -5,6 +5,11 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.45.1 - Duidelijker voorbeeld in de inlog-hint · 8 september 2026
+
+- De melding bij inloggen met een oude winkelcode toont nu een **herkenbaarder voorbeeld** van een
+  PLUS-mailadres (info.110@plus.nl), zodat het meteen duidelijk is hoe je e-mailadres eruitziet.
+
 ## versie 2.45.0 - Portaal V2: alles op één plek in ons eigen jasje · 3 september 2026
 
 - **Nieuw: Portaal V2** onder Beheer (voorlopig alleen voor admins). De opvolger van pluslokaal.nl,
