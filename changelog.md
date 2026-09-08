@@ -5,7 +5,15 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
-## versie 2.45.1 - Duidelijker voorbeeld in de inlog-hint · 8 september 2026
+## versie 2.46.0 - Winkeldata uit Google + nette openbare startpagina · 8 september 2026
+
+- **Winkelgegevens verschijnen niet meer in Google.** Inlog-, registratie- en alle winkelpagina's staan
+  nu op **noindex** (via header én in de pagina zelf) en worden geweerd in **robots.txt**, zodat namen en
+  nummers van winkels niet meer geïndexeerd of gescraped worden.
+- **Nieuwe openbare startpagina** op pluslokaal.com: een nette pagina die alleen vertelt dat PLUSLokaal
+  er is voor **schapkaarten** (geen winkeldata), zodat we wél netjes bovenaan komen als iemand op
+  "pluslokaal" zoekt. Al ingelogd? Dan ga je zoals altijd meteen door naar je dashboard.
+- Onder water: een **sitemap** die alleen de startpagina aanmeldt bij zoekmachines.
 
 - De melding bij inloggen met een oude winkelcode toont nu een **herkenbaarder voorbeeld** van een
   PLUS-mailadres (info.110@plus.nl), zodat het meteen duidelijk is hoe je e-mailadres eruitziet.

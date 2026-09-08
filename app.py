@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.45.1'
+APP_VERSION = '2.46.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -1977,6 +1977,13 @@ def _security_headers(resp):
     resp.headers.setdefault('X-Content-Type-Options', 'nosniff')
     resp.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
     resp.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+    # Zoekmachines/scrapers: alles op noindex behalve de openbare landingspagina. Zo verdwijnen inlog-,
+    # registratie- en winkeldatapagina's uit Google en blijft alleen 'pluslokaal' → schapkaarten over.
+    try:
+        if (request.path or '') not in _INDEXABLE_PATHS:
+            resp.headers.setdefault('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet, noimageindex')
+    except Exception:
+        resp.headers.setdefault('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet, noimageindex')
     # Statische bestanden laten cachen door de browser → niet elk bezoek opnieuw ophalen (voorkomt dat een
     # hapering in één van die vele verzoeken de pagina ongestyled laat of foto's laat missen; ook sneller).
     try:
@@ -2909,9 +2916,32 @@ def too_large(e):
 # ─── ROUTES ───────────────────────────────────────────────────────────────────
 @app.route('/')
 def home():
-    # Al ingelogd? Direct naar het dashboard - anders naar de loginpagina. (Voorheen ging '/' ALTIJD naar
-    # /login, waardoor een nog geldige sessie tóch het inlogscherm zag = leek uitgelogd terwijl je 't niet was.)
-    return redirect(url_for('dashboard' if get_current_user() else 'login'))
+    # Al ingelogd? Direct naar het dashboard. Niet ingelogd? Toon de openbare landingspagina (de ENIGE
+    # pagina die door zoekmachines geïndexeerd mag worden): rankt op 'pluslokaal', vertelt alleen over
+    # schapkaarten en toont GEEN winkeldata. Al het andere staat op noindex (zie _security_headers).
+    if get_current_user():
+        return redirect(url_for('dashboard'))
+    return render_template('landing.html')
+
+# Zoekmachines: alleen de landingspagina (/) mag geïndexeerd worden; de rest is afgeschermd/noindex.
+_INDEXABLE_PATHS = {'/', '/robots.txt', '/sitemap.xml'}
+
+@app.route('/robots.txt')
+def robots_txt():
+    body = ("User-agent: *\n"
+            "Disallow: /\n"
+            "Allow: /$\n"
+            "Allow: /static/\n"
+            "Sitemap: https://pluslokaal.com/sitemap.xml\n")
+    return Response(body, mimetype='text/plain')
+
+@app.route('/sitemap.xml')
+def sitemap_xml():
+    body = ('<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+            '  <url><loc>https://pluslokaal.com/</loc><changefreq>monthly</changefreq><priority>1.0</priority></url>\n'
+            '</urlset>\n')
+    return Response(body, mimetype='application/xml')
 
 def _login_fail_page(offer_reset=False, reset_email=''):
     """Toon de login-pagina na een mislukte poging, mét de door de beheerder ingestelde winkel-hint

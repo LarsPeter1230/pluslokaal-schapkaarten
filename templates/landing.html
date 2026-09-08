@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="index, follow">
+<title>PLUSLokaal - Schapkaarten voor PLUS-supermarkten</title>
+<meta name="description" content="PLUSLokaal is de tool waarmee PLUS-supermarkten hun schapkaarten en prijskaarten opmaken en direct printen. Log in met je PLUS-account.">
+<link rel="canonical" href="https://pluslokaal.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="PLUSLokaal">
+<meta property="og:title" content="PLUSLokaal - Schapkaarten voor PLUS-supermarkten">
+<meta property="og:description" content="Schapkaarten en prijskaarten voor PLUS-supermarkten - snel opgemaakt en direct geprint.">
+<meta property="og:url" content="https://pluslokaal.com/">
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static',filename='img/favicon.svg') }}">
+<link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static',filename='img/favicon-32.png') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static',filename='img/favicon-180.png') }}">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  :root{--green:#80bd1d;--green-h:#77b01a;--green-d:#115013;--text:#333;--muted:#6c6c6c;--bg:#f4f5f3;--border:#e3e6e0;}
+  html,body{min-height:100%;}
+  body{font-family:'Segoe UI',system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    background:#fff;color:var(--text);display:flex;flex-direction:column;min-height:100vh;
+    -webkit-font-smoothing:antialiased;line-height:1.55;}
+  header.plus-header{background:var(--green);box-shadow:2px 1px 6px 0 rgba(51,51,51,.2);
+    height:64px;display:flex;align-items:center;padding:0 20px;flex-shrink:0;}
+  .plus-header .logo{height:34px;display:flex;align-items:center;}
+  .plus-header .logo img{height:34px;width:auto;object-fit:contain;}
+  .plus-header .brand-sub{color:#fff;font-weight:700;font-size:14px;letter-spacing:.2px;opacity:.95;
+    padding-left:12px;margin-left:12px;border-left:1px solid rgba(255,255,255,.4);}
+
+  main{flex:1;display:flex;align-items:center;justify-content:center;padding:56px 20px;}
+  .hero{width:100%;max-width:720px;text-align:center;}
+  .hero h1{color:var(--green-d);font-size:clamp(2rem,6vw,3rem);font-weight:800;line-height:1.1;
+    letter-spacing:-.5px;margin-bottom:14px;text-wrap:balance;}
+  .hero .lead{font-size:clamp(1.05rem,2.6vw,1.35rem);color:var(--text);margin:0 auto 10px;max-width:34ch;text-wrap:balance;}
+  .hero p.intro{color:var(--muted);font-size:1rem;max-width:52ch;margin:16px auto 0;}
+  .cta{display:inline-flex;align-items:center;gap:10px;margin-top:30px;background:var(--green);color:#fff;
+    font-size:1.05rem;font-weight:700;text-decoration:none;padding:14px 34px;border-radius:24px 24px 24px 4px;
+    transition:background .2s,transform .12s,box-shadow .2s;}
+  .cta:hover{background:var(--green-h);transform:translateY(-1px);
+    box-shadow:0 8px 18px rgba(17,80,19,.18);}
+
+  .leaf{width:56px;height:60px;margin:0 auto 22px;}
+  .leaf svg{width:100%;height:100%;display:block;}
+  .leaf path{fill:var(--green);}
+
+  footer{border-top:1px solid var(--border);padding:20px 16px;text-align:center;
+    color:var(--muted);font-size:12px;line-height:20px;flex-shrink:0;}
+</style>
+</head>
+<body>
+<header class="plus-header">
+  <div class="logo">
+    <img src="{{ url_for('static',filename='img/plus-logo-wit.svg') }}" alt="PLUS"
+         onerror="this.parentElement.innerHTML='<span style=\'color:#fff;font-weight:800;font-size:1.3rem;letter-spacing:1px;\'>PLUS</span>'">
+    <span class="brand-sub">Lokaal</span>
+  </div>
+</header>
+
+<main>
+  <div class="hero">
+    <div class="leaf" aria-hidden="true">
+      <svg viewBox="0 0 132 140">
+        <path d="M61.2,32.8 L61.2,54.8 C61.2,60.8 56.8,65.6 50.8,65.6 L30.4,65.6 C13.6,65.6 0,51.2 0,33.2 C0,15.6 13.6,0.8 30.4,0.8 C47.6,0.8 61.2,15.2 61.2,32.8 Z"/>
+        <path d="M61.2,107.2 L61.2,85.6 C61.2,79.6 56.8,74.8 50.8,74.8 L30.4,74.8 C13.6,74.8 0,89.2 0,107.2 C0,125.2 13.6,139.6 30.4,139.6 C47.6,139.6 61.2,125.2 61.2,107.2 Z"/>
+        <path d="M69.6,107.2 L69.6,85.6 C69.6,79.6 74,74.8 80,74.8 L100.4,74.8 C117.2,74.8 131.2,89.2 131.2,107.2 C131.2,125.2 117.2,139.6 100.4,139.6 C83.6,139.6 69.6,125.2 69.6,107.2 Z"/>
+        <path d="M70,32.8 L70,54.8 C70,60.8 74.4,65.6 80,65.6 L100.4,65.6 C117.6,65.6 131.2,51.2 131.2,33.2 C131.2,15.6 117.6,0.8 100.4,0.8 C83.6,0.8 70,15.2 70,32.8 Z"/>
+      </svg>
+    </div>
+    <h1>PLUSLokaal</h1>
+    <p class="lead">Schapkaarten en prijskaarten voor PLUS-supermarkten.</p>
+    <p class="intro">De tool waarmee PLUS-winkels hun schapkaarten opmaken en direct printen. Log in met je PLUS-account om te beginnen.</p>
+    <a class="cta" href="{{ url_for('login') }}">Inloggen</a>
+  </div>
+</main>
+
+<footer>© 2026 PLUS &bull; PLUSLokaal Schapkaarten</footer>
+</body>
+</html>
