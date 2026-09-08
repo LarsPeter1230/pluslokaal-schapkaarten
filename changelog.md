@@ -5,7 +5,15 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
-## versie 2.46.0 - Winkeldata uit Google + nette openbare startpagina · 8 september 2026
+## versie 2.47.0 - Portaal V2 met vertrouwde header + foto-preview laadt niet meer eindeloos · 8 september 2026
+
+- **Portaal V2 heeft nu dezelfde header als het originele Portaal**: de vertrouwde horizontale
+  categorie-balk met uitklap-menu's, de iconen (winkelmandje met teller, bestelgeschiedenis,
+  actieoverzicht) en het zoekveld. Vooraan staat één extra menu **"Eigen modules"** met onze eigen
+  PLUSLokaal-onderdelen (Schapkaarten, Scankaarten, Labels, Winkelpakketten, Designer).
+- **Foto-preview blijft niet meer eindeloos laden**: als je in het Portaal een foto opende, bleef de
+  laad-animatie soms lang draaien terwijl de foto er al stond. De animatie verschijnt nu alleen nog bij
+  een echte paginawissel, niet meer bij het openen van een pop-up of foto.
 
 - **Winkelgegevens verschijnen niet meer in Google.** Inlog-, registratie- en alle winkelpagina's staan
   nu op **noindex** (via header én in de pagina zelf) en worden geweerd in **robots.txt**, zodat namen en

@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.46.0'
+APP_VERSION = '2.47.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -5234,14 +5234,14 @@ def _portaal_reskin_html(html, page_url):
         '(li||a).remove();}});}catch(e){}}'
         'if(document.readyState!=="loading")clean();'
         'document.addEventListener("DOMContentLoaded",clean);setTimeout(clean,800);'
-        # Bij ELKE navigatie binnen het iframe (ook links in de pluslokaal.nl-sidebar/-content) de
-        # laad-spinner van de parent tonen; de parent verbergt hem weer op het iframe-load-event.
+        # Bij een ECHTE navigatie binnen het iframe (volledige paginawissel of form-submit) de laad-spinner
+        # van de parent tonen; de parent verbergt hem weer op het iframe-load-event. We haken ALLEEN op
+        # beforeunload: dat vuurt precies wanneer het iframe daadwerkelijk wegnavigeert. Een klik die alleen
+        # een JS-popup/lightbox opent (bv. een foto-preview) navigeert niet, dus dan blijft de spinner terecht
+        # weg (voorheen toonde een klik-handler hem tóch, waardoor hij bij een foto-preview lang bleef draaien).
         'function pload(){try{if(window.parent&&window.parent!==window&&window.parent.showLoad)'
         'window.parent.showLoad();}catch(e){}}'
-        'window.addEventListener("beforeunload",pload);'
-        'document.addEventListener("click",function(e){var a=e.target&&e.target.closest&&e.target.closest("a[href]");'
-        'if(!a)return;var h=a.getAttribute("href")||"";if(a.target&&a.target!=="_self")return;'
-        'if(/^(#|javascript:|mailto:|tel:)/i.test(h))return;pload();},true);})();</script>'
+        'window.addEventListener("beforeunload",pload);})();</script>'
     )
     if re.search(r'<head[^>]*>', html, flags=re.I):
         html = re.sub(r'(<head[^>]*>)', lambda m: m.group(1) + inject, html, count=1, flags=re.I)
