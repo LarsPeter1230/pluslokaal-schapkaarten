@@ -5,7 +5,16 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
-## versie 2.47.0 - Portaal V2 met vertrouwde header + foto-preview laadt niet meer eindeloos · 8 september 2026
+## versie 2.48.0 - Winkelpakket-status eerlijker + synchronisatie-melding voor alle gebruikers · 9 september 2026
+
+- **"Gedownload" klopt nu per formaat.** Een afdeling telde al als volledig gedownload zodra er één
+  formaat van op de server stond. Daardoor kon een week op "compleet" staan terwijl bijvoorbeeld het
+  formaat A3 liggend nog ontbrak (dan werd dat bij het samenvoegen alsnog live besteld = traag). Nu telt
+  een afdeling pas als gedownload als álle formaten op de server staan, en toont "Deels" eerlijk wat
+  er nog mist.
+- **De melding "Er loopt een synchronisatie" verschijnt nu voor iedereen.** Voorheen zag je die soms
+  niet, ook al liep de download echt: de status werd per serverproces bijgehouden. Nu delen alle
+  processen dezelfde status (met een hartslag), zodat de voortgang altijd zichtbaar is.
 
 - **Portaal V2 heeft nu dezelfde header als het originele Portaal**: de vertrouwde horizontale
   categorie-balk met uitklap-menu's, de iconen (winkelmandje met teller, bestelgeschiedenis,

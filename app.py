@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.47.0'
+APP_VERSION = '2.48.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -3901,10 +3901,19 @@ def _w2p_cache_stats():
     total_groups = {p: cnt for p, cnt in
                     db.session.query(W2PDocument.period_id, func.count(func.distinct(W2PDocument.group_id)))
                     .group_by(W2PDocument.period_id).all()}
-    per = defaultdict(lambda: {'groups': set(), 'rows': 0, 'cards': 0, 'bytes': 0})
+    # Vereiste formaten per (periode, groep) uit de documenten (genormaliseerd): een afdeling is pas
+    # ECHT gedownload als élk van die formaten ook een gecachte PDF heeft. Zo telt een afdeling met bv.
+    # alleen A3-staand maar zonder A3-liggend niet meer onterecht als 'compleet'.
+    req_fmts = defaultdict(lambda: defaultdict(set))   # pid -> gid -> {norm_formaat}
+    for pid_, gid_, fmt_ in db.session.query(
+            W2PDocument.period_id, W2PDocument.group_id, W2PDocument.formaat).all():
+        req_fmts[pid_][gid_].add(_normalize_formaat(fmt_))
+
+    per = defaultdict(lambda: {'groups': set(), 'cached_fmts': defaultdict(set),
+                               'rows': 0, 'cards': 0, 'bytes': 0})
     for r in W2PCachedPdf.query.all():
         e = per[r.period_id]
-        e['groups'].add(r.group_id); e['rows'] += 1
+        e['groups'].add(r.group_id); e['cached_fmts'][r.group_id].add(r.formaat); e['rows'] += 1
         try:
             e['cards'] += len(json.loads(r.doc_ids))
         except Exception:
@@ -3916,15 +3925,18 @@ def _w2p_cache_stats():
     # duidelijke status - zo zie je precies wat er bekend is vs. wat print-klaar op de server staat.
     weeks = []
     for pid in set(list(period_labels.keys()) + list(per.keys())):
-        e = per.get(pid, {'groups': set(), 'rows': 0, 'cards': 0, 'bytes': 0})
+        e = per.get(pid, {'groups': set(), 'cached_fmts': {}, 'rows': 0, 'cards': 0, 'bytes': 0})
         tg = total_groups.get(pid, 0)
-        dg = len(e['groups'])
+        # Een afdeling telt pas als 'gedownload' als ALLE benodigde formaten gecacht zijn.
+        cf = e.get('cached_fmts') or {}
+        dg = sum(1 for g, need in req_fmts.get(pid, {}).items()
+                 if need and need <= cf.get(g, set()))
         if e['rows'] == 0:
             status = 'none'          # alleen in cache (metadata), nog niet gedownload
         elif tg and dg >= tg:
             status = 'full'          # volledig gedownload / print-klaar
         else:
-            status = 'partial'       # deels gedownload
+            status = 'partial'       # deels gedownload (niet elk formaat van elke afdeling)
         weeks.append({'period_id': pid, 'label': period_labels.get(pid, str(pid)),
                       'category': cat_labels.get(period_cat.get(pid), ''),
                       'groups': tg, 'downloaded_groups': dg, 'rows': e['rows'], 'cards': e['cards'],
@@ -3936,7 +3948,7 @@ def _w2p_cache_stats():
         'total_rows': W2PCachedPdf.query.count(),
         'total_cards': sum(w['cards'] for w in weeks),
         'weeks': weeks,
-        'syncing': _w2p_pdf_state['running'] or _w2p_meta_state['running'],
+        'syncing': _w2p_get_sync('pdf') or _w2p_get_sync('meta'),
     }
 
 @app.route('/w2p-accounts', methods=['GET', 'POST'])
@@ -7922,21 +7934,50 @@ def sync_w2p_pdfs(only_groups=None):
 _w2p_meta_state = {'running': False, 'error': None}
 _w2p_pdf_state  = {'running': False, 'error': None}
 
+# Cross-worker sync-status: de download/cache-sync draait in EEN gunicorn-worker; de in-memory vlaggen
+# hierboven zijn per proces. Om de status in de UI voor ALLE workers kloppend te tonen bewaren we een
+# hartslag-tijdstempel in de DB. Loopt de hartslag > _W2P_SYNC_STALE seconden achter (worker gecrasht
+# zonder op te ruimen), dan tellen we het als 'niet meer bezig'.
+_W2P_SYNC_STALE = 120
+def _w2p_sync_key(kind):
+    return f'_w2p_sync_running_{kind}'   # kind: 'meta' of 'pdf'
+def _w2p_set_sync(kind, on):
+    try:
+        set_setting(_w2p_sync_key(kind), datetime.now().isoformat() if on else '')
+    except Exception:
+        pass
+def _w2p_get_sync(kind):
+    try:
+        v = get_setting(_w2p_sync_key(kind), '')
+        if not v:
+            return False
+        return (datetime.now() - datetime.fromisoformat(v)).total_seconds() < _W2P_SYNC_STALE
+    except Exception:
+        return False
+def _w2p_heartbeat(kind, stop_evt):
+    """Ververs de DB-hartslag periodiek zolang de sync loopt (zodat _w2p_get_sync 'm vers ziet)."""
+    while not stop_evt.wait(40):
+        with app.app_context():
+            _w2p_set_sync(kind, True)
+
 @app.context_processor
 def _inject_w2p_busy():
     """Vlag voor de melding 'winkelpakketten worden aangevuld' (mogelijke vertraging)."""
     try:
-        return {'w2p_busy': bool(_w2p_pdf_state.get('running'))}
+        return {'w2p_busy': _w2p_get_sync('pdf')}
     except Exception:
         return {'w2p_busy': False}
 
 def _w2p_meta_bg(on_done=None):
     """Start de cache-sync (metadata) op de achtergrond. Geeft False als er al één loopt."""
-    if _w2p_meta_state['running']:
+    if _w2p_meta_state['running'] or _w2p_get_sync('meta'):
         return False
     _w2p_meta_state['running'] = True
     _w2p_meta_state['error'] = None
+    _w2p_set_sync('meta', True)
     def run():
+        stop_evt = threading.Event()
+        threading.Thread(target=_w2p_heartbeat, args=('meta', stop_evt), daemon=True).start()
         with app.app_context():
             try:
                 result = sync_w2p_metadata()
@@ -7947,16 +7988,20 @@ def _w2p_meta_bg(on_done=None):
                 _w2p_meta_state['error'] = str(e)[:300]
             finally:
                 _w2p_meta_state['running'] = False
+                stop_evt.set(); _w2p_set_sync('meta', False)
     threading.Thread(target=run, daemon=True).start()
     return True
 
 def _w2p_pdf_bg(only_groups=None):
     """Start de download-sync (PDF-precache) op de achtergrond. Geeft False als er al één loopt."""
-    if _w2p_pdf_state['running']:
+    if _w2p_pdf_state['running'] or _w2p_get_sync('pdf'):
         return False
     _w2p_pdf_state['running'] = True
     _w2p_pdf_state['error'] = None
+    _w2p_set_sync('pdf', True)
     def run():
+        stop_evt = threading.Event()
+        threading.Thread(target=_w2p_heartbeat, args=('pdf', stop_evt), daemon=True).start()
         with app.app_context():
             try:
                 sync_w2p_pdfs(only_groups=only_groups)
@@ -7966,6 +8011,7 @@ def _w2p_pdf_bg(only_groups=None):
                 _w2p_notify_admins('winkelpakket-synchronisatie mislukt', str(e))
             finally:
                 _w2p_pdf_state['running'] = False
+                stop_evt.set(); _w2p_set_sync('pdf', False)
     threading.Thread(target=run, daemon=True).start()
     return True
 
@@ -8095,7 +8141,7 @@ def winkelpakketten():
                            periods=periods, sel_period=sel_period,
                            groups=groups, sel_group=sel_group, documents=documents, show_briljant=show_briljant,
                            synced_at=get_setting('w2p_synced_at', ''),
-                           meta_syncing=_w2p_meta_state['running'], pdf_syncing=_w2p_pdf_state['running'],
+                           meta_syncing=_w2p_get_sync('meta'), pdf_syncing=_w2p_get_sync('pdf'),
                            can_sync=can(u, 'w2p_sync'))
 
 def _w2p_local_thumb(doc_id):
