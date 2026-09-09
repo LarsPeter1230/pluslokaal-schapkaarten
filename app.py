@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.48.0'
+APP_VERSION = '2.48.1'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -8330,7 +8330,8 @@ def _wp_assemble_items(ids, known, targets, job_id, quantities=None):
 
     from collections import defaultdict as _dd
     cached_hits = []       # (formaat, cache_row, page_index) - single-up: exact per kaart knipbaar
-    multiup = _dd(list)    # (cat,pid,gid,norm_fmt) -> [doc_id] - multi-up: uit gecacht vel knippen
+    multiup = _dd(list)    # (cat,pid,gid,norm_fmt) -> [doc_id] - multi-up MET knip-layout (bv. SK Maxi)
+    sheet_pages = {}       # (cat,pid,gid,norm_fmt) -> {'row','pages'} - multi-up ZONDER knip-layout: hele vel-pagina('s) uit cache
     live_ids = []          # niet-gecacht (of split-verificatie faalt) → live bestellen
     for d in known:
         t = targets.get(str(d.promotion_document_id))
@@ -8341,6 +8342,16 @@ def _wp_assemble_items(ids, known, targets, job_id, quantities=None):
             cached_hits.append((norm_fmt, row, doc_ids_in_row.index(d.promotion_document_id), d.promotion_document_id))
         elif (row and norm_fmt in _MULTIUP_LAYOUTS and not _is_briljant(d.formaat)):
             multiup[(t['category_id'], t['period_id'], t['group_id'], norm_fmt)].append(d.promotion_document_id)
+        elif (row and norm_fmt not in _MULTIUP_LAYOUTS
+              and d.promotion_document_id in doc_ids_in_row and 0 < row.page_count < len(doc_ids_in_row)):
+            # Multi-up vel zonder knip-layout (A5 staand, SK Middel: meerdere kaarten per vel, geen
+            # gemeten cel-indeling). pluslokaal.nl levert dit formaat sowieso als vel; we serveren dus
+            # de gecachte vel-pagina('s) met de gekozen kaart(en) i.p.v. onnodig live te bestellen.
+            key = (t['category_id'], t['period_id'], t['group_id'], norm_fmt)
+            cpp = -(-len(doc_ids_in_row) // row.page_count)   # kaarten per vel-pagina (naar boven afgerond)
+            page = doc_ids_in_row.index(d.promotion_document_id) // max(1, cpp)
+            ent = sheet_pages.setdefault(key, {'row': row, 'pages': set()})
+            ent['pages'].add(page)
         else:
             live_ids.append(d.promotion_document_id)
     unknown_ids = [i for i in ids if i not in {d.promotion_document_id for d in known}]
@@ -8350,9 +8361,19 @@ def _wp_assemble_items(ids, known, targets, job_id, quantities=None):
     out_docs = {}   # formaat -> fitz.Document
     opened = {}     # cache_row.id -> fitz.Document (bron, blijft open tot we klaar zijn)
     try:
-        if cached_hits or multiup:
+        if cached_hits or multiup or sheet_pages:
             w2p_client.set_progress(job_id, 10, 'PDF\'s uit cache samenstellen…')
             pdf_dir = _w2p_pdf_dir()
+            for (cat, pid, gid, norm_fmt), info in sheet_pages.items():
+                row = info['row']
+                src = opened.get(row.id)
+                if src is None:
+                    src = fitz.open(os.path.join(pdf_dir, row.path))
+                    opened[row.id] = src
+                out = out_docs.setdefault(norm_fmt, fitz.open())
+                for pg in sorted(info['pages']):
+                    if 0 <= pg < src.page_count:
+                        out.insert_pdf(src, from_page=pg, to_page=pg)
             for formaat, row, idx, doc_id in cached_hits:
                 src = opened.get(row.id)
                 if src is None:

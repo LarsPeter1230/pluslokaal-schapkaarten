@@ -5,6 +5,14 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.48.1 - A5-kaarten worden nu uit de server-cache gehaald (niet meer live) · 9 september 2026
+
+- **A5-kaarten (en SK Middel) komen nu uit de cache op deze server**, net als de andere formaten.
+  Deze formaten staan met meerdere kaarten op één vel; daar was nog geen aparte behandeling voor,
+  waardoor ze bij het samenvoegen tóch live bij pluslokaal.nl werden opgehaald (traag, en het leek of
+  de week "nog gedownload moest worden"). Nu serveren we het al gedownloade vel rechtstreeks van de
+  server. Resultaat: samenvoegen & downloaden gaat direct, ook zonder verbinding met pluslokaal.nl.
+
 ## versie 2.48.0 - Winkelpakket-status eerlijker + synchronisatie-melding voor alle gebruikers · 9 september 2026
 
 - **"Gedownload" klopt nu per formaat.** Een afdeling telde al als volledig gedownload zodra er één
