@@ -858,7 +858,20 @@ function attachCE(){
       KD[idx].av = eur ? (cent ? eur+'.'+cent : eur) : '';
       syncAvMenu(idx);
     });
-    el.addEventListener('keydown',function(e){ if(e.key==='Enter')e.preventDefault(); });
+    el.addEventListener('keydown',function(e){
+      if(e.key==='Enter'){ e.preventDefault(); return; }
+      // '.' of ',' in het euro-veld → spring naar de centen (geen dubbele punt in de prijs)
+      if((e.key==='.'||e.key===','||e.key==='Decimal'||e.key==='Separator') && this.dataset.price==='eur'){
+        e.preventDefault();
+        const r0=this.closest('[id^="cel-"]')||document;
+        const centEl=r0.querySelector('[data-price="cent"]');
+        if(centEl){
+          centEl.focus();
+          const rg=document.createRange(); rg.selectNodeContents(centEl); rg.collapse(false);
+          const sel=getSelection(); sel.removeAllRanges(); sel.addRange(rg);
+        }
+      }
+    });
     if(AF==='sk_maxi')el.addEventListener('focus',()=>focusK(el));
   });
 }

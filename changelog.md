@@ -5,6 +5,12 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.50.1 - Prijs invoeren: punt springt netjes naar de centen · 10 september 2026
+
+- **Bij het intypen van een prijs** (actie of tip) springt de cursor met een **punt of komma** nu meteen
+  naar het centen-gedeelte. Typ je bijvoorbeeld "1.99", dan komt "1" bij de euro's en "99" bij de centen,
+  zonder dubbele punt in de prijs.
+
 ## versie 2.50.0 - Meldingen: automatische e-mails naar inzender en beheer · 10 september 2026
 
 - **Nieuwe meldingen komen nu ook per e-mail binnen** bij het beheer (standaard admin@ictlp.nl), met de
