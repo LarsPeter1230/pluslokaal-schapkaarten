@@ -378,6 +378,10 @@ input[readonly]{background:#f7f8f6;color:var(--muted);}
 .ktabs.show{display:flex;}
 .ktab{padding:6px 14px;border-radius:99px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:.8rem;font-weight:700;color:var(--muted);transition:all .15s;font-family:inherit;}
 .ktab.active{background:var(--green-d);color:#fff;border-color:var(--green-d);}
+.kcopy{display:inline-flex;align-items:center;gap:6px;margin-left:auto;padding-left:10px;border-left:1px solid var(--border);}
+.kcopy__lbl{font-size:.76rem;font-weight:700;color:var(--muted);}
+.kcopy__btn{padding:6px 12px;border-radius:99px;border:1px solid var(--green-d);background:#fff;color:var(--green-d);cursor:pointer;font-size:.8rem;font-weight:800;font-family:inherit;transition:all .15s;}
+.kcopy__btn:hover{background:var(--green-d);color:#fff;}
 
 .prev-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px;flex-wrap:wrap;}
 .prev-bar__lbl{font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;}

@@ -5,6 +5,13 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.49.0 - Maxi-kaart kopiëren naar meerdere vakjes op het vel · 10 september 2026
+
+- **SK Maxi: kopieer een kaart in één klik naar 2 of 4 vakjes.** Maak je één maxi-kaartje, dan kun je
+  het met de knoppen **2×** of **4×** (bij de kaart-tabs) meteen op meerdere vakjes van het vel zetten,
+  zodat je 2 of 4 dezelfde kaarten op één A4-vel hebt. De overige vakjes blijven leeg (en worden bij
+  het printen wit gelaten). Handig als je meerdere exemplaren van dezelfde actiekaart nodig hebt.
+
 ## versie 2.48.1 - A5-kaarten worden nu uit de server-cache gehaald (niet meer live) · 9 september 2026
 
 - **A5-kaarten (en SK Middel) komen nu uit de cache op deze server**, net als de andere formaten.

@@ -65,6 +65,11 @@
       <button class="ktab" type="button" onclick="switchK(1,this)">Kaart 2</button>
       <button class="ktab" type="button" onclick="switchK(2,this)">Kaart 3</button>
       <button class="ktab" type="button" onclick="switchK(3,this)">Kaart 4</button>
+      <span class="kcopy" title="Zet de kaart die je nu bewerkt op meerdere vakjes van het vel">
+        <span class="kcopy__lbl"><i class="fa fa-copy"></i> Deze kaart kopiëren:</span>
+        <button class="kcopy__btn" type="button" onclick="fillMaxi(2)" title="Deze kaart op 2 vakjes (2 dezelfde op het vel)">2×</button>
+        <button class="kcopy__btn" type="button" onclick="fillMaxi(4)" title="Deze kaart op alle 4 vakjes (4 dezelfde op het vel)">4×</button>
+      </span>
     </div>
 
     <div class="sec">
@@ -382,6 +387,20 @@ function switchK(idx,btn){
   applyTypeUI(KD[idx].kaarttype||'actie');   // toggle + velden volgen het type van deze ¼-kaart
   loadForm(idx);
   document.querySelectorAll('.skm__cel').forEach((c,i)=>c.classList.toggle('cur',i===idx));
+}
+function blankKD(){ return {merk:'',koptekst:'',subtekst:'',vbtekst:'',aanv:'',verpakking:'',inhoud:'',vp1:'',vp2:'',actietype:'',av:'',av2:'',kilo:'',land:'',max:'',kem:'nee',alcohol:'nee',mix:'',code:'',kaarttype:'actie',layout:'nieuw',scans:'',overlay:''}; }
+// SK Maxi: zet de kaart die je nu bewerkt op n vakjes (2 of 4). De overige vakjes worden leeggemaakt
+// (die blijven bij het printen wit). Zo heb je in één klik 2 of 4 dezelfde kaarten op één vel.
+function fillMaxi(n){
+  if(AF!=='sk_maxi') return;
+  let willLose=false;
+  for(let i=0;i<4;i++){ if(i!==AK && cardHasContent(i)) willLose=true; }
+  if(willLose && !confirm('De kaart die je nu bewerkt wordt naar '+n+' vakjes gekopieerd. Bestaande inhoud in de andere vakjes wordt overschreven. Doorgaan?')) return;
+  const snap=Object.assign({},KD[AK]);   // kopie van de huidige kaart (alle waarden zijn tekst)
+  for(let i=0;i<4;i++){ Object.assign(KD[i], i<n ? Object.assign({},snap) : blankKD()); }
+  AK=0;
+  render();
+  switchK(0, document.querySelectorAll('.ktab')[0]);
 }
 function loadForm(idx){
   const d=KD[idx];
