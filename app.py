@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.49.2'
+APP_VERSION = '2.50.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -8726,6 +8726,41 @@ def winkelpakketten_sync_pdfs_progress():
 # ─── FEEDBACK-WIDGET (melden: probleem / suggestie / idee) ────────────────────
 _FB_MAX_SHOT = 4 * 1024 * 1024   # ~4MB data-URL-limiet voor een screenshot
 
+# ─── Meldingen: e-mailmeldingen ───────────────────────────────────────────────────────────────────
+# Nieuwe melding → naar het beheeradres (standaard admin@ictlp.nl, instelbaar via Setting
+# 'feedback_notify_email'). Reactie/afhandeling → automatisch naar de inzender.
+def _fb_esc(s):
+    from html import escape
+    return escape(s or '')
+
+def _fb_notify_new(fb):
+    """Mail een nieuw binnengekomen melding naar het beheeradres."""
+    to = get_setting('feedback_notify_email', 'admin@ictlp.nl')
+    if not to:
+        return
+    tlbl = FEEDBACK_TYPES.get(fb.ftype, (fb.ftype,))[0]
+    link = f'https://pluslokaal.com/beheer/feedback/{fb.id}'
+    van = _fb_esc(fb.username or '?')
+    if fb.filiaal_naam:
+        van += f' ({_fb_esc(fb.filiaal_naam)})'
+    if fb.user_email:
+        van += f' &middot; {_fb_esc(fb.user_email)}'
+    body = (_mail_p(f'Er is een nieuwe melding binnengekomen ({tlbl}).')
+            + _mail_p(f'<b>Titel:</b> {_fb_esc(fb.title)}')
+            + _mail_p('<b>Bericht:</b><br>' + _fb_esc(fb.message).replace('\n', '<br>'))
+            + _mail_p(f'<b>Van:</b> {van}')
+            + (_mail_p(f'<b>Pagina:</b> {_fb_esc(fb.page_url)}') if fb.page_url else '')
+            + _mail_p(f'<a href="{link}">Open de melding in PLUSLokaal</a>'))
+    send_mail_async(to, f'Nieuwe melding: {fb.title}', _mail_wrapper('Nieuwe melding', body))
+
+def _fb_notify_reporter(fb, subject, intro_html):
+    """Mail de inzender van een melding (bv. bij een reactie of afhandeling)."""
+    if not fb.user_email:
+        return
+    body = (intro_html
+            + _mail_p('Je kunt hierop reageren in PLUSLokaal via het <b>?</b>-knopje rechtsonder.'))
+    send_mail_async(fb.user_email, subject, _mail_wrapper('Je melding bij PLUSLokaal', body))
+
 @app.route('/feedback/submit', methods=['POST'])
 @login_required
 def feedback_submit():
@@ -8765,6 +8800,7 @@ def feedback_submit():
     db.session.add(fb)
     db.session.commit()
     log_action('feedback_new', f'{ftype}: {title}', user=u)
+    _fb_notify_new(fb)   # beheer mailen (admin@ictlp.nl)
     return jsonify(ok=True)
 
 def _require_admin():
@@ -8828,14 +8864,24 @@ def feedback_set_status(fid):
     fb = Feedback.query.get_or_404(fid)
     new = (request.form.get('status') or '').strip()
     note = (request.form.get('note') or '').strip()
+    resolved = False
     if new in FEEDBACK_STATUS and new != fb.status:
         old_lbl = FEEDBACK_STATUS.get(fb.status, (fb.status,))[0]
         fb.status = new
         _fb_log(fb, f'Status: {old_lbl} → {FEEDBACK_STATUS[new][0]}', who=u.username)
+        resolved = new in ('opgelost', 'afgewezen')
     if note:
         _fb_log(fb, f'Notitie: {note}', who=u.username)
     fb.is_read = True
     db.session.commit()
+    # Afgehandeld (opgelost/afgewezen) → de inzender automatisch op de hoogte stellen.
+    if resolved:
+        lbl = FEEDBACK_STATUS[new][0]
+        intro = _mail_p(f'Je melding "<b>{_fb_esc(fb.title)}</b>" is afgehandeld met de status '
+                        f'<b>{lbl}</b>.')
+        if note:
+            intro += _mail_p('<b>Toelichting:</b><br>' + _fb_esc(note).replace('\n', '<br>'))
+        _fb_notify_reporter(fb, f'Je melding is {lbl.lower()}: {fb.title}', intro)
     flash('Melding bijgewerkt.', 'success')
     return redirect(url_for('feedback_detail', fid=fid))
 
@@ -8860,6 +8906,10 @@ def feedback_admin_reply(fid):
         _fb_log(fb, f'Status: Nieuw → {FEEDBACK_STATUS["in_behandeling"][0]}', who=u.username)
     fb.is_read = True
     db.session.commit()
+    _fb_notify_reporter(fb, f'Reactie op je melding: {fb.title}',
+                        _mail_p('Er is gereageerd op je melding:')
+                        + _mail_p(f'<b>{_fb_esc(fb.title)}</b>')
+                        + _mail_p(_fb_esc(body).replace('\n', '<br>')))
     if request.headers.get('X-Requested-With') == 'fetch':
         return jsonify(ok=True, message=_fb_msg_dict(msg))
     flash('Reactie verstuurd.', 'success')

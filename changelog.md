@@ -5,6 +5,14 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.50.0 - Meldingen: automatische e-mails naar inzender en beheer · 10 september 2026
+
+- **Nieuwe meldingen komen nu ook per e-mail binnen** bij het beheer (standaard admin@ictlp.nl), met de
+  titel, het bericht, wie het meldde en een directe link naar de melding.
+- **De inzender krijgt automatisch een e-mail** zodra er op de melding wordt gereageerd én zodra de
+  melding wordt afgehandeld (Opgelost of Afgewezen), inclusief een eventuele toelichting. Zo hoeft
+  niemand meer handmatig terug te mailen.
+
 ## versie 2.49.2 - Maxi-vakje leegmaken met een prullenbak-knop · 10 september 2026
 
 - **Vakje leegmaken** kan nu met een **prullenbak-knopje** op de geselecteerde kaart, naast de
