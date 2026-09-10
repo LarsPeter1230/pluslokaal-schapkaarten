@@ -5,6 +5,12 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.50.2 - Prijs invoeren: backspace loopt door van centen naar euro's · 10 september 2026
+
+- **Backspace loopt nu netjes door.** Sta je in het centen-gedeelte en dat is leeg, dan wist backspace
+  verder in het euro-gedeelte (in plaats van te blijven hangen). Samen met de punt-sprong typt en
+  corrigeer je een prijs zo in één vloeiende beweging.
+
 ## versie 2.50.1 - Prijs invoeren: punt springt netjes naar de centen · 10 september 2026
 
 - **Bij het intypen van een prijs** (actie of tip) springt de cursor met een **punt of komma** nu meteen

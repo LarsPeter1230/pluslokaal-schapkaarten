@@ -871,6 +871,19 @@ function attachCE(){
           const sel=getSelection(); sel.removeAllRanges(); sel.addRange(rg);
         }
       }
+      // Backspace in een leeg centen-veld → verder wissen in het euro-veld (naar links doorgaan)
+      if(e.key==='Backspace' && this.dataset.price==='cent' && (this.textContent||'')===''){
+        e.preventDefault();
+        const r1=this.closest('[id^="cel-"]')||document;
+        const eurEl=r1.querySelector('[data-price="eur"]');
+        if(eurEl){
+          eurEl.textContent=(eurEl.textContent||'').slice(0,-1);
+          eurEl.focus();
+          const rg=document.createRange(); rg.selectNodeContents(eurEl); rg.collapse(false);
+          const sel=getSelection(); sel.removeAllRanges(); sel.addRange(rg);
+          eurEl.dispatchEvent(new Event('input',{bubbles:true}));
+        }
+      }
     });
     if(AF==='sk_maxi')el.addEventListener('focus',()=>focusK(el));
   });
