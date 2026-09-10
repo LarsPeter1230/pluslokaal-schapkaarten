@@ -378,15 +378,18 @@ input[readonly]{background:#f7f8f6;color:var(--muted);}
 .ktabs.show{display:flex;}
 .ktab{padding:6px 14px;border-radius:99px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:.8rem;font-weight:700;color:var(--muted);transition:all .15s;font-family:inherit;}
 .ktab.active{background:var(--green-d);color:#fff;border-color:var(--green-d);}
-/* Kopieerknop op de geselecteerde SK Maxi-cel: kopieert die kaart naar het volgende vakje */
+/* Knoppenbalk op de geselecteerde SK Maxi-cel: kopieer naar volgend vakje + vakje leegmaken */
 .skm__cel{position:relative;}
-.skm-copy{position:absolute;top:6px;right:6px;z-index:20;display:none;align-items:center;gap:5px;
-  padding:5px 10px;border:none;border-radius:99px;background:var(--green-d);color:#fff;cursor:pointer;
-  font-family:inherit;font-size:.72rem;font-weight:800;line-height:1;box-shadow:0 2px 6px rgba(0,0,0,.25);
-  opacity:.92;transition:opacity .15s,transform .1s;}
-.skm__cel.cur .skm-copy{display:inline-flex;}
-.skm-copy:hover{opacity:1;transform:translateY(-1px);}
-.skm-copy i{font-size:.78rem;}
+.skm-tools{position:absolute;top:6px;right:6px;z-index:20;display:none;align-items:center;gap:5px;}
+.skm__cel.cur .skm-tools{display:inline-flex;}
+.skm-tool{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:none;border-radius:99px;
+  cursor:pointer;font-family:inherit;font-size:.72rem;font-weight:800;line-height:1;
+  box-shadow:0 2px 6px rgba(0,0,0,.25);opacity:.92;transition:opacity .15s,transform .1s,background .15s;}
+.skm-tool:hover{opacity:1;transform:translateY(-1px);}
+.skm-tool i{font-size:.78rem;}
+.skm-tool--copy{background:var(--green-d);color:#fff;}
+.skm-tool--clear{background:#fff;color:var(--red);border:1px solid var(--red);padding:5px 8px;}
+.skm-tool--clear:hover{background:var(--red);color:#fff;}
 
 .prev-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px;flex-wrap:wrap;}
 .prev-bar__lbl{font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;}

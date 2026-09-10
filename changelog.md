@@ -5,6 +5,11 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.49.2 - Maxi-vakje leegmaken met een prullenbak-knop · 10 september 2026
+
+- **Vakje leegmaken** kan nu met een **prullenbak-knopje** op de geselecteerde kaart, naast de
+  kopieerknop. Handig om een vakje snel leeg te halen (het blijft dan bij het printen wit).
+
 ## versie 2.49.1 - Maxi-kaart kopiëren: nette knop op de kaart zelf · 10 september 2026
 
 - **Kopieerknop staat nu op de geselecteerde kaart** (rechtsboven in het vakje): "naar volgende".

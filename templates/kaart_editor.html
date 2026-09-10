@@ -394,6 +394,16 @@ function copyToNext(ev){
   render();
   switchK(nxt, document.querySelectorAll('.ktab')[nxt]);   // selectie volgt → nog eens klikken = volgende
 }
+function _blankKD(){ return {merk:'',koptekst:'',subtekst:'',vbtekst:'',aanv:'',verpakking:'',inhoud:'',vp1:'',vp2:'',actietype:'',av:'',av2:'',kilo:'',land:'',max:'',kem:'nee',alcohol:'nee',mix:'',code:'',kaarttype:'actie',layout:'nieuw',scans:'',overlay:''}; }
+// Maak het geselecteerde SK Maxi-vakje leeg (blijft bij het printen wit). Knop (prullenbak) op de kaart.
+function clearCel(ev){
+  if(ev){ ev.preventDefault(); ev.stopPropagation(); }
+  if(AF!=='sk_maxi') return;
+  if(cardHasContent(AK) && !confirm('Dit vakje leegmaken?')) return;
+  Object.assign(KD[AK], _blankKD());
+  render();
+  switchK(AK, document.querySelectorAll('.ktab')[AK]);
+}
 function loadForm(idx){
   const d=KD[idx];
   ['merk','koptekst','subtekst','vbtekst','aanv','verpakking','inhoud','vp1','vp2','kilo','land','mix','code'].forEach(k=>{const e=fi('f-'+k);if(e)e.value=d[k]||'';});
@@ -807,8 +817,9 @@ function render(){
     // AFDRUKKEN wit gelaten; in de editor tonen we ze wél (met een subtiele 'wordt niet geprint'-hint).
     kp.innerHTML=`<div class="skm">${[0,1,2,3].map(i=>{
       const blank=(i!==AK)&&!cardHasContent(i);
-      const copyBtn=(i<3)?`<button class="skm-copy" type="button" onmousedown="copyToNext(event)" title="Kopieer deze kaart naar het volgende vakje"><i class="fa fa-copy"></i> naar volgende</button>`:'';
-      return `<div class="skm__cel ${i===AK?'cur':''} ${blank?'is-blank':''}" id="cel-${i}">${celHTML(i)}${copyBtn}</div>`;
+      const copyBtn=(i<3)?`<button class="skm-tool skm-tool--copy" type="button" onmousedown="copyToNext(event)" title="Kopieer deze kaart naar het volgende vakje"><i class="fa fa-copy"></i> naar volgende</button>`:'';
+      const clearBtn=`<button class="skm-tool skm-tool--clear" type="button" onmousedown="clearCel(event)" title="Maak dit vakje leeg" aria-label="Vakje leegmaken"><i class="fa fa-trash-can"></i></button>`;
+      return `<div class="skm__cel ${i===AK?'cur':''} ${blank?'is-blank':''}" id="cel-${i}"><div class="skm-tools">${copyBtn}${clearBtn}</div>${celHTML(i)}</div>`;
     }).join('')}</div>`;
     [0,1,2,3].forEach(i=>updateStatic(i,fi('cel-'+i)));
     [0,1,2,3].forEach(i=>{ if((KD[i].kaarttype||'actie')==='tip')applyNewtip(fi('cel-'+i),AF); });
