@@ -65,11 +65,6 @@
       <button class="ktab" type="button" onclick="switchK(1,this)">Kaart 2</button>
       <button class="ktab" type="button" onclick="switchK(2,this)">Kaart 3</button>
       <button class="ktab" type="button" onclick="switchK(3,this)">Kaart 4</button>
-      <span class="kcopy" title="Zet de kaart die je nu bewerkt op meerdere vakjes van het vel">
-        <span class="kcopy__lbl"><i class="fa fa-copy"></i> Deze kaart kopiëren:</span>
-        <button class="kcopy__btn" type="button" onclick="fillMaxi(2)" title="Deze kaart op 2 vakjes (2 dezelfde op het vel)">2×</button>
-        <button class="kcopy__btn" type="button" onclick="fillMaxi(4)" title="Deze kaart op alle 4 vakjes (4 dezelfde op het vel)">4×</button>
-      </span>
     </div>
 
     <div class="sec">
@@ -388,19 +383,16 @@ function switchK(idx,btn){
   loadForm(idx);
   document.querySelectorAll('.skm__cel').forEach((c,i)=>c.classList.toggle('cur',i===idx));
 }
-function blankKD(){ return {merk:'',koptekst:'',subtekst:'',vbtekst:'',aanv:'',verpakking:'',inhoud:'',vp1:'',vp2:'',actietype:'',av:'',av2:'',kilo:'',land:'',max:'',kem:'nee',alcohol:'nee',mix:'',code:'',kaarttype:'actie',layout:'nieuw',scans:'',overlay:''}; }
-// SK Maxi: zet de kaart die je nu bewerkt op n vakjes (2 of 4). De overige vakjes worden leeggemaakt
-// (die blijven bij het printen wit). Zo heb je in één klik 2 of 4 dezelfde kaarten op één vel.
-function fillMaxi(n){
-  if(AF!=='sk_maxi') return;
-  let willLose=false;
-  for(let i=0;i<4;i++){ if(i!==AK && cardHasContent(i)) willLose=true; }
-  if(willLose && !confirm('De kaart die je nu bewerkt wordt naar '+n+' vakjes gekopieerd. Bestaande inhoud in de andere vakjes wordt overschreven. Doorgaan?')) return;
-  const snap=Object.assign({},KD[AK]);   // kopie van de huidige kaart (alle waarden zijn tekst)
-  for(let i=0;i<4;i++){ Object.assign(KD[i], i<n ? Object.assign({},snap) : blankKD()); }
-  AK=0;
+// SK Maxi: kopieer de geselecteerde kaart naar het VOLGENDE vakje en neem de selectie mee. Zo bouw je
+// met herhaald klikken 2, 3 of 4 dezelfde kaarten op één vel op. Knop staat op de geselecteerde kaart.
+function copyToNext(ev){
+  if(ev){ ev.preventDefault(); ev.stopPropagation(); }
+  if(AF!=='sk_maxi' || AK>=3) return;
+  const nxt=AK+1;
+  if(cardHasContent(nxt) && !confirm('Vakje '+(nxt+1)+' heeft al inhoud. Overschrijven met deze kaart?')) return;
+  Object.assign(KD[nxt], Object.assign({}, KD[AK]));   // kopie (alle waarden zijn tekst)
   render();
-  switchK(0, document.querySelectorAll('.ktab')[0]);
+  switchK(nxt, document.querySelectorAll('.ktab')[nxt]);   // selectie volgt → nog eens klikken = volgende
 }
 function loadForm(idx){
   const d=KD[idx];
@@ -815,7 +807,8 @@ function render(){
     // AFDRUKKEN wit gelaten; in de editor tonen we ze wél (met een subtiele 'wordt niet geprint'-hint).
     kp.innerHTML=`<div class="skm">${[0,1,2,3].map(i=>{
       const blank=(i!==AK)&&!cardHasContent(i);
-      return `<div class="skm__cel ${i===AK?'cur':''} ${blank?'is-blank':''}" id="cel-${i}">${celHTML(i)}</div>`;
+      const copyBtn=(i<3)?`<button class="skm-copy" type="button" onmousedown="copyToNext(event)" title="Kopieer deze kaart naar het volgende vakje"><i class="fa fa-copy"></i> naar volgende</button>`:'';
+      return `<div class="skm__cel ${i===AK?'cur':''} ${blank?'is-blank':''}" id="cel-${i}">${celHTML(i)}${copyBtn}</div>`;
     }).join('')}</div>`;
     [0,1,2,3].forEach(i=>updateStatic(i,fi('cel-'+i)));
     [0,1,2,3].forEach(i=>{ if((KD[i].kaarttype||'actie')==='tip')applyNewtip(fi('cel-'+i),AF); });

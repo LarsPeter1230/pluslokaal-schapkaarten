@@ -5,6 +5,13 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.49.1 - Maxi-kaart kopiëren: nette knop op de kaart zelf · 10 september 2026
+
+- **Kopieerknop staat nu op de geselecteerde kaart** (rechtsboven in het vakje): "naar volgende".
+  Daarmee kopieer je de kaart die je bewerkt naar het volgende vakje en schuift de selectie mee - klik
+  je nog eens, dan gaat 'ie naar het volgende. Zo bouw je in een paar klikken **2, 3 of 4 dezelfde**
+  kaarten op één vel op, precies zoveel als je wilt. Nettere plek en werking dan de vorige 2x/4x-knoppen.
+
 ## versie 2.49.0 - Maxi-kaart kopiëren naar meerdere vakjes op het vel · 10 september 2026
 
 - **SK Maxi: kopieer een kaart in één klik naar 2 of 4 vakjes.** Maak je één maxi-kaartje, dan kun je
