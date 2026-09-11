@@ -5,6 +5,15 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.52.0 - "X halen Y betalen" klopt nu + opgeschoonde actiekeuze · 11 september 2026
+
+- **"X halen Y betalen" ziet er nu goed uit**, precies zoals de PLUS-referentie: één rood vlak met twee
+  even grote witte regels ("2 HALEN =" en "1 BETALEN"), voor álle formaten (SK Maxi, A5, A4, A3 staand
+  en A3 liggend). Zowel in de live preview als op de afdruk.
+- **De actie "X = Y (alcohol)" is verwijderd** uit de keuzelijst; die was overbodig.
+- **Het NIX18-logo zet je aan en uit met het vinkje** "NIX18-logo tonen" (onder Overig). Dat vinkje staat
+  los van het actietype, dus je kunt het bij elke kaart gebruiken.
+
 ## versie 2.51.0 - Uitnodiging om feedback te geven bij het openen · 11 september 2026
 
 - **Bij het openen van PLUSLokaal verschijnt nu een vriendelijke uitnodiging**: heb je verbeteringen, loop

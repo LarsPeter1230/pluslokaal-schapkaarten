@@ -456,6 +456,12 @@ input[readonly]{background:#f7f8f6;color:var(--muted);}
 .two.v{display:flex;}
 .two__top{background:#e3000a;flex:0 0 66.7%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;line-height:.9;text-align:center;padding:2%;white-space:nowrap;}
 .two__lbl{background:#82bb22;flex:1;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;text-align:center;padding:2%;line-height:1;}
+/* 'X halen Y betalen': één rood vlak, twee even grote regels links, tegen elkaar in het midden */
+.two--halen .two__top{background:#e3000a;flex:0 0 50%;justify-content:flex-start;align-items:flex-end;
+  text-align:left;font-weight:900;line-height:1;padding:0 7% 0.1em;white-space:nowrap;}
+.two--halen .two__lbl{background:#e3000a;flex:0 0 50%;justify-content:flex-start;align-items:flex-start;
+  text-align:left;color:#fff;font-weight:900;line-height:1;padding:0.1em 7% 0;white-space:nowrap;}
+.two--halen .two__top[data-f]:hover,.two--halen .two__top[data-f]:focus{background:#e3000a;}
 
 .price{position:absolute;left:0;right:0;top:42.2%;bottom:9.6%;display:none;flex-direction:column;}
 .price.v{display:flex;}

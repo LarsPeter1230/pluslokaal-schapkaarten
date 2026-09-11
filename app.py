@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.51.0'
+APP_VERSION = '2.52.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -769,6 +769,31 @@ def _twotone(draw, x0, x1, y0, y1, top_txt, label_txt):
         _center(draw, (x0 + x1) / 2, (r_bot + y1) / 2, label_txt, fl, WHITE)
 
 
+def _halenbetalen(draw, x0, x1, y0, y1, line1, line2):
+    """Eén rood vlak met twee even grote witte regels, links uitgelijnd en verticaal gecentreerd
+    ('X HALEN =' / 'Y BETALEN') - 1:1 met de PLUS-referentie voor 'X halen Y betalen'."""
+    draw.rectangle([x0, y0, x1, y1], fill=RED)
+    bw = x1 - x0
+    bh = y1 - y0
+    pad = bw * 0.07
+    avail_w = bw - 2 * pad
+    per_h = bh * 0.34                       # max hoogte per regel (2 regels + tussenruimte)
+    # Zelfde fontgrootte voor beide regels: neem de kleinste die beide laat passen.
+    f1, _, _, _ = fit(draw, line1, W_BLACK, avail_w, per_h)
+    f2, _, _, _ = fit(draw, line2, W_BLACK, avail_w, per_h)
+    f = F(W_BLACK, min(f1.size, f2.size))
+    cap = draw.textbbox((0, 0), 'HALEN', font=f)
+    line_h = cap[3] - cap[1]
+    gap = line_h * 0.42
+    total = line_h * 2 + gap
+    ty = (y0 + y1) / 2 - total / 2
+    lx = x0 + pad
+    for txt in (line1, line2):
+        bb = draw.textbbox((0, 0), txt, font=f)
+        draw.text((lx - bb[0], ty - bb[1]), txt, font=f, fill=WHITE)
+        ty += line_h + gap
+
+
 def _prijs(draw, x0, x1, y0, y1, av, vp1, vp2, vlbl):
     """Groene labelbalk + rood blok met doorgestreepte vanprijs en grote prijs (superscript-centen)."""
     bw = x1 - x0
@@ -847,10 +872,9 @@ def _action_spec(d):
     if t == 'xplusygratis' and av:
         top = av if '+' in av else f'{av}+{av2 or av}'   # bv. '1+1'
         return ('two', top, 'GRATIS')
-    if t == 'xisy' and av:
-        return ('two', av, 'GRATIS')
     if t == 'xhalenybetalen' and av:
-        return ('two', av + ' HALEN', (av2 or '?') + ' BETALEN')
+        # Eén rood vlak, twee even grote regels: "X HALEN =" / "Y BETALEN" (1:1 met de PLUS-referentie).
+        return ('halen', f'{av} HALEN =', f'{av2 or "?"} BETALEN')
     if t == 'halveprijs':
         return ('two', '2e', 'HALVE PRIJS')
     return (None,)
@@ -1069,6 +1093,8 @@ def _draw_action(draw, d, x0, x1, y0_two, y1_two, y0_pr, y1_pr):
                str(d.get('vp1', '')).strip(), str(d.get('vp2', '')).strip(), vlbl)
     elif spec[0] == 'two':
         _twotone(draw, x0, x1, y0_two, y1_two, spec[1], spec[2])
+    elif spec[0] == 'halen':
+        _halenbetalen(draw, x0, x1, y0_two, y1_two, spec[1], spec[2])
 
 
 def _parse_scans(d):
@@ -1367,7 +1393,7 @@ def _old_actie_landscape(canvas, draw, d, ox, oy, W, H):
 
     # Actie-mechanisme rechts: tweekleurige sticker (1+1 GRATIS / X% KORTING / …) of prijssticker.
     spec = _action_spec(d)
-    if spec[0] == 'two':
+    if spec[0] in ('two', 'halen'):
         _old_twotone(draw, spec[1], spec[2], X, Y, S, W, H)
     else:
         # vanprijs (rode balk met witte doorgestreepte tekst)

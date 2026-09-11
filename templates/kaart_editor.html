@@ -53,7 +53,6 @@
             <option value="xpctkorting">X% Korting</option>
             <option value="xeurokorting">€ Korting</option>
             <option value="xplusygratis">X + Y Gratis</option>
-            <option value="xisy">X = Y (alcohol)</option>
             <option value="xhalenybetalen">X Halen Y Betalen</option>
           </select>
         </div>
@@ -104,7 +103,6 @@
       <div id="actie-block">
       <div class="frow hide" id="ae-prijs"><span class="k">Prijs<small>bijv. 2.99</small></span><input type="text" id="f-prijs" placeholder="1.79" oninput="setAv(this.value)"></div>
       <div class="frow hide" id="ae-xpg"><span class="k">X + Y Gratis</span><input type="text" id="f-xpg" placeholder="1+1" oninput="setAv(this.value)"></div>
-      <div class="frow hide" id="ae-xisy"><span class="k">X = Y</span><input type="text" id="f-xisy" placeholder="2=1" oninput="setAv(this.value)"></div>
       <div class="frow hide" id="ae-xpct"><span class="k">Kortingspercentage</span><input type="text" id="f-xpct" placeholder="25%" oninput="setAv(this.value)"></div>
       <div class="frow hide" id="ae-xeur"><span class="k">Kortingsbedrag</span><input type="text" id="f-xeur" placeholder="5.-" oninput="setAv(this.value)"></div>
       <div class="frow hide" id="ae-xhal"><span class="k">X Halen</span><input type="text" id="f-xhal" placeholder="2" oninput="setAv(this.value)"></div>
@@ -353,10 +351,10 @@ function onFmt(){
 }
 function onKem(){ KD[AK].kem=fv('f-kem'); fi('row-mix').classList.toggle('hide',fv('f-kem')!=='ja'); sb('kem',fv('f-kem')); }
 function onActie(){
-  ['ae-prijs','ae-xpg','ae-xisy','ae-xpct','ae-xeur','ae-xhal','ae-ybet'].forEach(id=>fi(id).classList.add('hide'));
+  ['ae-prijs','ae-xpg','ae-xpct','ae-xeur','ae-xhal','ae-ybet'].forEach(id=>fi(id).classList.add('hide'));
   const t=fv('f-actietype');
   const show=(...ids)=>ids.forEach(id=>fi(id).classList.remove('hide'));
-  if(t==='prijs')show('ae-prijs'); if(t==='xplusygratis')show('ae-xpg'); if(t==='xisy')show('ae-xisy');
+  if(t==='prijs')show('ae-prijs'); if(t==='xplusygratis')show('ae-xpg');
   if(t==='xpctkorting')show('ae-xpct'); if(t==='xeurokorting')show('ae-xeur'); if(t==='xhalenybetalen')show('ae-xhal','ae-ybet');
   KD[AK].actietype=t; if(t==='halveprijs')KD[AK].av='halveprijs';
   updateAction();
@@ -416,7 +414,6 @@ function loadForm(idx){
   const t=d.actietype||'';
   if(t==='prijs')fi('f-prijs').value=d.av||'';
   else if(t==='xplusygratis')fi('f-xpg').value=d.av||'';
-  else if(t==='xisy')fi('f-xisy').value=d.av||'';
   else if(t==='xpctkorting')fi('f-xpct').value=d.av||'';
   else if(t==='xeurokorting')fi('f-xeur').value=d.av||'';
   else if(t==='xhalenybetalen'){fi('f-xhal').value=d.av||'';fi('f-ybet').value=d.av2||'';}
@@ -435,8 +432,7 @@ function actionSpec(d){
   if(t==='xpctkorting'&&av){top=av.includes('%')?av:av+'%';lbl='KORTING';}
   else if(t==='xeurokorting'&&av){top=av.startsWith('€')?av:'€'+av;lbl='KORTING';}
   else if(t==='xplusygratis'&&av){top=av;lbl='GRATIS';}
-  else if(t==='xisy'&&av){top=av;lbl='GRATIS';}
-  else if(t==='xhalenybetalen'&&av){top=av+' HALEN';lbl=(av2||'?')+' BETALEN';}
+  else if(t==='xhalenybetalen'&&av){return {kind:'halen',top:av+' HALEN =',lbl:(av2||'?')+' BETALEN'};}
   else if(t==='halveprijs'){top='2e';lbl='HALVE PRIJS';}
   if(top)return {kind:'two',top,lbl};
   return {kind:'none'};
@@ -446,7 +442,7 @@ function priceEur(av){ if(!av)return''; return String(av).replace('€','').repl
 function priceCent(av){ if(!av)return''; const p=String(av).replace('€','').replace(',','.').split('.'); return (p.length>1&&p[1])?(p[1]+'00').substring(0,2):'-'; }
 function syncAvMenu(idx){
   if(idx!==AK)return; const d=KD[idx],t=d.actietype||'';
-  const map={prijs:'f-prijs',xplusygratis:'f-xpg',xisy:'f-xisy',xpctkorting:'f-xpct',xeurokorting:'f-xeur',xhalenybetalen:'f-xhal'};
+  const map={prijs:'f-prijs',xplusygratis:'f-xpg',xpctkorting:'f-xpct',xeurokorting:'f-xeur',xhalenybetalen:'f-xhal'};
   const e=fi(map[t]); if(e&&e!==document.activeElement)e.value=d.av||'';
   const tp=fi('f-tipprijs'); if(tp&&tp!==document.activeElement)tp.value=d.av||'';
 }
@@ -533,7 +529,7 @@ function updateStatic(idx,cel){
   if(KT!=='tip' && LY==='oud'){
     const spec=actionSpec(d);
     const two=g('oa-two'), price=cel.querySelector('.oa-price'), oaLbl=g('oa-label'), oaStr=g('oa-strike');
-    const isTwo=(spec.kind==='two');
+    const isTwo=(spec.kind==='two'||spec.kind==='halen');
     // prijs-sticker OF tweekleurige actie-sticker (1+1 GRATIS / 2 HALEN 1 BETALEN / X% KORTING …)
     if(two)two.classList.toggle('v',isTwo);
     if(price)price.style.display=isTwo?'none':'flex';
@@ -590,15 +586,28 @@ function _drawAction(cel,d){
   // 'two' toont bij korting/gratis/halveprijs; 'price' bij prijs. Toon leeg blok zodra het type gekozen is,
   // zodat je er direct in kunt typen (leeg = wordt niet geprint).
   const t=(d.actietype||''), isPrice=(t==='prijs');
-  const showTwo=['halveprijs','xpctkorting','xeurokorting','xplusygratis','xisy','xhalenybetalen'].includes(t);
+  const showTwo=['halveprijs','xpctkorting','xeurokorting','xplusygratis','xhalenybetalen'].includes(t);
   two.classList.toggle('v',showTwo); price.classList.toggle('v',isPrice);
   if(showTwo){
+    const twoBox=cel.querySelector('[data-s="two"]');
     const top=cel.querySelector('[data-s="two-top"]'),l=cel.querySelector('[data-s="two-lbl"]');
-    const av=(t==='halveprijs')?'2e':(d.av||'');
-    setIf(top,av);
-    const n=(av||spec.top||'').replace(/\s/g,'').length||2;
-    top.style.fontSize=n<=2?'34cqh':n<=3?'23cqh':n<=6?'15cqh':'10cqh';
-    l.textContent=spec.lbl; l.style.fontSize=(spec.lbl||'').length<=8?'7cqh':(spec.lbl||'').length<=12?'5.4cqh':'4.3cqh';
+    if(t==='xhalenybetalen'){
+      // Eén rood vlak, twee even grote regels links: "X HALEN =" / "Y BETALEN"
+      twoBox.classList.add('two--halen');
+      top.setAttribute('contenteditable','false');
+      top.textContent=spec.top; l.textContent=spec.lbl;
+      const longest=Math.max((spec.top||'').length,(spec.lbl||'').length);
+      const fs=longest<=9?'13cqh':longest<=12?'10cqh':'8cqh';
+      top.style.fontSize=fs; l.style.fontSize=fs;
+    }else{
+      twoBox.classList.remove('two--halen');
+      top.setAttribute('contenteditable','true');
+      const av=(t==='halveprijs')?'2e':(d.av||'');
+      setIf(top,av);
+      const n=(av||spec.top||'').replace(/\s/g,'').length||2;
+      top.style.fontSize=n<=2?'34cqh':n<=3?'23cqh':n<=6?'15cqh':'10cqh';
+      l.textContent=spec.lbl; l.style.fontSize=(spec.lbl||'').length<=8?'7cqh':(spec.lbl||'').length<=12?'5.4cqh':'4.3cqh';
+    }
   }else if(isPrice){
     setIf(cel.querySelector('[data-price="eur"]'),priceEur(d.av));
     setIf(cel.querySelector('[data-price="cent"]'),priceCent(d.av));
