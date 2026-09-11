@@ -59,7 +59,7 @@ os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Versie van de applicatie - getoond in de footer; klikbaar naar de changelog (/changelog).
-APP_VERSION = '2.52.0'
+APP_VERSION = '2.53.0'
 
 # Ingelogd blijven tot wachtwoordwijziging: langlevende, permanente sessiecookie (overleeft het
 # sluiten van het tabblad/de browser). De secret key staat vast in .secret_key, dus herstarts loggen
@@ -757,15 +757,16 @@ def generate_scankaart(cells):
 
 # ─── ACTIEBLOKKEN (herbruikbaar; werken op een expliciete box) ─────────────────
 def _twotone(draw, x0, x1, y0, y1, top_txt, label_txt):
-    """Rood vlak (grote witte tekst) + groene balk (wit label). Rood = 2/3, groen = 1/3."""
+    """Rood vlak (grote witte tekst) + groene balk (groot wit label). Rood = 2/3, groen = 1/3.
+    Tekst vult de vlakken royaal (1:1 met de PLUS-referentie, bv. '1+1' groot boven, 'GRATIS' groot onder)."""
     bw = x1 - x0
     r_bot = y0 + (y1 - y0) * 0.667
     draw.rectangle([x0, y0, x1, r_bot], fill=RED)
     draw.rectangle([x0, r_bot, x1, y1], fill=GREEN)
-    f, _, _, _ = fit(draw, top_txt, W_BLACK, bw * 0.86, (r_bot - y0) * 0.74)
+    f, _, _, _ = fit(draw, top_txt, W_BLACK, bw * 0.90, (r_bot - y0) * 0.82)
     _center(draw, (x0 + x1) / 2, (y0 + r_bot) / 2, top_txt, f, WHITE)
     if label_txt:
-        fl, _, _, _ = fit(draw, label_txt, W_BOLD, bw * 0.90, (y1 - r_bot) * 0.60)
+        fl, _, _, _ = fit(draw, label_txt, W_BLACK, bw * 0.92, (y1 - r_bot) * 0.74)
         _center(draw, (x0 + x1) / 2, (r_bot + y1) / 2, label_txt, fl, WHITE)
 
 

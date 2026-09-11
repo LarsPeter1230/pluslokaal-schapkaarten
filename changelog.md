@@ -5,6 +5,18 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.53.0 - Alle actiemechanismen kloppen in de preview + leegmaken op elk formaat · 11 september 2026
+
+- **De live preview klopt nu voor elk actiemechanisme** en is 1:1 met de afdruk: "X + Y Gratis"
+  (groot "1+1" met grote "GRATIS"), "€ Korting" (groot "5.-" met "KORTING"), "X% Korting", "X halen Y
+  betalen" en "2e Halve prijs". De tekst schaalt netjes mee en loopt niet meer buiten het vlak.
+- **Meteen de juiste layout en een voorbeeld**: kies je een actie, dan toont de preview direct het
+  juiste ontwerp met een licht voorbeeld (bijv. "5.-" / "KORTING"), ook voordat je iets hebt getypt.
+- **De euro-korting en 1+1 worden in de preview net zo weergegeven als op de afdruk** (bijv. "5.-"),
+  zodat wat je ziet ook is wat er geprint wordt.
+- **Kaart leegmaken kan nu op elk formaat**: het prullenbak-knopje staat niet alleen op SK Maxi maar ook
+  op de andere formaten (A3, A4, A5).
+
 ## versie 2.52.0 - "X halen Y betalen" klopt nu + opgeschoonde actiekeuze · 11 september 2026
 
 - **"X halen Y betalen" ziet er nu goed uit**, precies zoals de PLUS-referentie: één rood vlak met twee

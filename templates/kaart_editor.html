@@ -396,11 +396,12 @@ function _blankKD(){ return {merk:'',koptekst:'',subtekst:'',vbtekst:'',aanv:'',
 // Maak het geselecteerde SK Maxi-vakje leeg (blijft bij het printen wit). Knop (prullenbak) op de kaart.
 function clearCel(ev){
   if(ev){ ev.preventDefault(); ev.stopPropagation(); }
-  if(AF!=='sk_maxi') return;
-  if(cardHasContent(AK) && !confirm('Dit vakje leegmaken?')) return;
-  Object.assign(KD[AK], _blankKD());
+  const i=(AF==='sk_maxi')?AK:0;
+  if(cardHasContent(i) && !confirm(AF==='sk_maxi'?'Dit vakje leegmaken?':'Deze kaart leegmaken?')) return;
+  Object.assign(KD[i], _blankKD());
   render();
-  switchK(AK, document.querySelectorAll('.ktab')[AK]);
+  if(AF==='sk_maxi'){ switchK(i, document.querySelectorAll('.ktab')[i]); }
+  else { applyTypeUI(KD[0].kaarttype||'actie'); loadForm(0); }
 }
 function loadForm(idx){
   const d=KD[idx];
@@ -430,8 +431,14 @@ function actionSpec(d){
   }
   let top='',lbl='';
   if(t==='xpctkorting'&&av){top=av.includes('%')?av:av+'%';lbl='KORTING';}
-  else if(t==='xeurokorting'&&av){top=av.startsWith('€')?av:'€'+av;lbl='KORTING';}
-  else if(t==='xplusygratis'&&av){top=av;lbl='GRATIS';}
+  else if(t==='xeurokorting'&&av){
+    // zelfde notatie als de afdruk: "5" -> "5.-", "5.50" -> "5.50"
+    let a=av.replace('€','').replace(',','.').trim(), disp;
+    if(a.includes('.')){let p=a.split('.'); let c=(p[1]+'00').slice(0,2); disp=(c==='00')?p[0]+'.-':p[0]+'.'+c;}
+    else disp=a+'.-';
+    top=disp;lbl='KORTING';
+  }
+  else if(t==='xplusygratis'&&av){top=av.includes('+')?av:av+'+'+(av2||av);lbl='GRATIS';}
   else if(t==='xhalenybetalen'&&av){return {kind:'halen',top:av+' HALEN =',lbl:(av2||'?')+' BETALEN'};}
   else if(t==='halveprijs'){top='2e';lbl='HALVE PRIJS';}
   if(top)return {kind:'two',top,lbl};
@@ -579,6 +586,31 @@ function updateAction(){
   if(KT!=='tip' && LY==='oud'){ updateStatic(AK,cel); return; }
   _drawAction(cel,KD[AK]);
 }
+// Per actietype: het vaste label (groene balk) + een voorbeeldwaarde (getoond als er nog niets is
+// getypt) zodat de preview meteen de juiste layout toont. 'fixed' = de waarde ligt vast (2e Halve prijs).
+const TWO_CFG={
+  xpctkorting:  {ph:'25%',  label:'KORTING'},
+  xeurokorting: {ph:'5.-',  label:'KORTING'},
+  xplusygratis: {ph:'1+1',  label:'GRATIS'},
+  halveprijs:   {fixed:'2e',label:'HALVE PRIJS'},
+};
+// Bepaal de grootste fontgrootte waarbij de tekst binnen het vak past (breedte + hoogte), net als de
+// afdruk-render (fit()). Meet de breedte exact via canvas (betrouwbaar op de flex-vakken). Geeft px.
+const _measCtx=document.createElement('canvas').getContext('2d');
+function _fitText(el, wFrac, hFrac){
+  if(!el) return 0;
+  const bw=el.clientWidth, bh=el.clientHeight;
+  const txt=el.textContent||'';
+  if(bw<=1||bh<=1||!txt){ el.style.fontSize=''; return 0; }
+  const fam=getComputedStyle(el).fontFamily||'sans-serif';
+  _measCtx.font='900 100px '+fam;
+  const w100=_measCtx.measureText(txt).width||1;
+  const byW=(bw*wFrac)/(w100/100);   // grootte waarbij de tekst op breedte past
+  const byH=(bh*hFrac)/0.74;         // grootte waarbij de tekst (cap-hoogte) op hoogte past
+  const size=Math.max(6, Math.min(byW, byH));
+  el.style.fontSize=size+'px';
+  return size;
+}
 function _drawAction(cel,d){
   const two=cel.querySelector('[data-s="two"]'), price=cel.querySelector('[data-s="price"]');
   if(!two||!price)return;
@@ -588,25 +620,35 @@ function _drawAction(cel,d){
   const t=(d.actietype||''), isPrice=(t==='prijs');
   const showTwo=['halveprijs','xpctkorting','xeurokorting','xplusygratis','xhalenybetalen'].includes(t);
   two.classList.toggle('v',showTwo); price.classList.toggle('v',isPrice);
+  const note=cel.querySelector('[data-s="note"]');
+  if(note)note.textContent=(t==='halveprijs')?'**Voor 2e halve prijs geldt: per combinatie kan de prijs verschillen. Je krijgt 25% korting op de totaalprijs.':'';
   if(showTwo){
+    // De actie-weergave is geformatteerd (bv. "5.-", "1+1 GRATIS") → 1:1 met de afdruk tonen we
+    // spec.top/spec.lbl (niet de rauwe invoer). De waarde typ je in het zijveld; de tekstvelden
+    // (merk/koptekst/prijs) blijven wél direct in de preview bewerkbaar.
     const twoBox=cel.querySelector('[data-s="two"]');
     const top=cel.querySelector('[data-s="two-top"]'),l=cel.querySelector('[data-s="two-lbl"]');
+    top.setAttribute('contenteditable','false');
     if(t==='xhalenybetalen'){
-      // Eén rood vlak, twee even grote regels links: "X HALEN =" / "Y BETALEN"
+      // Eén rood vlak, twee even grote regels links: "X HALEN =" / "Y BETALEN" (met voorbeeld als leeg)
       twoBox.classList.add('two--halen');
-      top.setAttribute('contenteditable','false');
-      top.textContent=spec.top; l.textContent=spec.lbl;
-      const longest=Math.max((spec.top||'').length,(spec.lbl||'').length);
-      const fs=longest<=9?'13cqh':longest<=12?'10cqh':'8cqh';
-      top.style.fontSize=fs; l.style.fontSize=fs;
+      const x=(d.av||'').trim(), y=(d.av2||'').trim(), empty=!x&&!y;
+      top.textContent=(x||'2')+' HALEN =';
+      l.textContent=(y||'1')+' BETALEN';
+      top.classList.toggle('is-ph',empty); l.classList.toggle('is-ph',empty);
+      const s=Math.min(_fitText(top,0.90,0.86), _fitText(l,0.90,0.86))||10;
+      top.style.fontSize=s+'px'; l.style.fontSize=s+'px';
     }else{
+      // Rood vlak (grote waarde) + groene balk (vast label). Toon per type een passend voorbeeld
+      // als er nog niets is getypt, zodat de layout meteen klopt.
       twoBox.classList.remove('two--halen');
-      top.setAttribute('contenteditable','true');
-      const av=(t==='halveprijs')?'2e':(d.av||'');
-      setIf(top,av);
-      const n=(av||spec.top||'').replace(/\s/g,'').length||2;
-      top.style.fontSize=n<=2?'34cqh':n<=3?'23cqh':n<=6?'15cqh':'10cqh';
-      l.textContent=spec.lbl; l.style.fontSize=(spec.lbl||'').length<=8?'7cqh':(spec.lbl||'').length<=12?'5.4cqh':'4.3cqh';
+      const cfg=TWO_CFG[t]||{ph:'',label:''};
+      const val=cfg.fixed||spec.top||'';
+      top.textContent=val||cfg.ph;
+      top.classList.toggle('is-ph',!val&&!cfg.fixed);
+      l.textContent=cfg.label; l.classList.remove('is-ph');
+      _fitText(top,0.90,0.82);   // grote waarde in het rode vlak
+      _fitText(l,0.92,0.72);     // groot label (GRATIS/KORTING) in de groene balk
     }
   }else if(isPrice){
     setIf(cel.querySelector('[data-price="eur"]'),priceEur(d.av));
@@ -833,7 +875,8 @@ function render(){
     [0,1,2,3].forEach(i=>updateStatic(i,fi('cel-'+i)));
     [0,1,2,3].forEach(i=>{ if((KD[i].kaarttype||'actie')==='tip')applyNewtip(fi('cel-'+i),AF); });
   }else{
-    kp.innerHTML=`<div class="single" id="cel-0">${celHTML(0)}</div>`;
+    const clearBtn=`<div class="skm-tools"><button class="skm-tool skm-tool--clear" type="button" onmousedown="clearCel(event)" title="Kaart leegmaken" aria-label="Kaart leegmaken"><i class="fa fa-trash-can"></i></button></div>`;
+    kp.innerHTML=`<div class="single" id="cel-0">${clearBtn}${celHTML(0)}</div>`;
     updateStatic(0,fi('cel-0'));
     if((KD[0].kaarttype||'actie')==='tip')applyNewtip(fi('cel-0'),AF);
   }

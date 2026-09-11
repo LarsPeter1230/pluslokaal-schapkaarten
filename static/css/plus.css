@@ -382,6 +382,8 @@ input[readonly]{background:#f7f8f6;color:var(--muted);}
 .skm__cel{position:relative;}
 .skm-tools{position:absolute;top:6px;right:6px;z-index:20;display:none;align-items:center;gap:5px;}
 .skm__cel.cur .skm-tools{display:inline-flex;}
+.single{position:relative;}
+.single .skm-tools{display:inline-flex;}
 .skm-tool{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:none;border-radius:99px;
   cursor:pointer;font-family:inherit;font-size:.72rem;font-weight:800;line-height:1;
   box-shadow:0 2px 6px rgba(0,0,0,.25);opacity:.92;transition:opacity .15s,transform .1s,background .15s;}
@@ -462,6 +464,8 @@ input[readonly]{background:#f7f8f6;color:var(--muted);}
 .two--halen .two__lbl{background:#e3000a;flex:0 0 50%;justify-content:flex-start;align-items:flex-start;
   text-align:left;color:#fff;font-weight:900;line-height:1;padding:0.1em 7% 0;white-space:nowrap;}
 .two--halen .two__top[data-f]:hover,.two--halen .two__top[data-f]:focus{background:#e3000a;}
+/* voorbeeldwaarde in het actievak (nog niets getypt): licht tonen i.p.v. vol wit */
+.two__top.is-ph,.two__lbl.is-ph{opacity:.5;}
 
 .price{position:absolute;left:0;right:0;top:42.2%;bottom:9.6%;display:none;flex-direction:column;}
 .price.v{display:flex;}
