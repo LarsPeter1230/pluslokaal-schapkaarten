@@ -5,6 +5,13 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.53.1 - Actiewaarde blijft niet meer hangen bij wisselen + prullenbak overal zichtbaar · 11 september 2026
+
+- **Wissel je van actiemechanisme, dan begint het schoon.** Koos je bijvoorbeeld eerst "2e Halve prijs"
+  en daarna "X% Korting", dan bleef de oude waarde hangen (je zag dan "halveprijs%"). Nu wordt de waarde
+  gewist en toont elk mechanisme meteen het juiste voorbeeld ("25%", "5.-", "1+1", enz.).
+- **De prullenbak (kaart leegmaken) is nu overal goed zichtbaar**, ook op A3/A4/A5, niet alleen SK Maxi.
+
 ## versie 2.53.0 - Alle actiemechanismen kloppen in de preview + leegmaken op elk formaat · 11 september 2026
 
 - **De live preview klopt nu voor elk actiemechanisme** en is 1:1 met de afdruk: "X + Y Gratis"

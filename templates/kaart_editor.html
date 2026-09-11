@@ -356,6 +356,12 @@ function onActie(){
   const show=(...ids)=>ids.forEach(id=>fi(id).classList.remove('hide'));
   if(t==='prijs')show('ae-prijs'); if(t==='xplusygratis')show('ae-xpg');
   if(t==='xpctkorting')show('ae-xpct'); if(t==='xeurokorting')show('ae-xeur'); if(t==='xhalenybetalen')show('ae-xhal','ae-ybet');
+  // Wissel je van actietype, begin dan schoon: wis de oude waarde zodat een vorig mechanisme (bv. "2e
+  // Halve prijs" -> av "halveprijs") niet blijft hangen bij het nieuwe type. De zijvelden ook leegmaken.
+  if(t!==KD[AK].actietype){
+    KD[AK].av=''; KD[AK].av2='';
+    ['f-prijs','f-xpg','f-xpct','f-xeur','f-xhal','f-ybet','f-tipprijs'].forEach(id=>{const e=fi(id);if(e)e.value='';});
+  }
   KD[AK].actietype=t; if(t==='halveprijs')KD[AK].av='halveprijs';
   updateAction();
 }
@@ -875,7 +881,7 @@ function render(){
     [0,1,2,3].forEach(i=>updateStatic(i,fi('cel-'+i)));
     [0,1,2,3].forEach(i=>{ if((KD[i].kaarttype||'actie')==='tip')applyNewtip(fi('cel-'+i),AF); });
   }else{
-    const clearBtn=`<div class="skm-tools"><button class="skm-tool skm-tool--clear" type="button" onmousedown="clearCel(event)" title="Kaart leegmaken" aria-label="Kaart leegmaken"><i class="fa fa-trash-can"></i></button></div>`;
+    const clearBtn=`<div class="skm-tools" style="display:inline-flex;position:absolute;top:6px;right:6px;z-index:20;"><button class="skm-tool skm-tool--clear" type="button" onmousedown="clearCel(event)" title="Kaart leegmaken" aria-label="Kaart leegmaken"><i class="fa fa-trash-can"></i></button></div>`;
     kp.innerHTML=`<div class="single" id="cel-0">${clearBtn}${celHTML(0)}</div>`;
     updateStatic(0,fi('cel-0'));
     if((KD[0].kaarttype||'actie')==='tip')applyNewtip(fi('cel-0'),AF);
