@@ -5,6 +5,13 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.51.0 - Uitnodiging om feedback te geven bij het openen · 11 september 2026
+
+- **Bij het openen van PLUSLokaal verschijnt nu een vriendelijke uitnodiging**: heb je verbeteringen, loop
+  je ergens tegenaan of heb je een idee voor een nieuwe functie? Meld het via de <b>?</b>-knop rechtsonder.
+  De melding verschijnt één keer per keer-openen, verdwijnt vanzelf en met de knop "Iets melden" opent
+  meteen het feedbackvenster.
+
 ## versie 2.50.2 - Prijs invoeren: backspace loopt door van centen naar euro's · 10 september 2026
 
 - **Backspace loopt nu netjes door.** Sta je in het centen-gedeelte en dat is leeg, dan wist backspace
