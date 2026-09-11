@@ -476,7 +476,7 @@ function celHTML(idx){
       </div>
       <div class="nt-price">
         <div class="nt-inhoud"><span class="pl-verp" contenteditable="true" data-f="verpakking" data-i="${idx}" data-ph="Per bak" spellcheck="false">${d.verpakking||''}</span><span class="nt-inh" data-s="nt-inh">${d.inhoud||''}</span></div>
-        <div class="nt-amt"><span class="nt-eur" contenteditable="true" data-price="eur" data-i="${idx}" data-ph="0" spellcheck="false">${priceEur(d.av)}</span><span class="nt-cent" contenteditable="true" data-price="cent" data-i="${idx}" data-ph="-" spellcheck="false">${priceCent(d.av)}</span></div>
+        <div class="nt-amt"><span class="nt-eur" contenteditable="true" data-price="eur" data-i="${idx}" data-ph="1." spellcheck="false">${priceEur(d.av)}</span><span class="nt-cent" contenteditable="true" data-price="cent" data-i="${idx}" data-ph="98" spellcheck="false">${d.av?priceCent(d.av):''}</span></div>
       </div>
       ${ce('nt-land','land','Land van herkomst')}
       ${ce('nt-aanv','aanv','Aanvullende tekst')}

@@ -529,6 +529,12 @@ input[readonly]{background:#f7f8f6;color:var(--muted);}
 .pvc.newtip .nt-nix{position:absolute;left:3cqw;bottom:9cqh;width:34cqw;}
 .pvc.newtip .nt-nix .leg{font-size:2cqh;color:#6c6c6c;line-height:1.2;}
 .pvc.newtip .nt-nix img{height:6cqh;width:auto;display:block;margin-top:.5cqh;}
+/* Portret (A4/A5 staand): prijsblok breed onderaan gecentreerd (1:1 met de afdruk-config pb),
+   NIX18 rechtsonder ernaast; land/aanvullende linksonder. */
+.kp.port .pvc.newtip .nt-price{left:20cqw;right:auto;width:59cqw;top:64cqh;bottom:auto;height:29cqh;}
+.kp.port .pvc.newtip .nt-nix{left:auto !important;right:2cqw !important;bottom:5.5cqh;width:19cqw;text-align:right;}
+.kp.port .pvc.newtip .nt-nix .leg{font-size:1.5cqh;}
+.kp.port .pvc.newtip .nt-nix img{margin-left:auto;height:4.2cqh;}
 
 /* Compact = groen linkerpaneel (SK Maxi / SK Middel). */
 .pvc.newtip.panel .nt-band{left:0;top:0;bottom:0;right:auto;width:27cqw;height:auto;}

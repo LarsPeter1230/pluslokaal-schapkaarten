@@ -5,6 +5,14 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.54.0 - Tip-kaart: nette prijsweergave en NIX18 op de juiste plek per formaat · 11 september 2026
+
+- **Geen overbodig streepje meer** in de tip-prijs: een lege prijs toont nu een net voorbeeld ("1.98")
+  in plaats van "0-".
+- **Prijsblok en NIX18 staan nu op de juiste plek per formaat**, precies zoals de afdruk: bij A4/A5
+  staand staat het prijsblok breed onderaan met NIX18 rechtsonder; bij A3 liggend NIX18 linksonder; bij
+  SK Maxi in het groene paneel. De preview komt zo weer overeen met wat er geprint wordt.
+
 ## versie 2.53.1 - Actiewaarde blijft niet meer hangen bij wisselen + prullenbak overal zichtbaar · 11 september 2026
 
 - **Wissel je van actiemechanisme, dan begint het schoon.** Koos je bijvoorbeeld eerst "2e Halve prijs"
