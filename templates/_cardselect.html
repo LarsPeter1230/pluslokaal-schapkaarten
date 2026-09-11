@@ -145,7 +145,7 @@
         setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
         deselectAll();
       })
-      .catch(function(){ alert('Downloaden mislukt.'); })
+      .catch(function(){ plAlert('Downloaden mislukt.',{type:'error'}); })
       .then(function(){ dlBtn.disabled = false; });
   });
 })();

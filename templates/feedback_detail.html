@@ -97,7 +97,7 @@
             </button>
           </form>
           <form method="post" action="{{ url_for('feedback_delete', fid=fb.id) }}" style="flex:0 0 auto;"
-                onsubmit="return confirm('Deze melding definitief verwijderen?')">
+                onsubmit="return plConfirmForm(this,'Deze melding definitief verwijderen?','warning')">
             <button type="submit" class="btn btn-danger btn-sm" title="Verwijderen"><i class="fa fa-trash"></i></button>
           </form>
         </div>

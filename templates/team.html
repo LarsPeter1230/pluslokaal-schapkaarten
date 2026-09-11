@@ -30,7 +30,7 @@
       <div style="flex:1;min-width:160px;"><strong>{{ m.username }}</strong><br><span class="muted small">{{ m.email }}</span></div>
       <form method="post" style="margin:0;"><input type="hidden" name="action" value="approve"><input type="hidden" name="id" value="{{ m.id }}">
         <button class="btn btn-primary btn-sm"><i class="fa fa-check"></i> Goedkeuren</button></form>
-      <form method="post" style="margin:0;" onsubmit="return confirm('Afwijzen en verwijderen?')"><input type="hidden" name="action" value="remove"><input type="hidden" name="id" value="{{ m.id }}">
+      <form method="post" style="margin:0;" onsubmit="return plConfirmForm(this,'Afwijzen en verwijderen?','danger')"><input type="hidden" name="action" value="remove"><input type="hidden" name="id" value="{{ m.id }}">
         <button class="btn btn-ghost btn-sm" style="color:#e3000a;">Afwijzen</button></form>
     </div>
     {% endfor %}
@@ -75,7 +75,7 @@
               <form method="post" style="display:inline;"><input type="hidden" name="action" value="reset"><input type="hidden" name="id" value="{{ m.id }}"><button class="iconbtn" title="Wachtwoord-reset mailen"><i class="fa fa-key"></i></button></form>
               {% endif %}
               {% if m.id != user.id and m.role != 'admin' %}
-              <form method="post" style="display:inline;" onsubmit="return confirm('{{ m.username }} verwijderen?')"><input type="hidden" name="action" value="remove"><input type="hidden" name="id" value="{{ m.id }}"><button class="iconbtn is-danger" title="Verwijderen"><i class="fa fa-trash"></i></button></form>
+              <form method="post" style="display:inline;" onsubmit="return plConfirmForm(this,'{{ m.username }} verwijderen?','danger')"><input type="hidden" name="action" value="remove"><input type="hidden" name="id" value="{{ m.id }}"><button class="iconbtn is-danger" title="Verwijderen"><i class="fa fa-trash"></i></button></form>
               {% endif %}
             </td>
           </tr>

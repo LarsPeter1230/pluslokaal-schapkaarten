@@ -389,21 +389,21 @@ function switchK(idx,btn){
 }
 // SK Maxi: kopieer de geselecteerde kaart naar het VOLGENDE vakje en neem de selectie mee. Zo bouw je
 // met herhaald klikken 2, 3 of 4 dezelfde kaarten op één vel op. Knop staat op de geselecteerde kaart.
-function copyToNext(ev){
+async function copyToNext(ev){
   if(ev){ ev.preventDefault(); ev.stopPropagation(); }
   if(AF!=='sk_maxi' || AK>=3) return;
   const nxt=AK+1;
-  if(cardHasContent(nxt) && !confirm('Vakje '+(nxt+1)+' heeft al inhoud. Overschrijven met deze kaart?')) return;
+  if(cardHasContent(nxt) && !(await plConfirm('Vakje '+(nxt+1)+' heeft al inhoud. Overschrijven met deze kaart?',{type:'warning',title:'Vakje overschrijven?',confirmText:'Overschrijven'}))) return;
   Object.assign(KD[nxt], Object.assign({}, KD[AK]));   // kopie (alle waarden zijn tekst)
   render();
   switchK(nxt, document.querySelectorAll('.ktab')[nxt]);   // selectie volgt → nog eens klikken = volgende
 }
 function _blankKD(){ return {merk:'',koptekst:'',subtekst:'',vbtekst:'',aanv:'',verpakking:'',inhoud:'',vp1:'',vp2:'',actietype:'',av:'',av2:'',kilo:'',land:'',max:'',kem:'nee',alcohol:'nee',mix:'',code:'',kaarttype:'actie',layout:'nieuw',scans:'',overlay:''}; }
 // Maak het geselecteerde SK Maxi-vakje leeg (blijft bij het printen wit). Knop (prullenbak) op de kaart.
-function clearCel(ev){
+async function clearCel(ev){
   if(ev){ ev.preventDefault(); ev.stopPropagation(); }
   const i=(AF==='sk_maxi')?AK:0;
-  if(cardHasContent(i) && !confirm(AF==='sk_maxi'?'Dit vakje leegmaken?':'Deze kaart leegmaken?')) return;
+  if(cardHasContent(i) && !(await plConfirm(AF==='sk_maxi'?'Dit vakje leegmaken?':'Deze kaart leegmaken?',{type:'question',title:'Leegmaken?',confirmText:'Leegmaken'}))) return;
   Object.assign(KD[i], _blankKD());
   render();
   if(AF==='sk_maxi'){ switchK(i, document.querySelectorAll('.ktab')[i]); }
@@ -952,7 +952,7 @@ function _fillHidden(){
   for(let i=0;i<4;i++){const d=KD[i];FIELDS.forEach(f=>{const e=fi(`h-${i}-${f}`);if(e)e.value=d[f]||'';});}
 }
 function _cardValid(){
-  if(!KD[0].koptekst&&!KD[0].merk){alert('Vul minimaal een merk of koptekst in voor kaart 1.');return false;}
+  if(!KD[0].koptekst&&!KD[0].merk){plAlert('Vul minimaal een merk of koptekst in voor kaart 1.',{type:'warning'});return false;}
   return true;
 }
 
@@ -984,7 +984,7 @@ function saveAndPrint(){
     .then(function(r){ return r.json().catch(function(){ throw new Error('Onverwacht antwoord van de server.'); }); })
     .then(function(d){
       if(window.plusLoader) plusLoader.hide();
-      if(!d || !d.ok){ alert((d && d.error) || 'Opslaan mislukt.'); return; }
+      if(!d || !d.ok){ plAlert((d && d.error) || 'Opslaan mislukt.',{type:'error'}); return; }
       // De kaart bestaat nu → volgende keer opslaan wordt bijwerken (voorkomt een dubbele kaart).
       var eid = form.querySelector('[name=edit_id]'); if(eid) eid.value = d.id;
       var lbl = document.getElementById('saveBtnLabel'); if(lbl) lbl.textContent = 'Kaart bijwerken';
@@ -1000,7 +1000,7 @@ function saveAndPrint(){
         window.open(d.pdf, '_blank');   // terugval: open de PDF om te printen
       }
     })
-    .catch(function(err){ if(window.plusLoader) plusLoader.hide(); alert(err.message || 'Opslaan mislukt.'); });
+    .catch(function(err){ if(window.plusLoader) plusLoader.hide(); plAlert(err.message || 'Opslaan mislukt.',{type:'error'}); });
 }
 
 // Hulpvenster dat de browser-print blokkeert en de juiste werkwijze uitlegt.

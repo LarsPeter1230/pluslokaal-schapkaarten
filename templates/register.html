@@ -86,7 +86,7 @@
 function resetPw(id,name){
   var pw=prompt('Nieuw wachtwoord voor "'+name+'":');
   if(pw===null) return;
-  if(pw.trim().length<4){alert('Minimaal 4 tekens.');return;}
+  if(pw.trim().length<4){plAlert('Minimaal 4 tekens.',{type:'warning'});return;}
   var f=document.getElementById('resetForm');
   f.action='/reset_password/'+id;
   document.getElementById('resetPwVal').value=pw;

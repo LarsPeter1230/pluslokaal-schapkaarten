@@ -156,10 +156,10 @@
           <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
             <form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
               <input type="hidden" name="action" value="agent_key">
-              <button type="submit" class="btn btn-outline btn-sm" onclick="return confirm('Nieuwe sleutel genereren? De huidige Pi verliest dan de verbinding tot je de nieuwe sleutel invoert.')"><i class="fa fa-rotate"></i> Nieuwe sleutel</button></form>
+              <button type="submit" class="btn btn-outline btn-sm" onclick="return plConfirmSubmit(this,'Nieuwe sleutel genereren? De huidige Pi verliest dan de verbinding tot je de nieuwe sleutel invoert.','warning')"><i class="fa fa-rotate"></i> Nieuwe sleutel</button></form>
             <form method="post"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
               <input type="hidden" name="action" value="agent_revoke">
-              <button type="submit" class="btn btn-ghost btn-sm" onclick="return confirm('Sleutel intrekken? De agent kan dan niet meer printen.')"><i class="fa fa-ban"></i> Intrekken</button></form>
+              <button type="submit" class="btn btn-ghost btn-sm" onclick="return plConfirmSubmit(this,'Sleutel intrekken? De agent kan dan niet meer printen.','warning')"><i class="fa fa-ban"></i> Intrekken</button></form>
           </div>
         {% else %}
           <p class="muted small" style="margin:0 0 10px;">Nog geen sleutel voor deze winkel.</p>

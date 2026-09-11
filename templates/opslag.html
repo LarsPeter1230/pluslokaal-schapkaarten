@@ -82,7 +82,7 @@
 
       <hr style="border:none;border-top:1px solid var(--border, #e9ecef);margin:18px 0;">
 
-      <form method="post" onsubmit="return confirm('Weet je zeker dat je alle kaarten ouder dan het opgegeven aantal dagen wilt verwijderen? Dit kan niet ongedaan worden gemaakt.');">
+      <form method="post" onsubmit="return plConfirmForm(this,'Weet je zeker dat je alle kaarten ouder dan het opgegeven aantal dagen wilt verwijderen? Dit kan niet ongedaan worden gemaakt.','warning')">
         <input type="hidden" name="action" value="cleanup">
         <div class="field">
           <label>Nu handmatig opruimen - ouder dan</label>
@@ -153,7 +153,7 @@
             <td style="padding:8px 10px;">{{ w.rows }}</td>
             <td style="padding:8px 10px;">{{ human(w.bytes) if w.bytes else '-' }}</td>
             <td style="padding:8px 10px;text-align:right;">
-              <form method="post" style="margin:0;" onsubmit="return confirm('Week {{ short }} volledig verwijderen? Alle kaarten én bestanden van deze week worden gewist en de week verdwijnt ook uit Winkelpakketten.');">
+              <form method="post" style="margin:0;" onsubmit="return plConfirmForm(this,'Week {{ short }} volledig verwijderen? Alle kaarten én bestanden van deze week worden gewist en de week verdwijnt ook uit Winkelpakketten.','warning')">
                 <input type="hidden" name="action" value="w2p_delete_week">
                 <input type="hidden" name="period_id" value="{{ w.period_id }}">
                 <button type="submit" class="iconbtn is-danger" title="Week volledig verwijderen"><i class="fa fa-trash"></i></button>
@@ -165,7 +165,7 @@
       </table>
     </div>
     <div style="margin-top:16px;">
-      <form method="post" style="margin:0;" onsubmit="return confirm('WEET JE HET ZEKER? De VOLLEDIGE winkelpakket-cache wordt verwijderd. Alle kaarten moeten opnieuw naar de server gedownload worden.');">
+      <form method="post" style="margin:0;" onsubmit="return plConfirmForm(this,'WEET JE HET ZEKER? De VOLLEDIGE winkelpakket-cache wordt verwijderd. Alle kaarten moeten opnieuw naar de server gedownload worden.','warning')">
         <input type="hidden" name="action" value="w2p_delete_all">
         <button type="submit" class="btn btn-outline btn-sm"><i class="fa fa-trash"></i> Volledige cache legen</button>
       </form>

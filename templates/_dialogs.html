@@ -1,0 +1,79 @@
+{# Huisstijl-dialogen (vervangen de kale browser-alert/confirm). Onderscheidende iconen + kleuren per
+   type, zodat meldingen niet klakkeloos worden weggeklikt. Gebruik:
+   - plAlert(bericht, {type, title, confirmText})            -> Promise (OK)
+   - plConfirm(bericht, {type, title, confirmText, cancelText}) -> Promise<bool>
+   - onsubmit="return plConfirmForm(this,'bericht','danger',{title})"   (inline form-bevestiging)
+   Types: info | success | warning | danger | error | question #}
+<div class="pld-overlay" id="pldOverlay" hidden>
+  <div class="pld" role="alertdialog" aria-modal="true" aria-labelledby="pldTitle" aria-describedby="pldMsg">
+    <div class="pld__ic" id="pldIc"><i class="fa fa-circle-info"></i></div>
+    <h3 class="pld__title" id="pldTitle"></h3>
+    <p class="pld__msg" id="pldMsg"></p>
+    <div class="pld__btns" id="pldBtns"></div>
+  </div>
+</div>
+<script>
+(function(){
+  // icoon + kleur-accent + standaard titel per type
+  var TYPES={
+    info:     {ic:'fa-circle-info',          title:'Ter info'},
+    success:  {ic:'fa-circle-check',         title:'Gelukt'},
+    warning:  {ic:'fa-triangle-exclamation', title:'Let op'},
+    danger:   {ic:'fa-trash-can',            title:'Verwijderen?'},
+    error:    {ic:'fa-circle-xmark',         title:'Er ging iets mis'},
+    question: {ic:'fa-circle-question',      title:'Even bevestigen'}
+  };
+  function open(opts){
+    var ov=document.getElementById('pldOverlay'); if(!ov) return Promise.resolve(true);
+    var t=TYPES[opts.type]||TYPES.info;
+    ov.querySelector('.pld').className='pld pld--'+(opts.type||'info');
+    document.getElementById('pldIc').innerHTML='<i class="fa '+(opts.icon||t.ic)+'"></i>';
+    var titleEl=document.getElementById('pldTitle');
+    var title=(opts.title!==undefined)?opts.title:t.title;
+    titleEl.textContent=title||''; titleEl.style.display=title?'':'none';
+    document.getElementById('pldMsg').textContent=opts.message||'';
+    var btns=document.getElementById('pldBtns'); btns.innerHTML='';
+    var prev=document.activeElement;
+    return new Promise(function(res){
+      function close(v){ ov.hidden=true; document.removeEventListener('keydown',onkey);
+        try{ if(prev&&prev.focus)prev.focus(); }catch(e){} res(v); }
+      if(opts.confirm){
+        var c=document.createElement('button'); c.type='button';
+        c.className='pld-btn pld-btn--ghost'; c.textContent=opts.cancelText||'Annuleren';
+        c.onclick=function(){close(false);}; btns.appendChild(c);
+      }
+      var ok=document.createElement('button'); ok.type='button';
+      var danger=(opts.type==='danger'||opts.type==='error');
+      ok.className='pld-btn '+(danger?'pld-btn--danger':'pld-btn--primary');
+      ok.textContent=opts.confirmText||(opts.confirm?(danger?'Verwijderen':'Bevestigen'):'OK');
+      ok.onclick=function(){close(true);}; btns.appendChild(ok);
+      function onkey(e){
+        if(e.key==='Escape'){ e.preventDefault(); close(opts.confirm?false:true); }
+        else if(e.key==='Enter'){ e.preventDefault(); close(true); }
+      }
+      document.addEventListener('keydown',onkey);
+      ov.hidden=false; setTimeout(function(){ok.focus();},30);
+    });
+  }
+  window.plAlert=function(message,opts){ opts=opts||{}; return open(Object.assign({type:'info',message:message},opts)); };
+  window.plConfirm=function(message,opts){ opts=opts||{}; return open(Object.assign({type:'question',message:message,confirm:true},opts)); };
+  // Inline form-bevestiging: houdt de submit tegen, toont de dialoog en verstuurt pas na bevestiging.
+  window.plConfirmForm=function(form,message,type,opts){
+    if(form.__pldConfirmed){ form.__pldConfirmed=false; return true; }   // al bevestigd -> laat submit door
+    opts=opts||{};
+    plConfirm(message,Object.assign({type:type||'danger'},opts)).then(function(ok){
+      if(ok){ form.__pldConfirmed=true; if(form.requestSubmit)form.requestSubmit(); else form.submit(); }
+    });
+    return false;
+  };
+  // Inline bevestiging op een submit-knop (met eigen name/value): stuurt de knop mee bij bevestiging.
+  window.plConfirmSubmit=function(btn,message,type,opts){
+    opts=opts||{};
+    plConfirm(message,Object.assign({type:type||'danger'},opts)).then(function(ok){
+      if(!ok) return; var form=btn.form||btn.closest('form'); if(!form) return;
+      if(form.requestSubmit)form.requestSubmit(btn); else form.submit();
+    });
+    return false;
+  };
+})();
+</script>

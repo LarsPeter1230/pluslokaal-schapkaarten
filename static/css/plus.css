@@ -984,6 +984,35 @@ input[readonly]{background:#f7f8f6;color:var(--muted);}
 .pl-inline .pl-spinner{width:46px;height:49px;}
 .pl-inline .pl-spinner svg{width:100%;height:100%;display:block;}
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   HUISSTIJL-DIALOGEN (plAlert / plConfirm) - vervangen de kale browser-popups
+   ═══════════════════════════════════════════════════════════════════════════ */
+.pld-overlay{position:fixed;inset:0;z-index:100050;display:flex;align-items:center;justify-content:center;
+  background:rgba(15,25,10,.5);padding:20px;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);}
+.pld-overlay[hidden]{display:none;}
+.pld{background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.32);max-width:420px;width:100%;
+  padding:26px 26px 20px;text-align:center;animation:pldPop .18s cubic-bezier(.2,.7,.3,1);}
+@keyframes pldPop{from{opacity:0;transform:translateY(10px) scale(.97);}to{opacity:1;transform:none;}}
+.pld__ic{width:60px;height:60px;border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;
+  justify-content:center;font-size:1.7rem;}
+.pld__title{font-size:1.18rem;font-weight:800;color:var(--text);margin:0 0 6px;line-height:1.25;}
+.pld__msg{font-size:.95rem;line-height:1.5;color:var(--muted);margin:0 0 20px;white-space:pre-line;}
+.pld__btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+.pld-btn{border:none;border-radius:22px 22px 22px 4px;padding:11px 24px;font-family:inherit;font-weight:800;
+  font-size:.92rem;cursor:pointer;transition:all .15s;min-width:110px;}
+.pld-btn--primary{background:var(--green);color:#fff;} .pld-btn--primary:hover{background:var(--green-h);}
+.pld-btn--danger{background:var(--red);color:#fff;} .pld-btn--danger:hover{filter:brightness(.93);}
+.pld-btn--ghost{background:var(--bg);color:var(--muted);border:1px solid var(--border-soft);}
+.pld-btn--ghost:hover{background:#fff;color:var(--text);border-color:var(--border);}
+.pld-btn:focus-visible{outline:3px solid rgba(128,189,29,.5);outline-offset:2px;}
+/* icoon-accent per type */
+.pld--info    .pld__ic{background:#e7f0fb;color:#0b5cad;}
+.pld--success .pld__ic{background:var(--green-tint);color:var(--green-d);}
+.pld--warning .pld__ic{background:#fdf1d8;color:#8a5a00;}
+.pld--danger  .pld__ic{background:#fbe5e5;color:var(--red);}
+.pld--error   .pld__ic{background:#fbe5e5;color:var(--red);}
+.pld--question .pld__ic{background:var(--green-tint2);color:var(--green-d);}
+
 /* Tip-preview: bewerkbare velden - punt in de prijs + prefixes via CSS (zoals de actie-kaart) */
 .pvc.newtip .nt-eur:not(:empty)::after{content:".";}
 .pvc.newtip .nt-inh:not(:empty){margin-left:.28em;}

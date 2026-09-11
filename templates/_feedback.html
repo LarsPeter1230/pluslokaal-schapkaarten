@@ -301,7 +301,7 @@
   document.getElementById('fbShotUploadBtn2').addEventListener('click',pick);
   shotFile.addEventListener('change',function(){
     var f=shotFile.files&&shotFile.files[0]; if(!f) return;
-    if(f.size>4*1024*1024){ alert('Afbeelding is te groot (max 4 MB).'); shotFile.value=''; return; }
+    if(f.size>4*1024*1024){ plAlert('Afbeelding is te groot (max 4 MB).',{type:'warning'}); shotFile.value=''; return; }
     var r=new FileReader(); r.onload=function(){ setShot(r.result); }; r.readAsDataURL(f); shotFile.value='';
   });
 

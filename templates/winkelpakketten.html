@@ -701,9 +701,9 @@ function wpThumbRetry(img){
   }
 
   if(clearBtn){
-    clearBtn.addEventListener('click', function(){
+    clearBtn.addEventListener('click', async function(){
       if(!cart.size) return;
-      if(!confirm('Mandje legen? Alle ' + cart.size + ' geselecteerde kaart(en) worden gedeselecteerd.')) return;
+      if(!(await plConfirm('Alle ' + cart.size + ' geselecteerde kaart(en) worden gedeselecteerd.',{type:'question',title:'Mandje legen?',confirmText:'Legen'}))) return;
       cart.clear(); saveCart();
       boxes.forEach(function(b){ b.checked = false; });
       refresh();
@@ -898,7 +898,7 @@ function wpThumbRetry(img){
   var _rb=document.getElementById('wpReqBackdrop'); if(_rb) _rb.addEventListener('click', closePrinterRequest);
   var _rd=document.getElementById('wpReqDownload');
   if(_rd) _rd.addEventListener('click', function(){
-    if(cart.size===0){ alert('Selecteer eerst kaarten om samen te voegen.'); return; }
+    if(cart.size===0){ plAlert('Selecteer eerst kaarten om samen te voegen.',{type:'warning'}); return; }
     closePrinterRequest();
     if(submit && !submit.disabled) submit.click();   // start de bestaande download
   });

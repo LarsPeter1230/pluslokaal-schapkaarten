@@ -5,6 +5,19 @@ toegevoegd en verbeterd - de nieuwste bovenaan. Heb je een idee of mis je iets? 
 > **Over de versienummers:** we gebruiken **v‹hoofd›.‹functie›.‹fix›**. Het middelste nummer gaat omhoog
 > bij **nieuwe functies**, het laatste nummer bij **verbeteringen en opgeloste puntjes**.
 
+## versie 2.55.0 - Meldingen in eigen huisstijl met een herkenbaar icoon · 11 september 2026
+
+- **Alle pop-upmeldingen zien er nu uit in PLUS-huisstijl** in plaats van de kale grijze browser-venstertjes.
+  Elke melding heeft een **eigen icoon en kleur** zodat je in één oogopslag ziet waar het om gaat en je
+  niet per ongeluk iets wegklikt:
+  - **Verwijderen** (rood, prullenbak) - bij het verwijderen van kaarten, winkels, rollen, batches, enz.
+  - **Let op** (amber, uitroepteken) - bij onomkeerbare acties zoals de cache legen of een sleutel intrekken.
+  - **Er ging iets mis** (rood, kruisje) - bij een mislukte download of opslag.
+  - **Even bevestigen** (groen, vraagteken) - bij gewone bevestigingen zoals het mandje legen.
+  - **Ter info / Gelukt** - voor informatie- en gelukt-meldingen.
+- De knoppen zijn duidelijk: een gekleurde actieknop en een rustige "Annuleren", met dezelfde look als de
+  rest van PLUSLokaal.
+
 ## versie 2.54.0 - Tip-kaart: nette prijsweergave en NIX18 op de juiste plek per formaat · 11 september 2026
 
 - **Geen overbodig streepje meer** in de tip-prijs: een lege prijs toont nu een net voorbeeld ("1.98")

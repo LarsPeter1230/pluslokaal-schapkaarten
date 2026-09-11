@@ -276,7 +276,7 @@ async function doOvernemen(i, withAction){
 
 async function saveJob(){
   const nm=fi('l-name').value.trim(), bc=fi('l-barcode').value.trim();
-  if(!nm && !bc){ alert('Vul minimaal een naam of barcode in.'); return; }
+  if(!nm && !bc){ plAlert('Vul minimaal een naam of barcode in.',{type:'warning'}); return; }
   const item={name:nm, barcode:bc, barcode_type:'ean13',
     price:num(fi('l-price').value)===''?null:parseFloat(num(fi('l-price').value)),
     old_price:num(fi('l-old').value)===''?null:parseFloat(num(fi('l-old').value)),
@@ -290,8 +290,8 @@ async function saveJob(){
     const r=await fetch('{{ url_for("label_new") }}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const d=await r.json();
     if(d.success){ window.location='{{ url_for("labels_dashboard") }}'.replace(/\/$/,'')+'/'+d.job_id; }
-    else alert(d.error||'Opslaan mislukt.');
-  }catch(e){ alert('Opslaan mislukt: '+e); }
+    else plAlert(d.error||'Opslaan mislukt.',{type:'error'});
+  }catch(e){ plAlert('Opslaan mislukt: '+e,{type:'error'}); }
 }
 {% if edit_data %}
 let EDIT_ID={{ edit_data.id }};

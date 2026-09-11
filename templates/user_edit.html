@@ -95,7 +95,7 @@
           {% else %}<span class="muted">uit</span>{% endif %}
         </div>
         {% if tgt.mfa_enabled %}
-        <form method="post" onsubmit="return confirm('2FA van {{ tgt.username }} resetten? Diegene moet het bij de volgende login opnieuw instellen (bijv. als het toestel kwijt is).');">
+        <form method="post" onsubmit="return plConfirmForm(this,'2FA van {{ tgt.username }} resetten? Diegene moet het bij de volgende login opnieuw instellen (bijv. als het toestel kwijt is).','warning');">
           <input type="hidden" name="action" value="mfa_reset">
           <button type="submit" class="btn btn-ghost btn-block btn-sm"><i class="fa fa-rotate"></i> 2FA resetten</button>
         </form>
@@ -124,7 +124,7 @@
         Deze gebruiker heeft <strong>{{ card_count }}</strong> schapkaart{{ '' if card_count==1 else 'en' }} gemaakt.
         {% if card_count %}Kies hieronder optioneel een gebruiker om de kaarten aan over te dragen.{% endif %}
       </p>
-      <form method="post" onsubmit="return confirm('{{ tgt.username }} definitief verwijderen?')">
+      <form method="post" onsubmit="return plConfirmForm(this,'{{ tgt.username }} definitief verwijderen?','warning')">
         <input type="hidden" name="action" value="delete">
         {% if card_count %}
         <div class="field">

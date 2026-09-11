@@ -90,7 +90,7 @@
         </button>
       </form>
       {% if user.portaal_user %}
-      <form method="post" onsubmit="return confirm('pluslokaal.nl ontkoppelen? Je moet dan opnieuw koppelen.');" style="margin-top:-4px;">
+      <form method="post" onsubmit="return plConfirmForm(this,'pluslokaal.nl ontkoppelen? Je moet dan opnieuw koppelen.','question');" style="margin-top:-4px;">
         <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
         <input type="hidden" name="action" value="portaal_unlink">
         <button type="submit" class="btn btn-ghost btn-sm"><i class="fa fa-link-slash"></i> Ontkoppelen</button>
@@ -106,7 +106,7 @@
   var file=document.getElementById('avatarFile');
   file.addEventListener('change',function(){
     var f=this.files[0]; if(!f) return;
-    if(f.size>3*1024*1024){alert('Afbeelding te groot (max 3 MB).');return;}
+    if(f.size>3*1024*1024){plAlert('Afbeelding te groot (max 3 MB).',{type:'warning'});return;}
     var img=new Image(), reader=new FileReader();
     reader.onload=function(e){ img.onload=function(){
       // vierkant bijsnijden + verkleinen naar 256px

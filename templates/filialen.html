@@ -48,7 +48,7 @@
             <td style="text-align:right;white-space:nowrap;">
               <a href="{{ url_for('filiaal_detail', nummer=f.nummer) }}" class="iconbtn is-edit" title="Instellingen / printer"><i class="fa fa-gear"></i></a>
               {% if counts.get(f.nummer, 0) == 0 %}
-              <form method="post" action="{{ url_for('delete_filiaal',fid=f.id) }}" style="display:inline;" onsubmit="return confirm('Filiaal {{ f.nummer }} verwijderen?')">
+              <form method="post" action="{{ url_for('delete_filiaal',fid=f.id) }}" style="display:inline;" onsubmit="return plConfirmForm(this,'Filiaal {{ f.nummer }} verwijderen?','danger')">
                 <button type="submit" class="iconbtn is-danger" title="Verwijderen"><i class="fa fa-trash"></i></button>
               </form>
               {% endif %}

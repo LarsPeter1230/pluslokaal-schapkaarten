@@ -12,7 +12,7 @@
   <div class="toolbar">
     <button type="button" class="btn btn-primary btn-sm" onclick="openQty()"><i class="fa fa-print"></i> Afdrukken</button>
     <a href="{{ url_for('label_new', edit=job.id) }}" class="btn btn-outline btn-sm"><i class="fa fa-pen"></i> Bewerken</a>
-    <form method="post" action="{{ url_for('label_delete', job_id=job.id) }}" style="margin:0;" onsubmit="return confirm('Labelbatch “{{ job.name }}” verwijderen?')">
+    <form method="post" action="{{ url_for('label_delete', job_id=job.id) }}" style="margin:0;" onsubmit="return plConfirmForm(this,'Labelbatch “{{ job.name }}” verwijderen?','danger')">
       <button type="submit" class="btn btn-ghost btn-sm" style="color:#e3000a;"><i class="fa fa-trash"></i> Verwijderen</button>
     </form>
   </div>

@@ -35,7 +35,7 @@
       <div class="kaart__acts">
         <a href="{{ url_for('scankaart_new', edit=card.id) }}" class="iconbtn is-edit" title="Bewerken"><i class="fa fa-pen"></i></a>
         <button type="button" class="iconbtn is-print card-print-btn" title="Printen"><i class="fa fa-print"></i></button>
-        <form method="post" action="{{ url_for('delete_card',card_id=card.id) }}" onsubmit="return confirm('Scankaart “{{ card.title }}” verwijderen?')" style="margin-left:auto;">
+        <form method="post" action="{{ url_for('delete_card',card_id=card.id) }}" onsubmit="return plConfirmForm(this,'Scankaart “{{ card.title }}” verwijderen?','danger')" style="margin-left:auto;">
           <button type="submit" class="iconbtn is-danger" title="Verwijderen"><i class="fa fa-trash"></i></button>
         </form>
       </div>

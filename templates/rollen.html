@@ -56,7 +56,7 @@
           <div style="display:flex;gap:8px;align-items:center;">
             <button type="submit" class="btn btn-primary btn-sm"><i class="fa fa-floppy-disk"></i> Opslaan</button>
             {% if not r.is_system %}
-            <button type="submit" formaction="{{ url_for('rollen') }}" name="action" value="delete" class="btn btn-ghost btn-sm" style="color:#e3000a;" onclick="return confirm('Rol “{{ r.label }}” verwijderen?')" {{ 'disabled' if counts.get(r.name,0) }}><i class="fa fa-trash"></i> Verwijderen</button>
+            <button type="submit" formaction="{{ url_for('rollen') }}" name="action" value="delete" class="btn btn-ghost btn-sm" style="color:#e3000a;" onclick="return plConfirmSubmit(this,'Rol “{{ r.label }}” verwijderen?','danger')" {{ 'disabled' if counts.get(r.name,0) }}><i class="fa fa-trash"></i> Verwijderen</button>
             {% if counts.get(r.name,0) %}<span class="muted small">in gebruik - niet verwijderbaar</span>{% endif %}
             {% endif %}
           </div>

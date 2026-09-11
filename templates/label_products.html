@@ -40,7 +40,7 @@
           <input type="text" name="price" value="{{ '%.2f'|format(p.price) if p.price is not none else '' }}" placeholder="-">
           <button class="iconbtn is-edit" title="Opslaan"><i class="fa fa-floppy-disk"></i></button>
         </form>
-        <form method="post" onsubmit="return confirm('“{{ p.name }}” verwijderen?')" style="margin:0;">
+        <form method="post" onsubmit="return plConfirmForm(this,'“{{ p.name }}” verwijderen?','danger')" style="margin:0;">
           <input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ p.id }}">
           <button class="iconbtn is-danger" title="Verwijderen"><i class="fa fa-trash"></i></button>
         </form>

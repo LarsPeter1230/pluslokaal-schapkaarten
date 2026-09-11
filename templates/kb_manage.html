@@ -30,7 +30,7 @@
         <td style="text-align:right;white-space:nowrap;">
           <a href="{{ url_for('kb_edit', aid=a.id) }}" class="iconbtn is-edit" title="Bewerken"><i class="fa fa-pen"></i></a>
           <form method="post" action="{{ url_for('kb_delete', aid=a.id) }}" style="display:inline;"
-                onsubmit="return confirm('Artikel “{{ a.title }}” verwijderen?')">
+                onsubmit="return plConfirmForm(this,'Artikel “{{ a.title }}” verwijderen?','danger')">
             <button type="submit" class="iconbtn is-danger" title="Verwijderen"><i class="fa fa-trash"></i></button>
           </form>
         </td>

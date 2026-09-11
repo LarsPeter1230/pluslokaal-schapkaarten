@@ -47,7 +47,7 @@
     </div>
     <div class="dz-actions">
       <a href="{{ url_for('designer_editor', design_id=d.id) }}" class="btn btn-outline btn-sm"><i class="fa fa-pen"></i> Openen</a>
-      <form method="post" action="{{ url_for('designer_delete', design_id=d.id) }}" onsubmit="return confirm('Ontwerp verwijderen?');" style="margin-left:auto;">
+      <form method="post" action="{{ url_for('designer_delete', design_id=d.id) }}" onsubmit="return plConfirmForm(this,'Ontwerp verwijderen?','danger');" style="margin-left:auto;">
         <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
         <button class="iconbtn is-danger" title="Verwijderen"><i class="fa fa-trash"></i></button>
       </form>

@@ -272,6 +272,7 @@ window.addEventListener('pageshow', function(){ window.plusLoader.hide(); });
 })();
 </script>
 {% if user %}{% include '_printqueue.html' %}{% endif %}
+{% include '_dialogs.html' %}
 {% if user %}{% include '_feedback.html' %}{% endif %}
 {% if user and user.show_tour %}{% include '_tour.html' %}{% endif %}
 

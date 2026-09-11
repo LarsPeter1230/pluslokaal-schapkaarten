@@ -151,7 +151,7 @@ function renderPreview(){
 }
 function saveScan(){
   const has=SC.some(c=>c.some(p=>String(p.code||'').trim()));
-  if(!has){ alert('Voeg minstens één product met barcode toe.'); return; }
+  if(!has){ plAlert('Voeg minstens één product met barcode toe.',{type:'warning'}); return; }
   fi('h-cards').value=JSON.stringify(SC);
   if(window.plusLoader) plusLoader.show({% if edit_card %}'Scankaart wordt bijgewerkt…'{% else %}'Scankaart wordt opgeslagen…'{% endif %});
   fi('scanForm').submit();
